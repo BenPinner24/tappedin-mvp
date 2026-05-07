@@ -540,7 +540,7 @@ export default function HomePage() {
               <div style={{ animation:'fadeIn 1.2s ease .55s both' }}>
                 <div style={{ ...DIVIDER, marginBottom: isMobile ? '.9rem' : '1.25rem' }} />
                 <div className="hero-stats" style={{ display:'flex', gap:'2.75rem', flexWrap:'wrap' }}>
-                  {[{n:'100', l:'Total ever made'},{n:'1/100', l:'Individually numbered'},{n:'£39.99', l:'One-time price'}].map((s,i)=>(
+                  {[{n:'100', l:'Total ever made'},{n:'1/100', l:'Individually numbered'},{n:'£49.99', l:'One-time price'}].map((s,i)=>(
                     <div key={i}>
                       <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '1.35rem' : '1.75rem', fontWeight:600, color:'#fff', lineHeight:1, marginBottom:4, letterSpacing:'0.02em' }}>{s.n}</div>
                       <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.68rem', fontWeight:400, color:'rgba(255,255,255,.28)', letterSpacing:'.1em', textTransform:'uppercase' }}>{s.l}</div>
@@ -598,7 +598,7 @@ export default function HomePage() {
                 { l:'Material',   v:'Matte black metal',    s:'Premium aircraft-grade construction' },
                 { l:'Edition',    v:'Founder — 1 of 100',   s:'Never restocking. Ever.' },
                 { l:'Technology', v:'NFC + Digital Profile', s:'Tap-to-profile, no app needed' },
-                { l:'Price',      v:'£39.99',                s:'One-time. No subscription.' },
+                { l:'Price',      v:'£49.99',                s:'One-time. No subscription.' },
               ].map((d,i)=>(
                 <div key={i} style={{ background:'#080808', padding: isMobile ? '1rem .9rem' : 'clamp(1.25rem,2.5vw,1.75rem)', display:'flex', flexDirection:'column', gap:8, minWidth:0 }}>
                   <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, color:'rgba(255,255,255,.22)', letterSpacing:'.22em', textTransform:'uppercase' }}>{d.l}</div>
@@ -747,8 +747,8 @@ export default function HomePage() {
 
             <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', maxWidth:720, margin:'0 auto' }}>
               {[
-                { label:'Standard PVC',   price:'£19.99' },
-                { label:'Standard Metal', price:'£29.99' },
+                { label:'Standard PVC',   price:'£24.99' },
+                { label:'Standard Metal', price:'£34.99' },
               ].map((ed,i)=>(
                 <div key={i} style={{ background:'#070707', border:'1px solid rgba(255,255,255,0.04)', borderRadius:3, padding: isMobile ? '1.1rem .9rem' : 'clamp(1.5rem,3vw,2rem)', opacity:.4, position:'relative', overflow:'hidden' }}>
                   <div style={{ position:'absolute', top:12, right:12, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:2, padding:'3px 9px', fontFamily:'Oswald, Arial, sans-serif', fontSize:'.58rem', fontWeight:500, letterSpacing:'.2em', color:'rgba(255,255,255,.38)', textTransform:'uppercase' }}>Locked</div>
