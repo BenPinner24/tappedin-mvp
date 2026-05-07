@@ -115,8 +115,96 @@ const G = `
     .hero-ctas    { flex-direction:column !important; align-items:stretch !important; }
     .detail-strip { grid-template-columns:1fr 1fr !important; }
   }
-`
 
+@media (max-width: 540px) {
+  header {
+    position: sticky !important;
+    top: 0 !important;
+    background: rgba(5,5,5,0.96) !important;
+    backdrop-filter: blur(18px) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    padding: 0 14px !important;
+    overflow: hidden !important;
+  }
+
+  header > div {
+    height: 70px !important;
+    gap: 10px !important;
+    max-width: 100% !important;
+  }
+
+  header nav {
+    display: none !important;
+  }
+
+  header a[href="/"] {
+    font-size: 0.88rem !important;
+    letter-spacing: 0.18em !important;
+    flex-shrink: 1 !important;
+  }
+
+  header .btn-ghost {
+    display: none !important;
+  }
+
+  header .btn-primary {
+    padding: 10px 14px !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.08em !important;
+    min-width: auto !important;
+    flex-shrink: 0 !important;
+  }
+
+  main,
+  section {
+    overflow-x: hidden !important;
+  }
+
+  section:first-of-type {
+    min-height: auto !important;
+    padding-top: 4.25rem !important;
+    padding-bottom: 2.5rem !important;
+  }
+
+  .hero-cols {
+    gap: 2.5rem !important;
+  }
+
+  .hero-card-col {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .hero-card-wrap {
+    width: 100% !important;
+    max-width: 78vw !important;
+    transform: scale(0.74);
+    transform-origin: top center;
+    margin-bottom: -4rem !important;
+  }
+
+  .nfc-card-hero {
+    width: 78vw !important;
+    max-width: 310px !important;
+    height: calc(78vw / 1.586) !important;
+    max-height: 196px !important;
+  }
+
+  h1 {
+    font-size: clamp(2.8rem, 14vw, 4.2rem) !important;
+  }
+
+  .hero-ctas {
+    margin-bottom: 1.75rem !important;
+  }
+
+  .hero-stats {
+    gap: 2rem !important;
+  }
+}
+
+`
 // ─────────────────────────────────────────────────────────────────────────────
 // SCROLL REVEAL
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,7 +251,7 @@ function CardFront({ size = 'lg', float = false, scanLine = false }: { size?: Ca
   const { w, r } = DIMS[size]
   const h = Math.round(w / 1.586)
   return (
-    <div style={{
+    <div className={`nfc-card nfc-card-${size}`} style={{
       position:'relative', width: w, height: h, borderRadius: r,
       background:'linear-gradient(148deg, #191919 0%, #121212 30%, #0e0e0e 55%, #161616 85%, #1a1a1a 100%)',
       boxShadow: size === 'hero'
@@ -247,7 +335,7 @@ function CardBack({ size = 'lg', float = false }: { size?: CardSize; float?: boo
 
 function HeroCard() {
   return (
-    <div style={{ position:'relative', maxWidth:420, margin:'0 auto' }}>
+    <div className="hero-card-wrap" style={{ position:'relative', maxWidth:420, margin:'0 auto' }}>
       <div style={{ position:'absolute', inset:'-90px', background:'radial-gradient(ellipse at 42% 52%, rgba(255,255,255,0.055) 0%, transparent 62%)', animation:'glowPulse 4.5s ease-in-out infinite', pointerEvents:'none', borderRadius:'50%', filter:'blur(22px)' }} />
       <CardFront size="hero" float scanLine />
       <div style={{ position:'absolute', top:-16, right:-14, zIndex:10, background:'rgba(10,10,10,0.92)', backdropFilter:'blur(16px)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:12, padding:'10px 16px', textAlign:'center', animation:'fadeIn 1s ease .9s both' }}>
@@ -535,10 +623,35 @@ export default function HomePage() {
                 <div style={{ background:'#0a0a0a', border:'1px solid rgba(255,255,255,0.07)', borderRadius:18, overflow:'hidden', boxShadow:'0 40px 80px rgba(0,0,0,0.7)' }}>
                   <div style={{ padding:'1.1rem 1.5rem', borderBottom:'1px solid rgba(255,255,255,0.05)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                     <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, letterSpacing:'.18em', color:'rgba(255,255,255,.2)', textTransform:'uppercase' }}>tappedin.uk/u/yourname</span>
-                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                      <div style={{ width:5, height:5, borderRadius:'50%', background:'#4ade80', boxShadow:'0 0 6px #4ade80' }} />
-                      <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:500, color:'#4ade80', letterSpacing:'0.08em', textTransform:'uppercase' }}>Live</span>
-                    </div>
+                    <div style={{
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '4px 8px',
+  borderRadius: 999,
+  background: 'rgba(74,222,128,0.08)',
+  border: '1px solid rgba(74,222,128,0.18)',
+  flexShrink: 0,
+}}>
+  <div style={{
+    width: 6,
+    height: 6,
+    borderRadius: '50%',
+    background: '#4ade80',
+    boxShadow: '0 0 8px rgba(74,222,128,0.9)',
+  }} />
+  <span style={{
+    fontFamily: 'Oswald, Arial, sans-serif',
+    fontSize: '.55rem',
+    fontWeight: 600,
+    color: '#4ade80',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    lineHeight: 1,
+  }}>
+    Live
+  </span>
+</div>
                   </div>
                   <div style={{ padding:'2rem 1.5rem', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
                     <div style={{ width:58, height:58, borderRadius:14, background:'rgba(255,255,255,0.055)', border:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'1rem', fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.1rem', fontWeight:600, color:'rgba(255,255,255,.45)', letterSpacing:'0.08em' }}>BP</div>

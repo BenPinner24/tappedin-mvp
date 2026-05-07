@@ -1,11 +1,7 @@
-import type { NextConfig } from 'next'
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '10mb',
-    },
-  },
-}
+  allowedDevOrigins: ['192.168.1.125'],
+};
 
-export default nextConfig
+export default nextConfig;
