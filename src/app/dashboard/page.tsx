@@ -36,6 +36,18 @@ type Profile = {
   website: string | null
   avatar_url: string | null
   accent_color: string | null
+  button_style: string | null
+  background_style: string | null
+  theme_style: string | null
+}
+
+type ProfileLink = {
+  id: string            // stable — never delete/recreate
+  label: string
+  url: string
+  link_type: string | null
+  position: number
+  is_active: boolean
 }
 
 type CardRecord = {
@@ -44,8 +56,180 @@ type CardRecord = {
   nfc_url: string | null
 }
 
-type TapEvent = {
-  tapped_at: string
+type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+type ActiveTab = 'profile' | 'links' | 'style' | 'card'
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const MAX_LINKS = 8
+
+const BUTTON_STYLES = [
+  { value: 'default', label: 'Solid white' },
+  { value: 'outline', label: 'Outline' },
+  { value: 'sharp',   label: 'Sharp edge' },
+  { value: 'glass',   label: 'Glass' },
+]
+
+const THEME_STYLES = [
+  { value: 'dark',   label: 'Dark' },
+  { value: 'darker', label: 'Deeper black' },
+]
+
+// ─── Link-type detection & normalisation ──────────────────────────────────────
+
+type LinkKind = 'whatsapp' | 'email' | 'url'
+
+function detectLinkKind(label: string): LinkKind {
+  const l = label.toLowerCase()
+  if (l.includes('whatsapp') || l === 'wa' || l.startsWith('wa ')) return 'whatsapp'
+  if (l.includes('email') || l.includes('enquir') || l.includes('mail') || l === 'contact' || l.includes('get in touch')) return 'email'
+  return 'url'
+}
+
+function urlPlaceholder(label: string): string {
+  const kind = detectLinkKind(label)
+  if (kind === 'whatsapp') return 'e.g. 07901109774 or +447901109774'
+  if (kind === 'email')    return 'name@example.com'
+  return 'https://'
+}
+
+function urlInputMode(label: string): 'tel' | 'email' | 'url' | 'text' {
+  const kind = detectLinkKind(label)
+  if (kind === 'whatsapp') return 'tel'
+  if (kind === 'email')    return 'email'
+  return 'url'
+}
+
+/** Normalise a raw URL/phone/email value before saving */
+function normaliseUrl(label: string, raw: string): string {
+  const v = raw.trim()
+  if (!v) return v
+  const kind = detectLinkKind(label)
+
+  if (kind === 'whatsapp') {
+    // Accept existing wa.me URLs (with or without protocol)
+    if (v.startsWith('https://wa.me/') || v.startsWith('http://wa.me/')) return v
+    if (v.startsWith('wa.me/')) return `https://${v}`
+
+    // Strip formatting: spaces, hyphens, dots, brackets, parens, square brackets
+    const stripped = v.replace(/[\s\-.()\[\]]/g, '')
+
+    // Remove anything that isn't a digit or a leading +
+    const withPlus = stripped.replace(/[^\d+]/g, '')
+
+    // Drop the leading + so we have raw digits only
+    const digitsRaw = withPlus.replace(/^\+/, '')
+
+    // Normalise leading zeros:
+    //   00xx… → xx…   (international dialling prefix, e.g. 00447901… → 447901…)
+    //   0x…   → 44x…  (UK local, e.g. 07901… → 447901…)
+    let digits = digitsRaw
+    if (digits.startsWith('00')) {
+      digits = digits.slice(2)
+    } else if (digits.startsWith('0')) {
+      digits = '44' + digits.slice(1)
+    }
+
+    return `https://wa.me/${digits}`
+  }
+
+  if (kind === 'email') {
+    // Extract raw email address from whatever form the user entered
+    let email = ''
+    if (v.startsWith('mailto:')) {
+      // Strip mailto: prefix (and any query string)
+      email = v.slice(7).split('?')[0].trim()
+    } else if (v.startsWith('https://mail.google.com/')) {
+      // Already a Gmail compose URL — extract the `to=` param if present
+      try {
+        const url = new URL(v)
+        email = url.searchParams.get('to') ?? ''
+      } catch { email = '' }
+    } else if (v.includes('@')) {
+      email = v.trim()
+    }
+
+    if (email) {
+      // Produce a Gmail compose deep-link so the button reliably opens compose
+      return `https://mail.google.com/mail/u/0/?view=cm&fs=1&tf=1&to=${encodeURIComponent(email)}`
+    }
+
+    // No recognisable email — return as-is
+    return v
+  }
+
+  // Standard URL — ensure protocol
+  if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('mailto:') || v.startsWith('tel:')) return v
+  return `https://${v}`
+}
+
+/**
+ * Per-row inline validation — validates against the NORMALISED value so that
+ * a user typing "07901109774" (which normalises to https://wa.me/447901109774)
+ * passes validation rather than failing on the raw input.
+ *
+ * Returns an error string, or null if the row is valid.
+ */
+function validateLinkRow(label: string, url: string): string | null {
+  const rawLabel = label.trim()
+  const rawUrl   = url.trim()
+
+  // Both empty → skip row entirely, no error
+  if (!rawLabel && !rawUrl) return null
+
+  // One side filled, the other empty
+  if (rawLabel && !rawUrl) return 'Add a URL, phone number, or email address'
+  if (!rawLabel && rawUrl) return 'Add a label for this link'
+
+  const kind = detectLinkKind(rawLabel)
+
+  // Normalise first, then validate the normalised form
+  const normalised = normaliseUrl(rawLabel, rawUrl)
+
+  if (kind === 'whatsapp') {
+    // After normalisation a valid number becomes https://wa.me/<digits>
+    // Accept 8–15 digits (E.164 minimum is 8, maximum is 15)
+    const waMatch = normalised.match(/^https:\/\/wa\.me\/(\d+)$/)
+    if (!waMatch) {
+      return 'Enter a phone number or WhatsApp link'
+    }
+    const digitCount = waMatch[1].length
+    if (digitCount < 8) {
+      return 'Phone number is too short — include your country code (e.g. 447901109774)'
+    }
+    if (digitCount > 15) {
+      return 'Phone number is too long — check and re-enter'
+    }
+    return null
+  }
+
+  if (kind === 'email') {
+    // After normalisation, a valid email becomes a Gmail compose URL.
+    // Extract the `to` param and validate it contains a proper email address.
+    let email = ''
+    if (normalised.startsWith('https://mail.google.com/')) {
+      try {
+        const url = new URL(normalised)
+        email = decodeURIComponent(url.searchParams.get('to') ?? '')
+      } catch { email = '' }
+    } else if (normalised.startsWith('mailto:')) {
+      email = normalised.slice(7).split('?')[0]
+    } else {
+      email = normalised
+    }
+    if (!email.includes('@') || email.indexOf('.', email.indexOf('@')) === -1) {
+      return 'Enter a valid email address (e.g. name@example.com)'
+    }
+    return null
+  }
+
+  // Standard URL — normalised value must parse as a valid URL
+  try {
+    new URL(normalised)
+    return null
+  } catch {
+    return 'Enter a valid URL (e.g. https://example.com or instagram.com/yourname)'
+  }
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -55,16 +239,19 @@ function FormInput({
   value,
   onChange,
   placeholder,
+  type = 'text',
 }: {
   label: string
   value: string
-  onChange: (value: string) => void
+  onChange: (v: string) => void
   placeholder?: string
+  type?: string
 }) {
   return (
     <div style={inputs.group}>
       <label style={inputs.label}>{label}</label>
       <input
+        type={type}
         value={value}
         placeholder={placeholder ?? ''}
         onChange={(e) => onChange(e.target.value)}
@@ -82,7 +269,7 @@ function FormTextarea({
 }: {
   label: string
   value: string
-  onChange: (value: string) => void
+  onChange: (v: string) => void
   placeholder?: string
 }) {
   return (
@@ -103,17 +290,26 @@ function FormTextarea({
 export default function DashboardPage() {
   const supabase = useMemo(() => createClient(), [])
 
-  const [loading, setLoading]     = useState(true)
-  const [profile, setProfile]     = useState<Profile | null>(null)
-  const [card, setCard]           = useState<CardRecord | null>(null)
-  const [tapCount, setTapCount]   = useState(0)
-  const [lastTap, setLastTap]     = useState<string | null>(null)
-  const [saving, setSaving]       = useState(false)
-  const [uploading, setUploading] = useState(false)
-
+  const [loading, setLoading]           = useState(true)
+  const [profile, setProfile]           = useState<Profile | null>(null)
+  const [links, setLinks]               = useState<ProfileLink[]>([])
+  const [card, setCard]                 = useState<CardRecord | null>(null)
+  const [tapCount, setTapCount]         = useState(0)
+  const [linkClickCount, setLinkClickCount] = useState(0)
+  const [lastTap, setLastTap]           = useState<string | null>(null)
+  const [todayTaps, setTodayTaps]       = useState(0)
+  const [profileSave, setProfileSave]   = useState<SaveState>('idle')
+  const [linksSave, setLinksSave]       = useState<SaveState>('idle')
+  const [styleSave, setStyleSave]       = useState<SaveState>('idle')
+  const [linkErrors, setLinkErrors]     = useState<(string | null)[]>([])
+  const [activeTab, setActiveTab]       = useState<ActiveTab>('profile')
+  const [userId, setUserId]             = useState<string | null>(null)
+  const [uploading, setUploading]       = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => { loadDashboard() }, [])
+
+  // ─── Load ─────────────────────────────────────────────────────────────────
 
   async function loadDashboard() {
     try {
@@ -121,10 +317,28 @@ export default function DashboardPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user?.id) return
       const userId = session.user.id
+      setUserId(userId)
 
       const { data: profileData } = await supabase
         .from('profiles').select('*').eq('id', userId).maybeSingle()
       if (profileData) setProfile(profileData)
+
+      const { data: linksData } = await supabase
+        .from('profile_links')
+        .select('id, label, url, link_type, position, is_active')
+        .eq('profile_id', userId)
+        .order('position', { ascending: true })
+      if (linksData) {
+        const mapped = (linksData as ProfileLink[]).map(l => ({
+          ...l,
+          label: l.label ?? '',
+          url:   l.url   ?? '',
+          link_type: l.link_type ?? null,
+          is_active: l.is_active ?? true,
+        }))
+        setLinks(mapped)
+        setLinkErrors(mapped.map(() => null))
+      }
 
       const { data: cardData } = await supabase
         .from('cards').select('card_id, status, nfc_url')
@@ -132,13 +346,23 @@ export default function DashboardPage() {
       if (cardData) setCard(cardData)
 
       const { data: tapEvents } = await supabase
-        .from('tap_events').select('tapped_at')
-        .eq('profile_id', userId).eq('event_type', 'card_tap')
+        .from('tap_events').select('tapped_at, event_type')
+        .eq('profile_id', userId)
         .order('tapped_at', { ascending: false })
 
-      const safe = (tapEvents || []) as TapEvent[]
-      setTapCount(safe.length)
-      if (safe[0]) setLastTap(new Date(safe[0].tapped_at).toLocaleString())
+      if (tapEvents) {
+        const taps   = tapEvents.filter(e => e.event_type === 'card_tap')
+        const clicks = tapEvents.filter(e => e.event_type === 'link_click')
+        const now    = new Date()
+        const todays = taps.filter(e => {
+          const d = new Date(e.tapped_at)
+          return d.getDate() === now.getDate() && d.getMonth() === now.getMonth()
+        })
+        setTapCount(taps.length)
+        setLinkClickCount(clicks.length)
+        setTodayTaps(todays.length)
+        if (taps[0]) setLastTap(new Date(taps[0].tapped_at).toLocaleString())
+      }
     } catch (err) {
       console.error(err)
     } finally {
@@ -146,40 +370,133 @@ export default function DashboardPage() {
     }
   }
 
+  // ─── Save profile ──────────────────────────────────────────────────────────
+
   async function saveProfile() {
     if (!profile) return
     try {
-      setSaving(true)
-      await supabase.from('profiles').update({
+      setProfileSave('saving')
+      const { error } = await supabase.from('profiles').update({
         display_name: profile.display_name,
-        bio: profile.bio,
-        role: profile.role,
-        website: profile.website,
+        bio:          profile.bio,
+        role:         profile.role,
+        website:      profile.website,
         accent_color: profile.accent_color,
       }).eq('id', profile.id)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setSaving(false)
+      setProfileSave(error ? 'error' : 'saved')
+      if (!error) setTimeout(() => setProfileSave('idle'), 2200)
+    } catch {
+      setProfileSave('error')
     }
   }
+
+  // ─── Save links — stable ID rule ──────────────────────────────────────────
+  // Validate against NORMALISED values; upsert in-place; never delete rows.
+
+  async function saveLinks() {
+    // Guard: both profile and authenticated userId must be present.
+    // Without userId we cannot satisfy the NOT NULL constraint on profile_links.user_id.
+    if (!profile || !userId) {
+      setLinksSave('error')
+      return
+    }
+
+    // Validate each row against the normalised value so that e.g. "07901109774"
+    // (which normalises to https://wa.me/447901109774) passes rather than failing.
+    const errs = links.map(l => validateLinkRow(l.label, l.url))
+    setLinkErrors(errs)
+    // If any row has an error the inline messages are already visible — just return.
+    if (errs.some(e => e !== null)) {
+      return
+    }
+
+    try {
+      setLinksSave('saving')
+
+      const upserts = links.map((l, i) => {
+        const isNew = !l.id || l.id.startsWith('__new__')
+        return {
+          // Only include id for existing rows so Supabase matches on conflict;
+          // omit it for new rows so Supabase auto-generates a UUID.
+          ...(!isNew ? { id: l.id } : {}),
+          // user_id satisfies the NOT NULL constraint on profile_links
+          user_id:    userId,
+          profile_id: profile.id,
+          label:      l.label.trim(),
+          url:        normaliseUrl(l.label, l.url),
+          link_type:  l.link_type ?? 'custom',
+          position:   i,
+          // Empty rows are stored but hidden (is_active=false)
+          is_active:  (l.label.trim() && l.url.trim()) ? l.is_active : false,
+        }
+      })
+
+      const { error } = await supabase
+        .from('profile_links')
+        .upsert(upserts, { onConflict: 'id' })
+
+      setLinksSave(error ? 'error' : 'saved')
+      if (!error) {
+        setTimeout(() => setLinksSave('idle'), 2200)
+        await loadLinks()
+      }
+    } catch {
+      setLinksSave('error')
+    }
+  }
+
+  async function loadLinks() {
+    if (!profile) return
+    const { data } = await supabase
+      .from('profile_links')
+      .select('id, label, url, link_type, position, is_active')
+      .eq('profile_id', profile.id)
+      .order('position', { ascending: true })
+    if (data) {
+      const mapped = (data as ProfileLink[]).map(l => ({
+        ...l,
+        label: l.label ?? '',
+        url:   l.url   ?? '',
+        link_type: l.link_type ?? null,
+        is_active: l.is_active ?? true,
+      }))
+      setLinks(mapped)
+      setLinkErrors(mapped.map(() => null))
+    }
+  }
+
+  // ─── Save style ────────────────────────────────────────────────────────────
+
+  async function saveStyle() {
+    if (!profile) return
+    try {
+      setStyleSave('saving')
+      const { error } = await supabase.from('profiles').update({
+        button_style:     profile.button_style,
+        background_style: profile.background_style,
+        theme_style:      profile.theme_style,
+      }).eq('id', profile.id)
+      setStyleSave(error ? 'error' : 'saved')
+      if (!error) setTimeout(() => setStyleSave('idle'), 2200)
+    } catch {
+      setStyleSave('error')
+    }
+  }
+
+  // ─── Avatar upload ─────────────────────────────────────────────────────────
 
   async function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
     try {
       const file = event.target.files?.[0]
       if (!file || !profile) return
       setUploading(true)
-
-      const fileExt = file.name.split('.').pop()
+      const fileExt  = file.name.split('.').pop()
       const filePath = `${profile.id}/${Date.now()}.${fileExt}`
-
       const { error: uploadError } = await supabase.storage
         .from('avatars').upload(filePath, file, { upsert: true })
       if (uploadError) { console.error(uploadError); return }
-
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
       const avatarUrl = data.publicUrl
-
       await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', profile.id)
       setProfile({ ...profile, avatar_url: avatarUrl })
     } catch (err) {
@@ -189,13 +506,59 @@ export default function DashboardPage() {
     }
   }
 
-  function patch(fields: Partial<Profile>) {
-    setProfile((prev) => (prev ? { ...prev, ...fields } : null))
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+
+  function patchProfile(fields: Partial<Profile>) {
+    setProfile(prev => prev ? { ...prev, ...fields } : null)
   }
 
+  function patchLink(index: number, fields: Partial<ProfileLink>) {
+    setLinks(prev => prev.map((l, i) => i === index ? { ...l, ...fields } : l))
+    // Clear error for this row when user edits it
+    setLinkErrors(prev => prev.map((e, i) => i === index ? null : e))
+  }
+
+  function addLink() {
+    if (links.length >= MAX_LINKS) return
+    setLinks(prev => [...prev, {
+      id: `__new__${Date.now()}`,
+      label: '', url: '', link_type: 'custom',
+      position: prev.length, is_active: true,
+    }])
+    setLinkErrors(prev => [...prev, null])
+  }
+
+  const ctr = tapCount > 0 ? Math.round((linkClickCount / tapCount) * 100) : 0
   const cardStatusBadge = card?.status
     ? statusBadgeStyle(card.status as Parameters<typeof statusBadgeStyle>[0])
     : null
+
+  // ─── Save button helpers ───────────────────────────────────────────────────
+
+  function saveBtnLabel(state: SaveState, idle: string) {
+    if (state === 'saving') return 'Saving…'
+    if (state === 'saved')  return '✓ Saved'
+    if (state === 'error')  return 'Error — try again'
+    return idle
+  }
+
+  function saveBtnCx(state: SaveState): CSSProperties {
+    const base: CSSProperties = {
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      gap: '7px', padding: `${spacing[3]} ${spacing[6]}`,
+      borderRadius: radius.full, border: 'none',
+      fontFamily: font.sans, fontSize: font.size.sm, fontWeight: font.weight.bold,
+      letterSpacing: '0.01em', cursor: 'pointer', textDecoration: 'none',
+      whiteSpace: 'nowrap', transition: transitions.button,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.25)',
+    }
+    if (state === 'saved')  return { ...base, background: colors.accent.success, color: '#000', boxShadow: `0 2px 12px rgba(74,222,128,0.3)` }
+    if (state === 'error')  return { ...base, background: colors.accent.errorBg, color: colors.accent.error, border: borders.error }
+    if (state === 'saving') return { ...base, background: 'rgba(255,255,255,0.85)', color: '#000', opacity: 0.7, cursor: 'not-allowed' }
+    return { ...base, background: colors.white.full, color: '#000' }
+  }
+
+  // ─── Loading ───────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -206,121 +569,105 @@ export default function DashboardPage() {
     )
   }
 
+  const activeLinks = links.filter(l => l.is_active && l.label && l.url)
+
+  // ─── Render ────────────────────────────────────────────────────────────────
+
   return (
     <main style={s.page}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
 
-        @keyframes spin   { to   { transform: rotate(360deg); } }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin    { to   { transform: rotate(360deg); } }
+        @keyframes fadeUp  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
 
         *, *::before, *::after { box-sizing: border-box; }
 
-        input::placeholder,
-        textarea::placeholder { color: ${colors.text.ghost}; }
+        input::placeholder, textarea::placeholder { color: ${colors.text.ghost}; }
 
-        input:focus,
-        textarea:focus {
-          border-color: ${colors.border.default} !important;
-          background: ${colors.white[5]} !important;
+        input:focus, textarea:focus {
+          border-color: ${colors.border.strong} !important;
+          background: rgba(255,255,255,0.06) !important;
           outline: none;
+          box-shadow: 0 0 0 3px rgba(255,255,255,0.04) !important;
         }
 
-        .ti-save-btn:hover   { background: #e2e2e2 !important; transform: translateY(-1px); box-shadow: ${shadows.btnHover} !important; }
-        .ti-save-btn:active  { transform: translateY(0); }
-        .ti-upload-btn:hover { border-color: ${colors.border.focus} !important; color: ${colors.white[90]} !important; }
-        .ti-nfc-btn:hover    { background: #e8e8e8 !important; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.4) !important; }
-        .ti-nfc-btn:active   { transform: translateY(0); }
-        .ti-analytics:hover  { border-color: ${colors.border.strong} !important; background: ${colors.white[5]} !important; }
-        .ti-view-link:hover  { color: ${colors.white[90]} !important; }
+        /* ── Primary / save button ── */
+        .ti-save-btn:hover   { background: #e8e8e8 !important; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(255,255,255,0.18) !important; }
+        .ti-save-btn:active  { transform: translateY(0) !important; }
 
+        /* ── Ghost / upload button ── */
+        .ti-upload-btn:hover { border-color: ${colors.border.focus} !important; color: ${colors.white[90]} !important; background: rgba(255,255,255,0.06) !important; }
+
+        /* ── NFC open button ── */
+        .ti-nfc-btn:hover  { background: #e8e8e8 !important; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.35) !important; }
+        .ti-nfc-btn:active { transform: translateY(0) !important; }
+
+        /* ── Analytics CTA ── */
+        .ti-analytics:hover { border-color: ${colors.border.strong} !important; background: rgba(255,255,255,0.04) !important; }
+
+        /* ── View link ── */
+        .ti-view-link:hover { color: ${colors.white[90]} !important; }
+
+        /* ── Add link ── */
+        .ti-add-link:hover { border-color: ${colors.border.default} !important; color: ${colors.text.secondary} !important; background: rgba(255,255,255,0.05) !important; }
+
+        /* ── Tabs ── */
+        .ti-tab:hover { color: ${colors.text.secondary} !important; }
+
+        /* ── Toggle ── */
+        .ti-link-toggle:hover { opacity: 0.75 !important; }
+
+        /* ── Style option ── */
+        .ti-style-opt:hover { border-color: ${colors.border.strong} !important; background: rgba(255,255,255,0.06) !important; }
+
+        /* ── Mini stats link ── */
+        .ti-mini-link:hover { color: ${colors.white[70]} !important; }
+
+        /* ── Stat cell ── */
         .ti-stat-cell:last-child { border-right: none !important; }
 
         /* ── Responsive: tablet (≤ 1024px) ── */
         @media (max-width: 1024px) {
-          .ti-layout {
-            grid-template-columns: 1fr !important;
-            padding: 2rem 1.5rem !important;
-            max-width: 680px !important;
-          }
-          .ti-left-col {
-            position: static !important;
-            top: auto !important;
-            /* On tablet show preview card collapsed — just the NFC panel + brand mark */
-          }
-          .ti-preview-card { display: none !important; }
-          .ti-stats-bar {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
+          .ti-layout          { grid-template-columns: 1fr !important; padding: 2rem 1.5rem !important; max-width: 680px !important; }
+          .ti-left-col        { position: static !important; top: auto !important; }
+          .ti-preview-card    { display: none !important; }
+          .ti-stats-bar       { grid-template-columns: repeat(2, 1fr) !important; }
           .ti-stat-cell:nth-child(2) { border-right: none !important; }
           .ti-stat-cell:nth-child(3) { border-top: 1px solid ${colors.border.subtle} !important; }
           .ti-stat-cell:nth-child(4) { border-top: 1px solid ${colors.border.subtle} !important; }
-          .ti-form-grid {
-            grid-template-columns: 1fr !important;
-          }
+          .ti-form-grid       { grid-template-columns: 1fr !important; }
         }
 
         /* ── Responsive: mobile (≤ 640px) ── */
         @media (max-width: 640px) {
-          .ti-layout {
-            padding: 1.25rem 1rem !important;
-            gap: 1rem !important;
-          }
-          .ti-page-header {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 0.75rem !important;
-          }
-          .ti-save-btn-wrap {
-            width: 100% !important;
-          }
-          .ti-save-btn-wrap button {
-            width: 100% !important;
-          }
-          .ti-page-title {
-            font-size: ${font.size['3xl']} !important;
-          }
-          .ti-stats-bar {
-            grid-template-columns: 1fr 1fr !important;
-          }
-          .ti-editor-card {
-            padding: 1.25rem !important;
-          }
-          .ti-avatar-row {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 1rem !important;
-          }
-          .ti-analytics-card {
-            padding: 1rem 1.25rem !important;
-          }
-          .ti-nfc-panel {
-            padding: 1rem !important;
-          }
-          .ti-form-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .ti-right-col {
-            gap: 0.875rem !important;
-          }
+          .ti-layout        { padding: 1.25rem 1rem !important; gap: 1rem !important; }
+          .ti-page-header   { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem !important; }
+          .ti-page-title    { font-size: ${font.size['3xl']} !important; }
+          .ti-stats-bar     { grid-template-columns: 1fr 1fr !important; }
+          .ti-editor-card   { padding: 1.25rem !important; }
+          .ti-avatar-row    { flex-direction: column !important; align-items: flex-start !important; gap: 1rem !important; }
+          .ti-nfc-panel     { padding: 1rem !important; }
+          .ti-right-col     { gap: 0.875rem !important; }
+          .ti-tab-bar       { gap: 0 !important; }
+          .ti-link-inputs   { flex-direction: column !important; }
         }
 
-        /* ── Responsive: large desktop (≥ 1280px) ── */
+        /* ── Large desktop (≥ 1280px) ── */
         @media (min-width: 1280px) {
-          .ti-layout {
-            grid-template-columns: 360px 1fr !important;
-          }
+          .ti-layout { grid-template-columns: 360px 1fr !important; }
         }
       `}</style>
 
       <div style={s.layout} className="ti-layout">
 
-        {/* ═══════════════════════════════════
+        {/* ═══════════════════════════════════════════════════════════
             LEFT COLUMN
-        ═══════════════════════════════════ */}
+        ═══════════════════════════════════════════════════════════ */}
         <aside style={s.leftCol} className="ti-left-col">
 
-          {/* ── Live profile preview (hidden on tablet/mobile) ── */}
+          {/* ── Live preview ── */}
           <div style={s.previewCard} className="ti-preview-card">
             <div style={s.previewHeader}>
               <span style={s.eyebrow}>Live preview</span>
@@ -331,38 +678,39 @@ export default function DashboardPage() {
             </div>
 
             <div style={s.previewBody}>
-              <div style={s.previewAvatarWrap}>
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="" style={s.previewAvatarImg} />
-                ) : (
-                  <span style={s.previewAvatarInitials}>
-                    {(profile?.display_name || 'TI').slice(0, 2).toUpperCase()}
-                  </span>
-                )}
+              <div style={s.previewAvatarOuter}>
+                <div style={s.previewAvatarInner}>
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="" style={s.previewAvatarImg} />
+                  ) : (
+                    <span style={s.previewAvatarInitials}>
+                      {(profile?.display_name || 'TI').slice(0, 2).toUpperCase()}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <h2 style={s.previewName}>
-                {profile?.display_name || 'Your name'}
-              </h2>
-              <p style={s.previewRole}>
-                {profile?.role || 'Your role'}
-              </p>
-              {profile?.bio && (
-                <p style={s.previewBio}>{profile.bio}</p>
-              )}
+              <p style={s.previewMicroLabel}>Digital profile</p>
+              <h2 style={s.previewName}>{profile?.display_name || 'Your name'}</h2>
+              <p style={s.previewRole}>{profile?.role || 'Your role'}</p>
+              {profile?.bio && <p style={s.previewBio}>{profile.bio}</p>}
 
               <div style={s.previewLinks}>
-                {['Instagram', 'Portfolio', 'Contact'].map((l) => (
-                  <div key={l} style={s.previewLinkPill}>{l}</div>
-                ))}
+                {activeLinks.length > 0
+                  ? activeLinks.slice(0, 4).map((l) => (
+                      <div key={l.id} style={s.previewLinkPill}>{l.label}</div>
+                    ))
+                  : ['Instagram', 'Portfolio', 'Contact'].map((l) => (
+                      <div key={l} style={s.previewLinkPillDim}>{l}</div>
+                    ))}
               </div>
             </div>
 
             {profile?.username ? (
               <div style={s.previewFooter}>
                 <span style={s.previewUrl}>tappedin.uk/u/{profile.username}</span>
-                <Link href={`/u/${profile.username}`} className="ti-view-link" style={s.previewViewLink}>
-                  View profile →
+                <Link href={`/u/${profile.username}`} target="_blank" rel="noopener" className="ti-view-link" style={s.previewViewLink}>
+                  View live →
                 </Link>
               </div>
             ) : (
@@ -370,6 +718,27 @@ export default function DashboardPage() {
                 <span style={s.previewUrl}>Complete onboarding to claim your URL</span>
               </div>
             )}
+          </div>
+
+          {/* ── Analytics mini-cards ── */}
+          <div style={s.miniStats} className="ti-preview-card">
+            <div style={s.miniStatsHeader}>
+              <span style={s.eyebrow}>Analytics</span>
+              <Link href="/analytics" className="ti-mini-link" style={s.miniStatsLink}>Full view →</Link>
+            </div>
+            <div style={s.miniStatsGrid}>
+              {[
+                { label: 'NFC taps',    value: tapCount.toString() },
+                { label: 'Link clicks', value: linkClickCount.toString() },
+                { label: 'Today',       value: todayTaps.toString() },
+                { label: 'CTR',         value: `${ctr}%` },
+              ].map((row, i) => (
+                <div key={i} style={s.miniStat}>
+                  <div style={s.miniStatValue}>{row.value}</div>
+                  <div style={s.miniStatLabel}>{row.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* ── NFC card panel ── */}
@@ -381,14 +750,7 @@ export default function DashboardPage() {
               </div>
               {card && cardStatusBadge && (
                 <div style={cardStatusBadge}>
-                  <span style={{
-                    width: '4px',
-                    height: '4px',
-                    borderRadius: '50%',
-                    background: 'currentColor',
-                    flexShrink: 0,
-                    display: 'inline-block',
-                  }} />
+                  <span style={{ width:'4px', height:'4px', borderRadius:'50%', background:'currentColor', flexShrink:0, display:'inline-block' }} />
                   {card.status ?? 'Unknown'}
                 </div>
               )}
@@ -408,7 +770,6 @@ export default function DashboardPage() {
                   </div>
                   <div style={s.nfcCardId}>{card.card_id}</div>
                 </div>
-
                 <div style={s.nfcStatsRow}>
                   <div style={s.nfcStat}>
                     <span style={s.nfcStatValue}>{tapCount}</span>
@@ -422,7 +783,6 @@ export default function DashboardPage() {
                     <span style={s.nfcStatLabel}>Last tap</span>
                   </div>
                 </div>
-
                 <Link href={`/a/${card.card_id}`} className="ti-nfc-btn" style={s.nfcOpenBtn}>
                   Open NFC profile
                   <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
@@ -440,9 +800,7 @@ export default function DashboardPage() {
                   </svg>
                 </div>
                 <p style={s.nfcEmptyTitle}>No card connected</p>
-                <p style={s.nfcEmptyText}>
-                  Your NFC card will appear here once it has been activated and linked to your account.
-                </p>
+                <p style={s.nfcEmptyText}>Your NFC card will appear here once activated and linked.</p>
               </div>
             )}
           </div>
@@ -455,9 +813,9 @@ export default function DashboardPage() {
 
         </aside>
 
-        {/* ═══════════════════════════════════
+        {/* ═══════════════════════════════════════════════════════════
             RIGHT COLUMN
-        ═══════════════════════════════════ */}
+        ═══════════════════════════════════════════════════════════ */}
         <div style={s.rightCol} className="ti-right-col">
 
           {/* ── Page header ── */}
@@ -465,21 +823,14 @@ export default function DashboardPage() {
             <div style={s.pageHeaderLeft}>
               <p style={s.eyebrow}>Dashboard</p>
               <h1 style={s.pageTitle} className="ti-page-title">
-                {profile?.display_name
-                  ? `${profile.display_name.split(' ')[0]}`
-                  : 'Your profile'}
+                {profile?.display_name ? profile.display_name.split(' ')[0] : 'Your profile'}
               </h1>
             </div>
-            <div className="ti-save-btn-wrap">
-              <button
-                onClick={saveProfile}
-                disabled={saving}
-                className="ti-save-btn"
-                style={s.saveBtn}
-              >
-                {saving ? 'Saving…' : 'Save changes'}
-              </button>
-            </div>
+            {profile?.username && (
+              <Link href={`/u/${profile.username}`} target="_blank" rel="noopener" className="ti-view-link" style={s.viewProfileBtn}>
+                View live profile →
+              </Link>
+            )}
           </div>
 
           {/* ── Stats bar ── */}
@@ -500,89 +851,373 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* ── Profile editor ── */}
+          {/* ── Tabbed editor ── */}
           <div style={s.editorCard} className="ti-editor-card">
-            <div style={s.editorHeader}>
-              <div>
-                <p style={s.eyebrow}>Profile</p>
-                <h2 style={s.sectionTitle}>Edit profile</h2>
-              </div>
+
+            {/* Tab bar */}
+            <div style={s.tabBar} className="ti-tab-bar">
+              {(['profile', 'links', 'style', 'card'] as ActiveTab[]).map((tab) => {
+                const isActive = activeTab === tab
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className="ti-tab"
+                    style={isActive ? s.tabActive : s.tab}
+                  >
+                    {tab === 'profile' && 'Profile'}
+                    {tab === 'links'   && `Links${links.filter(l => l.is_active && l.label).length > 0 ? ` (${links.filter(l => l.is_active && l.label).length})` : ''}`}
+                    {tab === 'style'   && 'Style'}
+                    {tab === 'card'    && 'Card'}
+                  </button>
+                )
+              })}
             </div>
 
-            {/* Avatar row */}
-            <div style={s.avatarRow} className="ti-avatar-row">
-              <div style={s.avatarWrap}>
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="" style={s.avatarImg} />
+            <div style={s.tabDivider} />
+
+            {/* ────── PROFILE TAB ────── */}
+            {activeTab === 'profile' && (
+              <div style={s.tabContent}>
+                <div style={s.avatarRow} className="ti-avatar-row">
+                  <div style={s.avatarWrap}>
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt="" style={s.avatarImg} />
+                    ) : (
+                      <span style={s.avatarInitials}>
+                        {(profile?.display_name || 'TI').slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div style={s.avatarMeta}>
+                    <p style={s.avatarName}>{profile?.display_name || 'Your name'}</p>
+                    <p style={s.avatarSub}>
+                      {profile?.username ? `tappedin.uk/u/${profile.username}` : 'Username not set'}
+                    </p>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="ti-upload-btn"
+                      style={s.uploadBtn}
+                    >
+                      {uploading ? 'Uploading…' : 'Change avatar'}
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleAvatarUpload}
+                    />
+                  </div>
+                </div>
+
+                <div style={s.formGrid} className="ti-form-grid">
+                  <FormInput
+                    label="Display name"
+                    value={profile?.display_name ?? ''}
+                    placeholder="Your full name"
+                    onChange={(v) => patchProfile({ display_name: v })}
+                  />
+                  <FormInput
+                    label="Role / headline"
+                    value={profile?.role ?? ''}
+                    placeholder="e.g. Videographer, Designer"
+                    onChange={(v) => patchProfile({ role: v })}
+                  />
+                  <FormInput
+                    label="Website"
+                    value={profile?.website ?? ''}
+                    placeholder="https://yoursite.com"
+                    onChange={(v) => patchProfile({ website: v })}
+                  />
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <FormTextarea
+                      label="Bio"
+                      value={profile?.bio ?? ''}
+                      placeholder="A short line about what you do"
+                      onChange={(v) => patchProfile({ bio: v })}
+                    />
+                  </div>
+                </div>
+
+                <div style={s.tabFooter}>
+                  <button
+                    onClick={saveProfile}
+                    disabled={profileSave === 'saving'}
+                    className="ti-save-btn"
+                    style={saveBtnCx(profileSave)}
+                  >
+                    {saveBtnLabel(profileSave, 'Save profile')}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ────── LINKS TAB ────── */}
+            {activeTab === 'links' && (
+              <div style={s.tabContent}>
+                <div style={s.linksHeader}>
+                  <p style={s.linksSubtitle}>
+                    Add up to {MAX_LINKS} links. WhatsApp accepts phone numbers. Email rows accept plain addresses.
+                  </p>
+                </div>
+
+                <div style={s.linksList}>
+                  {links.map((link, i) => {
+                    const kind = detectLinkKind(link.label)
+                    const err  = linkErrors[i]
+                    return (
+                      <div key={link.id} style={s.linkRowWrap}>
+                        <div style={s.linkRow}>
+                          {/* Active toggle */}
+                          <button
+                            onClick={() => patchLink(i, { is_active: !link.is_active })}
+                            className="ti-link-toggle"
+                            title={link.is_active ? 'Active — click to hide' : 'Hidden — click to show'}
+                            style={{
+                              ...s.linkToggle,
+                              background: link.is_active ? colors.accent.successBg : colors.white[3],
+                              border: `1px solid ${link.is_active ? colors.accent.successBorder : colors.border.subtle}`,
+                              boxShadow: link.is_active ? `0 0 8px rgba(74,222,128,0.12)` : 'none',
+                            }}
+                          >
+                            <div style={{
+                              width: 7, height: 7, borderRadius: '50%',
+                              background: link.is_active ? colors.accent.success : colors.text.faint,
+                              boxShadow: link.is_active ? `0 0 5px ${colors.accent.success}` : 'none',
+                              transition: transitions.base,
+                            }} />
+                          </button>
+
+                          {/* Inputs */}
+                          <div style={s.linkInputs} className="ti-link-inputs">
+                            {/* Label */}
+                            <div style={s.linkInputInner}>
+                              <input
+                                value={link.label}
+                                placeholder={`Link ${i + 1} label`}
+                                onChange={(e) => patchLink(i, { label: e.target.value })}
+                                style={{
+                                  ...inputs.base,
+                                  opacity: link.is_active ? 1 : 0.45,
+                                  ...(err && !link.label ? { borderColor: colors.accent.errorBorder } : {}),
+                                }}
+                              />
+                              {/* Link kind badge */}
+                              {link.label && (
+                                <div style={{
+                                  ...s.linkKindBadge,
+                                  ...(kind === 'whatsapp' ? s.linkKindWa : kind === 'email' ? s.linkKindEmail : s.linkKindUrl),
+                                }}>
+                                  {kind === 'whatsapp' ? 'WA' : kind === 'email' ? 'Email' : 'URL'}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* URL / phone / email value */}
+                            <input
+                              value={link.url}
+                              placeholder={urlPlaceholder(link.label)}
+                              inputMode={urlInputMode(link.label) as 'tel' | 'email' | 'url' | 'text'}
+                              autoComplete={kind === 'email' ? 'email' : kind === 'whatsapp' ? 'tel' : 'url'}
+                              onChange={(e) => patchLink(i, { url: e.target.value })}
+                              style={{
+                                ...inputs.base,
+                                fontFamily: kind === 'url' ? font.mono : font.sans,
+                                fontSize: kind === 'url' ? font.size.xs : font.size.sm,
+                                opacity: link.is_active ? 1 : 0.45,
+                                ...(err && link.label && !link.url ? { borderColor: colors.accent.errorBorder } : {}),
+                                ...(err && link.url ? { borderColor: colors.accent.errorBorder } : {}),
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Inline error */}
+                        {err && (
+                          <div style={s.linkError}>
+                            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+                              <circle cx="8" cy="8" r="7" stroke={colors.accent.error} strokeWidth="1.5"/>
+                              <path d="M8 5v4M8 11v.5" stroke={colors.accent.error} strokeWidth="1.5" strokeLinecap="round"/>
+                            </svg>
+                            {err}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Add link */}
+                {links.length < MAX_LINKS && (
+                  <button onClick={addLink} className="ti-add-link" style={s.addLinkBtn}>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    Add link
+                  </button>
+                )}
+
+                {links.length === 0 && (
+                  <div style={s.emptyLinks}>
+                    <p style={s.emptyLinksText}>No links yet. Add your first link above.</p>
+                  </div>
+                )}
+
+                <div style={s.tabFooter}>
+                  <p style={s.tabFooterHint}>
+                    Active links appear on your public profile. Empty rows are automatically hidden.
+                  </p>
+                  <button
+                    onClick={saveLinks}
+                    disabled={linksSave === 'saving'}
+                    className="ti-save-btn"
+                    style={saveBtnCx(linksSave)}
+                  >
+                    {saveBtnLabel(linksSave, 'Save links')}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ────── STYLE TAB ────── */}
+            {activeTab === 'style' && (
+              <div style={s.tabContent}>
+                <div style={s.styleSection}>
+                  <p style={s.styleSectionLabel}>Button style</p>
+                  <p style={s.styleSectionHint}>Controls how your profile links appear to visitors.</p>
+                  <div style={s.styleGrid}>
+                    {BUTTON_STYLES.map((opt) => {
+                      const sel = profile?.button_style === opt.value
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => patchProfile({ button_style: opt.value })}
+                          className="ti-style-opt"
+                          style={{
+                            ...s.styleOpt,
+                            borderColor: sel ? colors.border.focus  : colors.border.subtle,
+                            background:  sel ? colors.white[10]     : colors.white[3],
+                            color:       sel ? colors.text.primary  : colors.text.muted,
+                            boxShadow:   sel ? `0 0 0 1px ${colors.border.focus}, 0 2px 10px rgba(0,0,0,0.3)` : 'none',
+                          }}
+                        >
+                          {sel && <span style={{ marginRight: 4, opacity: 0.7 }}>✓</span>}
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ ...s.styleSection, marginBottom: 0 }}>
+                  <p style={s.styleSectionLabel}>Theme</p>
+                  <p style={s.styleSectionHint}>Background colour used on your public profile.</p>
+                  <div style={s.styleGrid}>
+                    {THEME_STYLES.map((opt) => {
+                      const sel = profile?.theme_style === opt.value
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => patchProfile({ theme_style: opt.value })}
+                          className="ti-style-opt"
+                          style={{
+                            ...s.styleOpt,
+                            borderColor: sel ? colors.border.focus  : colors.border.subtle,
+                            background:  sel ? colors.white[10]     : colors.white[3],
+                            color:       sel ? colors.text.primary  : colors.text.muted,
+                            boxShadow:   sel ? `0 0 0 1px ${colors.border.focus}, 0 2px 10px rgba(0,0,0,0.3)` : 'none',
+                          }}
+                        >
+                          {sel && <span style={{ marginRight: 4, opacity: 0.7 }}>✓</span>}
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div style={s.tabFooter}>
+                  <button
+                    onClick={saveStyle}
+                    disabled={styleSave === 'saving'}
+                    className="ti-save-btn"
+                    style={saveBtnCx(styleSave)}
+                  >
+                    {saveBtnLabel(styleSave, 'Save style')}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ────── CARD TAB ────── */}
+            {activeTab === 'card' && (
+              <div style={s.tabContent}>
+                {card ? (
+                  <>
+                    <div style={s.cardTabVisual}>
+                      <div style={s.nfcSheen} />
+                      <div style={s.nfcCardTop}>
+                        <span style={s.nfcBrand}>TAPPED-IN</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M8.5 12c0-1.93 1.57-3.5 3.5-3.5s3.5 1.57 3.5 3.5" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" strokeLinecap="round"/>
+                          <path d="M5.5 12c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5" strokeLinecap="round"/>
+                          <circle cx="12" cy="12" r="1.75" fill="rgba(255,255,255,0.55)"/>
+                        </svg>
+                      </div>
+                      <div style={s.nfcCardId}>{card.card_id}</div>
+                    </div>
+
+                    <div style={s.cardDetails}>
+                      {[
+                        { label: 'Card ID',    value: card.card_id },
+                        { label: 'Status',     value: card.status ?? 'Unknown' },
+                        { label: 'NFC URL',    value: card.nfc_url ?? '—' },
+                        { label: 'Total taps', value: tapCount.toString() },
+                        { label: 'Last tap',   value: lastTap ?? 'No activity' },
+                      ].map((row) => (
+                        <div key={row.label} style={s.cardDetailRow}>
+                          <span style={s.cardDetailLabel}>{row.label}</span>
+                          <span style={s.cardDetailValue}>{row.value}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <Link href={`/a/${card.card_id}`} className="ti-nfc-btn" style={{ ...s.nfcOpenBtn, marginTop: spacing[4], display: 'flex' }}>
+                      Open NFC activation page
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </Link>
+                  </>
                 ) : (
-                  <span style={s.avatarInitials}>
-                    {(profile?.display_name || 'TI').slice(0, 2).toUpperCase()}
-                  </span>
+                  <div style={s.cardTabEmpty}>
+                    <div style={s.nfcEmptyIcon}>
+                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="6" width="18" height="13" rx="2" stroke="rgba(255,255,255,0.12)" strokeWidth="1.2"/>
+                        <path d="M10 12c0-1.1.9-2 2-2s2 .9 2 2" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" strokeLinecap="round"/>
+                        <circle cx="12" cy="12" r="1" fill="rgba(255,255,255,0.22)"/>
+                      </svg>
+                    </div>
+                    <p style={s.nfcEmptyTitle}>No card connected</p>
+                    <p style={s.nfcEmptyText}>
+                      Your NFC card will appear here once it has been activated and linked to your account.
+                    </p>
+                  </div>
                 )}
               </div>
-              <div style={s.avatarMeta}>
-                <p style={s.avatarName}>{profile?.display_name || 'Your name'}</p>
-                <p style={s.avatarSub}>
-                  {profile?.username
-                    ? `tappedin.uk/u/${profile.username}`
-                    : 'Username not set'}
-                </p>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="ti-upload-btn"
-                  style={s.uploadBtn}
-                >
-                  {uploading ? 'Uploading…' : 'Change avatar'}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={handleAvatarUpload}
-                />
-              </div>
-            </div>
+            )}
 
-            {/* Form fields */}
-            <div style={s.formGrid} className="ti-form-grid">
-              <FormInput
-                label="Display name"
-                value={profile?.display_name ?? ''}
-                placeholder="Your full name"
-                onChange={(v) => patch({ display_name: v })}
-              />
-              <FormInput
-                label="Role"
-                value={profile?.role ?? ''}
-                placeholder="e.g. Videographer, Designer"
-                onChange={(v) => patch({ role: v })}
-              />
-              <FormInput
-                label="Website"
-                value={profile?.website ?? ''}
-                placeholder="https://yoursite.com"
-                onChange={(v) => patch({ website: v })}
-              />
-              <div style={{ gridColumn: '1 / -1' }}>
-                <FormTextarea
-                  label="Bio"
-                  value={profile?.bio ?? ''}
-                  placeholder="A short line about what you do"
-                  onChange={(v) => patch({ bio: v })}
-                />
-              </div>
-            </div>
           </div>
 
           {/* ── Analytics CTA ── */}
-          <Link href="/analytics" className="ti-analytics ti-analytics-card" style={s.analyticsCard}>
+          <Link href="/analytics" className="ti-analytics" style={s.analyticsCard}>
             <div style={s.analyticsLeft}>
               <p style={s.eyebrow}>Analytics</p>
               <h3 style={s.analyticsTitle}>View full insights</h3>
               <p style={s.analyticsText}>
-                Tap history, link click rates, profile traffic, and engagement — all in one view.
+                Tap history, link click rates, CTR, and engagement — all in one view.
               </p>
             </div>
             <div style={s.analyticsArrowWrap}>
@@ -628,7 +1263,6 @@ const s: Record<string, CSSProperties> = {
     animation: 'spin 0.75s linear infinite',
   },
 
-  // ── Two-column grid — default desktop layout
   layout: {
     maxWidth: layout.maxWidth['3xl'],
     margin: '0 auto',
@@ -639,7 +1273,8 @@ const s: Record<string, CSSProperties> = {
     alignItems: 'start',
   },
 
-  // ── LEFT COLUMN
+  // ── LEFT COLUMN ──────────────────────────────────────────────────────────
+
   leftCol: {
     display: 'flex',
     flexDirection: 'column',
@@ -648,13 +1283,12 @@ const s: Record<string, CSSProperties> = {
     top: '2.75rem',
   },
 
-  // Profile preview
   previewCard: {
     background: colors.bg.surface,
     border: borders.subtle,
     borderRadius: radius['2xl'],
     overflow: 'hidden',
-    boxShadow: shadows.panel,
+    boxShadow: '0 1px 0 rgba(255,255,255,0.045) inset, 0 8px 24px rgba(0,0,0,0.35)',
     animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both',
   },
 
@@ -681,36 +1315,41 @@ const s: Record<string, CSSProperties> = {
     height: '5px',
     borderRadius: '50%',
     background: colors.accent.success,
-    boxShadow: `0 0 5px ${colors.accent.success}`,
+    boxShadow: `0 0 6px ${colors.accent.success}`,
   },
 
   previewBody: {
-    padding: `${spacing[7]} ${spacing[5]} ${spacing[5]}`,
+    padding: `${spacing[6]} ${spacing[5]} ${spacing[5]}`,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     textAlign: 'center',
   },
 
-  previewAvatarWrap: {
-    width: '72px',
-    height: '72px',
-    borderRadius: radius['2xl'],
+  previewAvatarOuter: {
+    width: '68px',
+    height: '68px',
+    borderRadius: '20px',
+    padding: '2px',
+    background: 'linear-gradient(145deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.04) 100%)',
+    marginBottom: spacing[3],
+    flexShrink: 0,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+  },
+
+  previewAvatarInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: '18px',
     overflow: 'hidden',
-    background: colors.white[5],
-    border: borders.subtle,
+    background: 'linear-gradient(145deg, #1a1a1a, #0f0f0f)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing[4],
-    flexShrink: 0,
+    border: `1px solid ${colors.white[5]}`,
   },
 
-  previewAvatarImg: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
+  previewAvatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
 
   previewAvatarInitials: {
     fontSize: font.size.xl,
@@ -719,12 +1358,21 @@ const s: Record<string, CSSProperties> = {
     letterSpacing: font.tracking.snug,
   },
 
+  previewMicroLabel: {
+    fontSize: font.size['2xs'],
+    fontWeight: font.weight.semibold,
+    letterSpacing: '0.18em',
+    textTransform: 'uppercase' as const,
+    color: colors.text.ghost,
+    marginBottom: spacing[1],
+  },
+
   previewName: {
     fontSize: font.size.xl,
     fontWeight: font.weight.bold,
     letterSpacing: font.tracking.snug,
     color: colors.text.primary,
-    marginBottom: spacing[1],
+    marginBottom: '3px',
     lineHeight: font.leading.snug,
   },
 
@@ -732,16 +1380,15 @@ const s: Record<string, CSSProperties> = {
     fontSize: font.size.sm,
     color: 'rgba(255,255,255,0.38)',
     fontWeight: font.weight.regular,
-    marginBottom: spacing['3.5'],
-    letterSpacing: font.tracking.normal,
+    marginBottom: spacing[2],
   },
 
   previewBio: {
-    fontSize: font.size.sm,
+    fontSize: font.size.xs,
     color: colors.text.ghost,
     lineHeight: font.leading.relaxed,
-    marginBottom: spacing[4],
-    maxWidth: '220px',
+    marginBottom: spacing[3],
+    maxWidth: '200px',
     fontWeight: font.weight.light,
   },
 
@@ -755,13 +1402,24 @@ const s: Record<string, CSSProperties> = {
   previewLinkPill: {
     padding: `${spacing[2]} ${spacing[3]}`,
     borderRadius: radius.md,
+    background: 'rgba(255,255,255,0.92)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    fontSize: font.size.sm,
+    fontWeight: font.weight.semibold,
+    color: '#000',
+    textAlign: 'center',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+  },
+
+  previewLinkPillDim: {
+    padding: `${spacing[2]} ${spacing[3]}`,
+    borderRadius: radius.md,
     background: colors.white[3],
     border: borders.subtle,
     fontSize: font.size.sm,
     fontWeight: font.weight.medium,
-    color: colors.white[50],
+    color: colors.white[30],
     textAlign: 'center',
-    letterSpacing: font.tracking.normal,
   },
 
   previewFooter: {
@@ -776,7 +1434,6 @@ const s: Record<string, CSSProperties> = {
   previewUrl: {
     fontSize: font.size['2xs'],
     color: colors.text.faint,
-    fontWeight: font.weight.regular,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -788,9 +1445,61 @@ const s: Record<string, CSSProperties> = {
     fontWeight: font.weight.semibold,
     color: colors.text.muted,
     textDecoration: 'none',
-    letterSpacing: font.tracking.normal,
     flexShrink: 0,
     transition: transitions.base,
+  },
+
+  // Mini analytics
+  miniStats: {
+    background: colors.bg.surface,
+    border: borders.subtle,
+    borderRadius: radius['2xl'],
+    overflow: 'hidden',
+    boxShadow: '0 1px 0 rgba(255,255,255,0.045) inset, 0 4px 16px rgba(0,0,0,0.25)',
+    padding: spacing[5],
+  },
+
+  miniStatsHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing[4],
+  },
+
+  miniStatsLink: {
+    fontSize: font.size.xs,
+    fontWeight: font.weight.medium,
+    color: colors.text.muted,
+    textDecoration: 'none',
+    transition: transitions.base,
+  },
+
+  miniStatsGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: `${spacing[3]} ${spacing[4]}`,
+  },
+
+  miniStat: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '3px',
+  },
+
+  miniStatValue: {
+    fontSize: font.size['2xl'],
+    fontWeight: font.weight.bold,
+    color: colors.text.primary,
+    letterSpacing: font.tracking.snug,
+    lineHeight: 1,
+  },
+
+  miniStatLabel: {
+    fontSize: font.size['2xs'],
+    fontWeight: font.weight.medium,
+    color: colors.text.muted,
+    letterSpacing: font.tracking.wider,
+    textTransform: 'uppercase' as const,
   },
 
   // NFC panel
@@ -799,7 +1508,7 @@ const s: Record<string, CSSProperties> = {
     border: borders.subtle,
     borderRadius: radius['2xl'],
     padding: spacing[5],
-    boxShadow: shadows.panel,
+    boxShadow: '0 1px 0 rgba(255,255,255,0.045) inset, 0 4px 16px rgba(0,0,0,0.25)',
     animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s both',
   },
 
@@ -821,13 +1530,14 @@ const s: Record<string, CSSProperties> = {
   nfcCardVisual: {
     ...cards.nfc,
     marginBottom: spacing['3.5'],
+    boxShadow: '0 8px 28px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.06) inset',
   },
 
   nfcSheen: {
     position: 'absolute',
     top: 0, left: 0, right: 0,
     height: '50%',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 100%)',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%)',
     borderRadius: `${radius.xl} ${radius.xl} 0 0`,
     pointerEvents: 'none',
   },
@@ -861,7 +1571,7 @@ const s: Record<string, CSSProperties> = {
     display: 'flex',
     alignItems: 'stretch',
     background: colors.white[3],
-    border: `1px solid ${colors.white[5]}`,
+    border: `1px solid rgba(255,255,255,0.055)`,
     borderRadius: radius.md,
     overflow: 'hidden',
     marginBottom: spacing['3.5'],
@@ -899,13 +1609,25 @@ const s: Record<string, CSSProperties> = {
   },
 
   nfcOpenBtn: {
-    ...buttons.primary,
-    width: '100%',
-    borderRadius: radius.md,
-    fontSize: font.size.sm,
-    padding: `${spacing[3]} ${spacing[4]}`,
-    gap: '7px',
+    display: 'inline-flex',
+    alignItems: 'center',
     justifyContent: 'center',
+    gap: '7px',
+    width: '100%',
+    padding: `${spacing[3]} ${spacing[4]}`,
+    borderRadius: radius.md,
+    border: 'none',
+    background: colors.white.full,
+    color: '#000',
+    fontFamily: font.sans,
+    fontSize: font.size.sm,
+    fontWeight: font.weight.bold,
+    letterSpacing: '0.01em',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.2)',
+    transition: transitions.button,
+    whiteSpace: 'nowrap',
   },
 
   nfcEmptyState: {
@@ -917,18 +1639,13 @@ const s: Record<string, CSSProperties> = {
     gap: spacing[2],
   },
 
-  nfcEmptyIcon: {
-    marginBottom: spacing[1],
-    opacity: 0.6,
-  },
-
+  nfcEmptyIcon: { marginBottom: spacing[1], opacity: 0.6 },
   nfcEmptyTitle: {
     fontSize: font.size.base,
     fontWeight: font.weight.semibold,
     color: 'rgba(255,255,255,0.4)',
     letterSpacing: font.tracking.snug,
   },
-
   nfcEmptyText: {
     fontSize: font.size.xs,
     color: colors.text.faint,
@@ -949,15 +1666,17 @@ const s: Record<string, CSSProperties> = {
     ...text.brandMark,
     fontSize: '0.6rem',
     letterSpacing: '0.26em',
-    color: 'rgba(255,255,255,0.15)',
+    color: 'rgba(255,255,255,0.14)',
   },
 
   brandMarkSlogan: {
     ...text.slogan,
     fontSize: font.size.xs,
+    color: 'rgba(255,255,255,0.1)',
   },
 
-  // ── RIGHT COLUMN
+  // ── RIGHT COLUMN ─────────────────────────────────────────────────────────
+
   rightCol: {
     display: 'flex',
     flexDirection: 'column',
@@ -988,16 +1707,24 @@ const s: Record<string, CSSProperties> = {
     fontFamily: font.sans,
   },
 
-  saveBtn: {
-    ...buttons.primary,
-    padding: `${spacing[3]} ${spacing[6]}`,
+  viewProfileBtn: {
     fontSize: font.size.sm,
-    borderRadius: radius.full,
+    fontWeight: font.weight.semibold,
+    color: colors.text.muted,
+    textDecoration: 'none',
+    flexShrink: 0,
+    transition: transitions.base,
+    whiteSpace: 'nowrap',
   },
 
   statsBar: {
-    ...cards.statsBar,
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    background: colors.bg.surface,
+    border: borders.subtle,
     borderRadius: radius.xl,
+    overflow: 'hidden',
+    boxShadow: '0 1px 0 rgba(255,255,255,0.045) inset, 0 4px 16px rgba(0,0,0,0.25)',
     animation: 'fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) 0.04s both',
   },
 
@@ -1026,38 +1753,102 @@ const s: Record<string, CSSProperties> = {
     color: 'rgba(255,255,255,0.28)',
   },
 
+  // ── Editor card (tabs)
   editorCard: {
-    ...cards.panel,
+    background: colors.bg.surface,
+    border: borders.subtle,
     borderRadius: radius['2xl'],
-    padding: `clamp(1.25rem, 3vw, 1.75rem) clamp(1.25rem, 3vw, 2rem)`,
+    overflow: 'hidden',
+    boxShadow: '0 1px 0 rgba(255,255,255,0.045) inset, 0 8px 32px rgba(0,0,0,0.35)',
     animation: 'fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) 0.08s both',
   },
 
-  editorHeader: {
-    marginBottom: spacing[6],
-    paddingBottom: spacing[5],
-    borderBottom: borders.subtle,
+  tabBar: {
+    display: 'flex',
+    padding: `${spacing[4]} ${spacing[6]} 0`,
+    gap: spacing[1],
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%)',
   },
 
-  sectionTitle: {
-    fontSize: font.size.xl,
-    fontWeight: font.weight.bold,
-    letterSpacing: font.tracking.snug,
+  tab: {
+    background: 'transparent',
+    borderTop: 'none',
+    borderLeft: 'none',
+    borderRight: 'none',
+    borderBottom: 'none',
+    cursor: 'pointer',
+    fontFamily: font.sans,
+    fontSize: font.size.sm,
+    fontWeight: font.weight.medium,
+    color: colors.text.muted,
+    padding: `${spacing[2]} ${spacing[3]}`,
+    borderRadius: `${radius.sm} ${radius.sm} 0 0`,
+    transition: transitions.base,
+    letterSpacing: font.tracking.normal,
+    whiteSpace: 'nowrap',
+    position: 'relative',
+  },
+
+  tabActive: {
+    background: 'transparent',
+    // Use individual border longhands to avoid React style conflict warning
+    // (mixing shorthand 'border' with 'borderBottom' on alternating renders).
+    borderTop: 'none',
+    borderLeft: 'none',
+    borderRight: 'none',
+    borderBottom: `2px solid ${colors.text.primary}`,
+    cursor: 'pointer',
+    fontFamily: font.sans,
+    fontSize: font.size.sm,
+    fontWeight: font.weight.semibold,
     color: colors.text.primary,
-    marginTop: spacing[1],
-    lineHeight: font.leading.snug,
+    padding: `${spacing[2]} ${spacing[3]}`,
+    borderRadius: `${radius.sm} ${radius.sm} 0 0`,
+    transition: transitions.base,
+    letterSpacing: font.tracking.normal,
+    whiteSpace: 'nowrap',
+    position: 'relative',
   },
 
+  tabDivider: {
+    height: '1px',
+    background: colors.border.subtle,
+  },
+
+  tabContent: {
+    padding: `${spacing[6]} clamp(1.25rem, 3vw, 2rem) clamp(1.25rem, 3vw, 1.75rem)`,
+  },
+
+  tabFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing[4],
+    marginTop: spacing[6],
+    paddingTop: spacing[5],
+    borderTop: borders.subtle,
+  },
+
+  tabFooterHint: {
+    fontSize: font.size.xs,
+    color: colors.text.faint,
+    fontWeight: font.weight.regular,
+    flex: 1,
+    lineHeight: font.leading.normal,
+  },
+
+  // ── Profile tab
   avatarRow: {
     display: 'flex',
     alignItems: 'center',
     gap: spacing[5],
     padding: `${spacing[4]} ${spacing[5]}`,
-    background: colors.white[3],
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.015) 100%)',
     border: borders.subtle,
     borderRadius: radius.lg,
     marginBottom: spacing[6],
     flexWrap: 'wrap',
+    boxShadow: '0 1px 0 rgba(255,255,255,0.035) inset',
   },
 
   avatarWrap: {
@@ -1071,13 +1862,10 @@ const s: Record<string, CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
   },
 
-  avatarImg: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
+  avatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
 
   avatarInitials: {
     fontSize: font.size.xl,
@@ -1109,16 +1897,28 @@ const s: Record<string, CSSProperties> = {
     color: colors.text.muted,
     fontWeight: font.weight.regular,
     marginBottom: spacing[2],
-    letterSpacing: font.tracking.normal,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
 
   uploadBtn: {
-    ...buttons.subtle,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
     padding: `${spacing[2]} ${spacing['3.5']}`,
+    borderRadius: radius.full,
+    border: `1px solid ${colors.border.subtle}`,
+    background: 'rgba(255,255,255,0.04)',
+    color: colors.text.muted,
+    fontFamily: font.sans,
     fontSize: font.size.xs,
+    fontWeight: font.weight.semibold,
+    letterSpacing: '0.01em',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    transition: transitions.button,
     alignSelf: 'flex-start',
   },
 
@@ -1128,11 +1928,246 @@ const s: Record<string, CSSProperties> = {
     gap: `${spacing[4]} ${spacing[5]}`,
   },
 
+  // ── Links tab
+  linksHeader: { marginBottom: spacing[4] },
+
+  linksSubtitle: {
+    fontSize: font.size.xs,
+    color: colors.text.faint,
+    fontWeight: font.weight.regular,
+    lineHeight: font.leading.normal,
+  },
+
+  linksList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing[4],
+    marginBottom: spacing[4],
+  },
+
+  linkRowWrap: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing[2],
+  },
+
+  linkRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: spacing[3],
+  },
+
+  linkToggle: {
+    width: '30px',
+    height: '30px',
+    borderRadius: radius.sm,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    flexShrink: 0,
+    marginTop: '8px',
+    transition: transitions.smooth,
+  },
+
+  linkInputs: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing[2],
+  },
+
+  linkInputInner: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+  },
+
+  linkKindBadge: {
+    position: 'absolute',
+    right: '10px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    fontSize: '0.58rem',
+    fontWeight: font.weight.semibold,
+    letterSpacing: '0.1em',
+    padding: '2px 7px',
+    borderRadius: radius.full,
+    pointerEvents: 'none',
+  },
+
+  linkKindWa: {
+    background: 'rgba(74,222,128,0.1)',
+    color: colors.accent.success,
+    border: `1px solid ${colors.accent.successBorder}`,
+  },
+
+  linkKindEmail: {
+    background: 'rgba(251,191,36,0.08)',
+    color: colors.accent.warning,
+    border: '1px solid rgba(251,191,36,0.22)',
+  },
+
+  linkKindUrl: {
+    background: colors.white[3],
+    color: colors.text.faint,
+    border: borders.subtle,
+  },
+
+  linkError: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: spacing[2],
+    fontSize: font.size.xs,
+    fontWeight: font.weight.regular,
+    color: colors.accent.error,
+    lineHeight: font.leading.normal,
+    marginLeft: `calc(30px + ${spacing[3]})`, // align under inputs, not toggle
+    padding: `${spacing[1]} 0`,
+  },
+
+  addLinkBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: spacing[2],
+    padding: `${spacing[2]} ${spacing[4]}`,
+    borderRadius: radius.md,
+    border: borders.subtle,
+    background: 'rgba(255,255,255,0.03)',
+    color: colors.text.muted,
+    fontFamily: font.sans,
+    fontSize: font.size.xs,
+    fontWeight: font.weight.semibold,
+    letterSpacing: font.tracking.wide,
+    cursor: 'pointer',
+    transition: transitions.base,
+  },
+
+  emptyLinks: {
+    padding: `${spacing[8]} ${spacing[4]}`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: borders.subtle,
+    borderRadius: radius.lg,
+    marginBottom: spacing[4],
+    background: colors.white[3],
+  },
+
+  emptyLinksText: {
+    fontSize: font.size.sm,
+    color: colors.text.faint,
+    textAlign: 'center',
+  },
+
+  // ── Style tab
+  styleSection: { marginBottom: spacing[6] },
+
+  styleSectionLabel: {
+    fontSize: font.size.sm,
+    fontWeight: font.weight.semibold,
+    color: colors.text.secondary,
+    marginBottom: spacing[1],
+  },
+
+  styleSectionHint: {
+    fontSize: font.size.xs,
+    color: colors.text.faint,
+    marginBottom: spacing[4],
+    lineHeight: font.leading.normal,
+  },
+
+  styleGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: spacing[3],
+  },
+
+  styleOpt: {
+    padding: `${spacing[3]} ${spacing[4]}`,
+    borderRadius: radius.lg,
+    border: borders.subtle,
+    background: colors.white[3],
+    color: colors.text.muted,
+    fontFamily: font.sans,
+    fontSize: font.size.sm,
+    fontWeight: font.weight.medium,
+    cursor: 'pointer',
+    transition: transitions.base,
+    textAlign: 'left',
+    letterSpacing: font.tracking.normal,
+  },
+
+  // ── Card tab
+  cardTabVisual: {
+    ...cards.nfc,
+    marginBottom: spacing[5],
+    minHeight: '80px',
+    boxShadow: '0 8px 28px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.06) inset',
+  },
+
+  cardDetails: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 0,
+    border: borders.subtle,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    marginBottom: spacing[2],
+  },
+
+  cardDetailRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: `${spacing[3]} ${spacing[4]}`,
+    borderBottom: borders.subtle,
+    gap: spacing[4],
+  },
+
+  cardDetailLabel: {
+    fontSize: font.size.xs,
+    fontWeight: font.weight.medium,
+    color: colors.text.faint,
+    letterSpacing: font.tracking.wider,
+    textTransform: 'uppercase' as const,
+    flexShrink: 0,
+  },
+
+  cardDetailValue: {
+    fontSize: font.size.sm,
+    fontWeight: font.weight.medium,
+    color: colors.text.secondary,
+    fontFamily: font.mono,
+    textAlign: 'right',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+
+  cardTabEmpty: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center',
+    padding: `${spacing[10]} ${spacing[4]}`,
+    gap: spacing[3],
+  },
+
+  // ── Analytics CTA
   analyticsCard: {
-    ...cards.interactive,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    background: colors.bg.surface,
+    border: borders.subtle,
     borderRadius: radius.xl,
     padding: `${spacing[5]} ${spacing[6]}`,
-    boxShadow: shadows.panel,
+    textDecoration: 'none',
+    color: colors.text.primary,
+    transition: `border-color ${transitions.smooth}, background ${transitions.smooth}`,
+    cursor: 'pointer',
+    boxShadow: '0 1px 0 rgba(255,255,255,0.045) inset, 0 4px 16px rgba(0,0,0,0.25)',
     animation: 'fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) 0.12s both',
   },
 
@@ -1159,17 +2194,19 @@ const s: Record<string, CSSProperties> = {
   },
 
   analyticsArrowWrap: {
-    width: '32px',
-    height: '32px',
+    width: '34px',
+    height: '34px',
     borderRadius: radius.full,
-    background: colors.white[3],
+    background: 'rgba(255,255,255,0.04)',
     border: borders.subtle,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
   },
 
+  // ── Shared
   eyebrow: {
     ...text.eyebrow,
     fontSize: font.size['2xs'],
