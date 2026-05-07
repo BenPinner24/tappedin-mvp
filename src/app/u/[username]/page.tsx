@@ -1,16 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+import { notFound }     from 'next/navigation'
 import type { CSSProperties } from 'react'
-import {
-  colors,
-  font,
-  radius,
-  shadows,
-  borders,
-  gradients,
-  transitions,
-  text,
-} from '@/lib/design'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,31 +9,31 @@ type PublicProfilePageProps = {
 }
 
 type Profile = {
-  id: string
-  username: string | null
-  display_name: string | null
-  bio: string | null
-  role: string | null
-  website: string | null
-  avatar_url: string | null
-  headline: string | null
-  theme_style: string | null
-  accent_color: string | null
-  button_style: string | null
+  id:               string
+  username:         string | null
+  display_name:     string | null
+  bio:              string | null
+  role:             string | null
+  website:          string | null
+  avatar_url:       string | null
+  headline:         string | null
+  theme_style:      string | null
+  accent_color:     string | null
+  button_style:     string | null
   background_style: string | null
-  is_public?: boolean | null
+  is_public?:       boolean | null
 }
 
 type ProfileLink = {
-  id: string
-  label: string | null
-  url: string | null
+  id:        string
+  label:     string | null
+  url:       string | null
   link_type: string | null
-  position: number | null
+  position:  number | null
   is_active: boolean | null
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getInitials(value: string): string {
   const parts = value.trim().split(' ').filter(Boolean)
@@ -51,45 +41,112 @@ function getInitials(value: string): string {
   return value.slice(0, 2).toUpperCase()
 }
 
-function normaliseUrl(value: string): string {
-  return value.startsWith('http://') || value.startsWith('https://')
-    ? value
-    : `https://${value}`
+/**
+ * Normalise a raw link URL from the database into a usable href.
+ *
+ * The DB stores values exactly as the user typed in the dashboard
+ * (after dashboard normalisation).  We handle three formats here:
+ *
+ *  1. WhatsApp  — stored as https://wa.me/<digits>
+ *  2. Email     — stored as https://mail.google.com/…?to=<encoded-email>
+ *  3. URL       — already has https:// prefix
+ *
+ * In every case we just return the stored value unchanged — the dashboard
+ * already normalised it.  The only thing we must NOT do is wrap a full URL
+ * in another https:// prefix.
+ */
+function resolveHref(url: string): string {
+  if (!url) return '#'
+  // Already a full URL (covers wa.me, mail.google.com, https://…)
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  // Bare domain / path — add https
+  return `https://${url}`
 }
 
-function getButtonStyle(buttonStyle: string | null): CSSProperties {
+/** Detect the link kind so we can render the right icon */
+function detectKind(label: string, url: string): 'whatsapp' | 'email' | 'url' {
+  const l = label.toLowerCase()
+  if (l.includes('whatsapp') || l.includes('whats app') || url.includes('wa.me')) return 'whatsapp'
+  if (l.includes('email') || l.includes('mail') || l.includes('contact') || url.includes('mail.google.com')) return 'email'
+  return 'url'
+}
+
+/** Button style variants matching the dashboard selector */
+function getLinkButtonStyle(buttonStyle: string | null): CSSProperties {
   if (buttonStyle === 'sharp') {
     return {
-      borderRadius: radius.lg,
-      background: 'rgba(255,255,255,0.95)',
+      background: 'rgba(255,255,255,0.96)',
       color: '#000',
-      border: `1px solid ${colors.border.strong}`,
+      border: '1px solid rgba(255,255,255,0.14)',
+      borderRadius: '6px',
     }
   }
   if (buttonStyle === 'outline') {
     return {
-      borderRadius: radius.lg,
       background: 'transparent',
-      color: colors.text.primary,
-      border: borders.focus,
+      color: '#fff',
+      border: '1px solid rgba(255,255,255,0.22)',
+      borderRadius: '14px',
     }
   }
   if (buttonStyle === 'glass') {
     return {
-      borderRadius: radius.lg,
-      background: colors.white[5],
-      color: colors.text.primary,
-      border: borders.default,
+      background: 'rgba(255,255,255,0.06)',
+      color: '#fff',
+      border: '1px solid rgba(255,255,255,0.09)',
+      borderRadius: '14px',
     }
   }
-  // default — solid white
+  // default — solid white with slight radius
   return {
-    borderRadius: radius.lg,
     background: 'rgba(255,255,255,0.95)',
     color: '#000',
-    border: borders.default,
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: '14px',
   }
 }
+
+// ─── SVG icons (inline, no external deps) ─────────────────────────────────────
+
+function IconArrow() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path d="M2 12L12 2M12 2H5M12 2v7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
+function IconWhatsApp() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0, opacity: 0.55 }}>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.122 1.533 5.859L0 24l6.322-1.51A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.007-1.365l-.358-.214-3.723.889.904-3.638-.233-.373A9.782 9.782 0 012.182 12C2.182 6.571 6.571 2.182 12 2.182S21.818 6.571 21.818 12 17.429 21.818 12 21.818z"/>
+    </svg>
+  )
+}
+
+function IconEmail() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true" style={{ flexShrink: 0, opacity: 0.55 }}>
+      <rect x="2" y="4" width="20" height="16" rx="2"/>
+      <path d="M2 7l10 7 10-7"/>
+    </svg>
+  )
+}
+
+function IconGlobe() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true" style={{ flexShrink: 0, opacity: 0.5 }}>
+      <circle cx="7" cy="7" r="6"/>
+      <path d="M7 1c0 0-2.5 2-2.5 6s2.5 6 2.5 6"/>
+      <path d="M7 1c0 0 2.5 2 2.5 6s-2.5 6-2.5 6"/>
+      <path d="M1 7h12"/>
+    </svg>
+  )
+}
+
+// Grain texture data-uri
+const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E")`
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -121,7 +178,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
   const role        = profile.role || profile.headline || ''
   const handle      = profile.username ? `@${profile.username}` : ''
   const initials    = getInitials(displayName)
-  const buttonStyle = getButtonStyle(profile.button_style)
+  const btnStyle    = getLinkButtonStyle(profile.button_style)
 
   return (
     <>
@@ -131,142 +188,174 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         html, body {
-          background: ${colors.bg.page};
+          background: #030303;
           min-height: 100vh;
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
         }
 
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(16px); }
+        @keyframes ti-scaleIn {
+          from { opacity: 0; transform: scale(0.95) translateY(12px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes ti-fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-
-        @keyframes scaleIn {
-          from { opacity: 0; transform: scale(0.94); }
-          to   { opacity: 1; transform: scale(1); }
+        @keyframes ti-pulse {
+          0%, 100% { opacity: 0.4; }
+          50%      { opacity: 0.75; }
+        }
+        @keyframes ti-liveDot {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
+          50%      { box-shadow: 0 0 0 4px rgba(74,222,128,0); }
         }
 
-        @keyframes shimmer {
-          0%   { opacity: 0.4; }
-          50%  { opacity: 0.7; }
-          100% { opacity: 0.4; }
+        /* Link button hover — only pointer devices */
+        @media (hover: hover) {
+          .ti-link:hover {
+            transform: translateY(-2px) !important;
+            filter: brightness(1.05);
+          }
         }
+        .ti-link:active { transform: translateY(0px) !important; }
 
-        .ti-link-btn {
-          transition: transform 0.2s cubic-bezier(0.16,1,0.3,1),
-                      box-shadow 0.2s ease,
-                      background 0.15s ease,
-                      opacity 0.15s ease;
-        }
-        .ti-link-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 36px rgba(0,0,0,0.45) !important;
-          opacity: 0.92;
-        }
-        .ti-link-btn:active { transform: translateY(0px); }
+        /* Website / footer hover */
+        .ti-site:hover  { opacity: 0.65 !important; }
+        .ti-cta:hover   { opacity: 0.7 !important; }
 
-        .ti-website:hover { opacity: 0.7 !important; }
-        .ti-footer-link:hover { opacity: 0.7 !important; }
-
-        @media (max-width: 480px) {
-          .ti-card { padding: 1.5rem 1.25rem 2rem !important; }
-          .ti-name { font-size: 2.2rem !important; }
+        /* Mobile full-width on tiny screens */
+        @media (max-width: 380px) {
+          .ti-card { padding: 1.5rem 1.1rem 1.75rem !important; }
+          .ti-name { font-size: 2rem !important; }
         }
       `}</style>
 
       <main style={s.page}>
-        <div style={s.bgGrid} />
-        <div style={s.bgGlow} />
+        {/* ── Background layer ── */}
+        <div aria-hidden="true" style={s.bgGrid} />
+        <div aria-hidden="true" style={s.bgGlow} />
+        <div aria-hidden="true" style={s.bgGrain} />
 
+        {/* ── Card shell ── */}
         <div style={s.shell}>
           <div className="ti-card" style={s.card}>
 
-            {/* ── Top bar ── */}
+            {/* Card inner grain for depth */}
+            <div aria-hidden="true" style={s.cardGrain} />
+
+            {/* ── Top bar: brand + handle + live pill ── */}
             <div style={s.topBar}>
-              <div style={s.brandGroup}>
+              <div style={s.topLeft}>
                 <span style={s.brandMark}>TAPPED-IN</span>
                 {handle && <span style={s.handle}>{handle}</span>}
               </div>
-              <div style={s.activePill}>
-                <span style={s.activeDot} />
-                <span style={s.activeLabel}>Active</span>
+              <div style={s.livePill}>
+                <span style={s.liveDot} />
+                <span style={s.liveLabel}>Active</span>
               </div>
             </div>
 
-            {/* ── Hero ── */}
-            <div style={s.hero}>
-              <div style={s.avatarOuter}>
+            {/* ── Avatar ── */}
+            <div style={s.avatarSection}>
+              <div style={s.avatarRing}>
                 <div style={s.avatarInner}>
                   {profile.avatar_url ? (
-                    <img src={profile.avatar_url} alt={displayName} style={s.avatarImg} />
+                    <img
+                      src={profile.avatar_url}
+                      alt={displayName}
+                      style={s.avatarImg}
+                    />
                   ) : (
                     <span style={s.avatarInitials}>{initials}</span>
                   )}
                 </div>
               </div>
+            </div>
 
-              <div style={s.identity}>
-                <p style={s.microLabel}>Digital profile</p>
-                <h1 className="ti-name" style={s.name}>{displayName}</h1>
-                {role && <p style={s.role}>{role}</p>}
-                {profile.bio && <p style={s.bio}>{profile.bio}</p>}
-              </div>
+            {/* ── Identity ── */}
+            <div style={s.identity}>
+              <p style={s.microLabel}>Digital profile</p>
+              <h1 className="ti-name" style={s.name}>{displayName}</h1>
+              {role && <p style={s.role}>{role}</p>}
+              {profile.bio && <p style={s.bio}>{profile.bio}</p>}
             </div>
 
             {/* ── Website ── */}
             {profile.website && (
               <a
-                href={normaliseUrl(profile.website)}
+                href={resolveHref(profile.website)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="ti-website"
+                className="ti-site"
                 style={s.website}
               >
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}>
-                  <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2"/>
-                  <path d="M7 1c0 0-2.5 2-2.5 6s2.5 6 2.5 6" stroke="currentColor" strokeWidth="1.2"/>
-                  <path d="M7 1c0 0 2.5 2 2.5 6s-2.5 6-2.5 6" stroke="currentColor" strokeWidth="1.2"/>
-                  <path d="M1 7h12" stroke="currentColor" strokeWidth="1.2"/>
-                </svg>
-                {profile.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                <IconGlobe />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {profile.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                </span>
               </a>
             )}
 
+            {/* ── Divider ── */}
+            {activeLinks.length > 0 && <div style={s.divider} />}
+
             {/* ── Links ── */}
-            <div style={s.linksSection}>
-              {activeLinks.length === 0 ? (
-                <div style={s.emptyState}>
-                  <p style={s.emptyText}>No links yet.</p>
-                </div>
-              ) : (
-                <div style={s.linksGrid}>
-                  {activeLinks.map((link, i) => (
+            {activeLinks.length > 0 && (
+              <div style={s.linksGrid}>
+                {activeLinks.map((link, i) => {
+                  const kind = detectKind(link.label ?? '', link.url ?? '')
+                  const isDefault = !profile.button_style || profile.button_style === 'default'
+                  // Icon colour: dark on white buttons, light on dark buttons
+                  const iconColor = (isDefault || profile.button_style === 'sharp')
+                    ? 'rgba(0,0,0,0.45)'
+                    : 'rgba(255,255,255,0.55)'
+
+                  return (
                     <a
                       key={link.id}
                       href={`/r/${link.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="ti-link-btn"
+                      className="ti-link"
                       style={{
                         ...s.linkBtn,
-                        ...buttonStyle,
-                        animationDelay: `${0.35 + i * 0.06}s`,
+                        ...btnStyle,
+                        animationDelay: `${0.3 + i * 0.055}s`,
+                        transition: 'transform 0.22s cubic-bezier(0.16,1,0.3,1), filter 0.15s ease, box-shadow 0.22s ease',
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.06) inset',
                       }}
                     >
+                      {/* Left icon */}
+                      <span style={{ ...s.linkIconLeft, color: iconColor }}>
+                        {kind === 'whatsapp' && <IconWhatsApp />}
+                        {kind === 'email'    && <IconEmail />}
+                        {kind === 'url'      && (
+                          <span style={{ width: 15, display: 'inline-block' }} />
+                        )}
+                      </span>
+
+                      {/* Label */}
                       <span style={s.linkLabel}>{link.label}</span>
-                      <span style={s.linkArrow}>
-                        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                          <path d="M2 12L12 2M12 2H5M12 2v7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+
+                      {/* Right arrow */}
+                      <span style={{ ...s.linkArrow, color: iconColor }}>
+                        <IconArrow />
                       </span>
                     </a>
-                  ))}
-                </div>
-              )}
-            </div>
+                  )
+                })}
+              </div>
+            )}
 
-            {/* ── Footer ── */}
+            {/* Empty state */}
+            {activeLinks.length === 0 && (
+              <div style={s.emptyState}>
+                <p style={s.emptyText}>No links yet.</p>
+              </div>
+            )}
+
+            {/* ── Footer brand mark ── */}
             <div style={s.footer}>
               <div style={s.footerDivider} />
               <div style={s.footerRow}>
@@ -276,10 +365,10 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                 </span>
                 <a
                   href="/"
-                  className="ti-footer-link"
-                  style={s.footerCta}
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="ti-cta"
+                  style={s.footerCta}
                 >
                   Get your card →
                 </a>
@@ -295,66 +384,100 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
+const FF  = `'DM Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif`
+const MONO = `'SF Mono', 'Fira Code', ui-monospace, monospace`
+
 const s: Record<string, CSSProperties> = {
 
+  // ── Page shell
   page: {
     minHeight: '100vh',
-    background: colors.bg.page,
-    color: colors.text.primary,
-    fontFamily: font.sans,
+    background: '#030303',
+    color: '#fff',
+    fontFamily: FF,
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'center',
-    padding: '2rem 1.25rem 4rem',
+    padding: 'clamp(2rem,6vw,4rem) 1.25rem clamp(3rem,8vw,5rem)',
     position: 'relative',
     overflow: 'hidden',
   },
 
+  // ── Background layers
   bgGrid: {
     position: 'fixed',
     inset: 0,
-    backgroundImage: gradients.bgGrid,
-    backgroundSize: '56px 56px',
-    WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 30%, black 20%, transparent 72%)',
-    maskImage: 'radial-gradient(ellipse 80% 80% at 50% 30%, black 20%, transparent 72%)',
+    backgroundImage: [
+      'linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px)',
+      'linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)',
+    ].join(', '),
+    backgroundSize: '60px 60px',
+    WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 20%, black 20%, transparent 72%)',
+    maskImage:       'radial-gradient(ellipse 80% 80% at 50% 20%, black 20%, transparent 72%)',
     pointerEvents: 'none',
     zIndex: 0,
   },
 
   bgGlow: {
     position: 'fixed',
-    top: '-120px',
+    top: '-140px',
     left: '50%',
     transform: 'translateX(-50%)',
-    width: '600px',
-    height: '400px',
-    background: gradients.bgGlow,
+    width: '640px',
+    height: '420px',
+    background: 'radial-gradient(ellipse, rgba(255,255,255,0.032) 0%, transparent 68%)',
     filter: 'blur(8px)',
+    animation: 'ti-pulse 6s ease-in-out infinite',
     pointerEvents: 'none',
-    animation: 'shimmer 5s ease-in-out infinite',
     zIndex: 0,
   },
 
+  bgGrain: {
+    position: 'fixed',
+    inset: 0,
+    opacity: 0.038,
+    backgroundImage: GRAIN,
+    backgroundSize: '220px 220px',
+    pointerEvents: 'none',
+    zIndex: 0,
+  },
+
+  // ── Card wrapper
   shell: {
     width: '100%',
-    maxWidth: '420px',
+    maxWidth: '440px',
     position: 'relative',
     zIndex: 1,
-    animation: 'scaleIn 0.6s cubic-bezier(0.16,1,0.3,1) both',
+    animation: 'ti-scaleIn 0.65s cubic-bezier(0.16,1,0.3,1) both',
   },
 
   card: {
     width: '100%',
-    background: colors.bg.surface,
-    border: borders.default,
-    borderRadius: radius['4xl'],
+    background: '#0a0a0a',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: '28px',
     padding: '1.75rem 1.75rem 2rem',
-    boxShadow: shadows.card,
+    boxShadow: [
+      '0 40px 100px rgba(0,0,0,0.7)',
+      '0 1px 0 rgba(255,255,255,0.045) inset',
+      '0 0 0 1px rgba(255,255,255,0.03)',
+    ].join(', '),
     display: 'flex',
     flexDirection: 'column',
-    gap: '0',
     overflow: 'hidden',
     position: 'relative',
+  },
+
+  // Card internal grain for depth
+  cardGrain: {
+    position: 'absolute',
+    inset: 0,
+    opacity: 0.025,
+    backgroundImage: GRAIN,
+    backgroundSize: '180px 180px',
+    pointerEvents: 'none',
+    borderRadius: '28px',
+    zIndex: 0,
   },
 
   // ── Top bar
@@ -363,145 +486,159 @@ const s: Record<string, CSSProperties> = {
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '2rem',
-    animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s both',
+    position: 'relative',
+    zIndex: 1,
+    animation: 'ti-fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s both',
   },
 
-  brandGroup: {
+  topLeft: {
     display: 'flex',
     flexDirection: 'column',
     gap: '2px',
   },
 
   brandMark: {
-    ...text.brandMark,
-    fontSize: '0.6rem',
-    letterSpacing: '0.24em',
-    color: colors.text.faint,
+    fontFamily: MONO,
+    fontSize: '0.58rem',
+    fontWeight: 700,
+    letterSpacing: '0.26em',
+    color: 'rgba(255,255,255,0.2)',
+    textTransform: 'uppercase' as const,
+    userSelect: 'none' as const,
   },
 
   handle: {
-    fontSize: font.size.sm,
-    fontWeight: font.weight.medium,
-    color: colors.text.muted,
+    fontFamily: FF,
+    fontSize: '0.76rem',
+    fontWeight: 500,
+    color: 'rgba(255,255,255,0.38)',
     letterSpacing: '0.01em',
-    fontFamily: font.sans,
   },
 
-  activePill: {
+  livePill: {
     display: 'flex',
     alignItems: 'center',
     gap: '5px',
     padding: '4px 10px',
-    borderRadius: radius.full,
-    background: colors.accent.successBg,
-    border: `1px solid ${colors.accent.successBorder}`,
+    borderRadius: '9999px',
+    background: 'rgba(74,222,128,0.08)',
+    border: '1px solid rgba(74,222,128,0.2)',
   },
 
-  activeDot: {
+  liveDot: {
     width: '5px',
     height: '5px',
     borderRadius: '50%',
-    background: colors.accent.success,
-    boxShadow: `0 0 5px ${colors.accent.success}`,
+    background: '#4ade80',
+    animation: 'ti-liveDot 2.5s ease-in-out infinite',
   },
 
-  activeLabel: {
-    fontSize: font.size.xs,
-    fontWeight: font.weight.semibold,
-    color: colors.accent.success,
-    letterSpacing: font.tracking.wide,
-    fontFamily: font.sans,
+  liveLabel: {
+    fontFamily: FF,
+    fontSize: '0.68rem',
+    fontWeight: 600,
+    color: '#4ade80',
+    letterSpacing: '0.04em',
   },
 
-  // ── Hero
-  hero: {
+  // ── Avatar
+  avatarSection: {
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    textAlign: 'center',
+    justifyContent: 'center',
     marginBottom: '1.5rem',
-    animation: 'fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both',
+    position: 'relative',
+    zIndex: 1,
+    animation: 'ti-fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.08s both',
   },
 
-  avatarOuter: {
-    width: '100px',
-    height: '100px',
-    borderRadius: radius['4xl'],
+  avatarRing: {
+    width: '96px',
+    height: '96px',
+    borderRadius: '26px',
     padding: '2px',
-    background: gradients.avatarBorder,
-    marginBottom: '1.5rem',
+    background: 'linear-gradient(145deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 100%)',
+    boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.5)',
     flexShrink: 0,
   },
 
   avatarInner: {
     width: '100%',
     height: '100%',
-    borderRadius: '26px',
+    borderRadius: '24px',
     overflow: 'hidden',
-    background: 'linear-gradient(145deg, #1a1a1a, #111)',
+    background: 'linear-gradient(148deg, #1a1a1a, #111)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    border: `1px solid ${colors.white[5]}`,
+    border: '1px solid rgba(255,255,255,0.06)',
   },
 
   avatarImg: {
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
+    objectFit: 'cover' as const,
+    display: 'block',
   },
 
   avatarInitials: {
-    fontFamily: font.sans,
-    fontSize: '1.75rem',
-    fontWeight: font.weight.bold,
-    color: colors.white[50],
-    letterSpacing: font.tracking.snug,
+    fontFamily: FF,
+    fontSize: '1.65rem',
+    fontWeight: 700,
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: '-0.03em',
+    userSelect: 'none' as const,
   },
 
+  // ── Identity block
   identity: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '0',
+    textAlign: 'center',
+    marginBottom: '1.25rem',
+    position: 'relative',
+    zIndex: 1,
+    animation: 'ti-fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.12s both',
   },
 
   microLabel: {
-    ...text.eyebrow,
-    fontSize: '0.62rem',
-    letterSpacing: '0.18em',
-    color: colors.text.ghost,
-    marginBottom: '0.6rem',
+    fontFamily: FF,
+    fontSize: '0.6rem',
+    fontWeight: 500,
+    letterSpacing: '0.2em',
+    textTransform: 'uppercase' as const,
+    color: 'rgba(255,255,255,0.2)',
+    marginBottom: '0.55rem',
   },
 
   name: {
-    fontFamily: font.sans,
-    fontSize: '2.5rem',
-    fontWeight: font.weight.bold,
-    letterSpacing: font.tracking.tight,
-    color: colors.text.primary,
-    lineHeight: 1.0,
-    marginBottom: '0.5rem',
+    fontFamily: FF,
+    fontSize: 'clamp(1.9rem, 6vw, 2.4rem)',
+    fontWeight: 700,
+    letterSpacing: '-0.035em',
+    lineHeight: 1.05,
+    color: '#fff',
+    marginBottom: '0.45rem',
   },
 
   role: {
-    fontFamily: font.sans,
-    fontSize: font.size.base,
-    fontWeight: font.weight.regular,
-    color: 'rgba(255,255,255,0.45)',
+    fontFamily: FF,
+    fontSize: '0.88rem',
+    fontWeight: 400,
+    color: 'rgba(255,255,255,0.42)',
     letterSpacing: '0.01em',
-    marginBottom: '0.85rem',
+    marginBottom: '0.8rem',
     lineHeight: 1.4,
   },
 
   bio: {
-    fontFamily: font.sans,
-    fontSize: font.size.base,
-    fontWeight: font.weight.light,
-    color: 'rgba(255,255,255,0.38)',
-    lineHeight: font.leading.relaxed,
+    fontFamily: FF,
+    fontSize: '0.86rem',
+    fontWeight: 300,
+    color: 'rgba(255,255,255,0.35)',
+    lineHeight: 1.72,
     maxWidth: '320px',
-    whiteSpace: 'pre-line',
+    whiteSpace: 'pre-line' as const,
   },
 
   // ── Website
@@ -510,83 +647,113 @@ const s: Record<string, CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '6px',
-    color: colors.text.muted,
+    color: 'rgba(255,255,255,0.38)',
     textDecoration: 'none',
-    fontSize: font.size.sm,
-    fontWeight: font.weight.medium,
+    fontFamily: FF,
+    fontSize: '0.78rem',
+    fontWeight: 500,
     letterSpacing: '0.01em',
-    marginBottom: '1.5rem',
-    transition: transitions.opacity,
+    marginBottom: '1.25rem',
+    marginTop: '-0.25rem',
+    transition: 'opacity 0.2s ease',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    fontFamily: font.sans,
+    whiteSpace: 'nowrap' as const,
+    maxWidth: '100%',
+    position: 'relative',
+    zIndex: 1,
+  },
+
+  // ── Divider
+  divider: {
+    height: '1px',
+    background: 'rgba(255,255,255,0.055)',
+    marginBottom: '1.25rem',
+    position: 'relative',
+    zIndex: 1,
   },
 
   // ── Links
-  linksSection: {
-    marginBottom: '1.5rem',
-    animation: 'fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.3s both',
-  },
-
   linksGrid: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '0.6rem',
+    gap: '0.55rem',
+    marginBottom: '1.75rem',
+    position: 'relative',
+    zIndex: 1,
   },
 
   linkBtn: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '1rem 1.15rem',
+    padding: '0.95rem 1.1rem',
     textDecoration: 'none',
-    fontFamily: font.sans,
-    fontSize: font.size.md,
-    fontWeight: font.weight.semibold,
-    letterSpacing: '0.01em',
-    boxSizing: 'border-box',
+    fontFamily: FF,
+    fontSize: '0.93rem',
+    fontWeight: 600,
+    letterSpacing: '0.005em',
+    boxSizing: 'border-box' as const,
     width: '100%',
-    boxShadow: shadows.md,
-    animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both',
+    minHeight: '52px',
+    animation: 'ti-fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both',
+    cursor: 'pointer',
+    userSelect: 'none' as const,
+  },
+
+  linkIconLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '20px',
+    flexShrink: 0,
   },
 
   linkLabel: {
+    flex: 1,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    flex: 1,
+    whiteSpace: 'nowrap' as const,
+    textAlign: 'center' as const,
+    padding: '0 0.5rem',
   },
 
   linkArrow: {
-    flexShrink: 0,
-    marginLeft: '0.75rem',
-    opacity: 0.5,
     display: 'flex',
     alignItems: 'center',
+    flexShrink: 0,
+    width: '20px',
+    justifyContent: 'flex-end',
   },
 
+  // ── Empty state
   emptyState: {
     padding: '2rem 1rem',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+    zIndex: 1,
   },
 
   emptyText: {
-    ...text.caption,
+    fontFamily: FF,
+    fontSize: '0.82rem',
+    color: 'rgba(255,255,255,0.25)',
+    fontStyle: 'italic' as const,
     letterSpacing: '0.02em',
   },
 
-  // ── Footer
+  // ── Footer brand mark
   footer: {
-    animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.45s both',
+    position: 'relative',
+    zIndex: 1,
+    animation: 'ti-fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.4s both',
   },
 
   footerDivider: {
     height: '1px',
-    background: colors.border.subtle,
-    marginBottom: '1.1rem',
+    background: 'rgba(255,255,255,0.05)',
+    marginBottom: '1rem',
   },
 
   footerRow: {
@@ -603,26 +770,32 @@ const s: Record<string, CSSProperties> = {
   },
 
   footerBrand: {
-    ...text.brandMark,
-    fontSize: '0.55rem',
-    color: 'rgba(255,255,255,0.18)',
+    fontFamily: MONO,
+    fontSize: '0.52rem',
+    fontWeight: 700,
+    letterSpacing: '0.26em',
+    color: 'rgba(255,255,255,0.15)',
+    textTransform: 'uppercase' as const,
   },
 
   footerSlogan: {
-    ...text.slogan,
-    fontSize: '0.62rem',
-    color: 'rgba(255,255,255,0.15)',
+    fontFamily: FF,
+    fontSize: '0.6rem',
+    fontWeight: 300,
+    fontStyle: 'italic' as const,
+    letterSpacing: '0.03em',
+    color: 'rgba(255,255,255,0.12)',
   },
 
   footerCta: {
-    fontFamily: font.sans,
-    fontSize: font.size.xs,
-    fontWeight: font.weight.semibold,
-    color: colors.text.muted,
+    fontFamily: FF,
+    fontSize: '0.72rem',
+    fontWeight: 600,
+    color: 'rgba(255,255,255,0.32)',
     textDecoration: 'none',
     letterSpacing: '0.01em',
-    transition: transitions.opacity,
-    whiteSpace: 'nowrap',
+    transition: 'opacity 0.2s ease',
+    whiteSpace: 'nowrap' as const,
     flexShrink: 0,
   },
 }

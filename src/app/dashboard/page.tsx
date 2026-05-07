@@ -305,6 +305,8 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab]       = useState<ActiveTab>('profile')
   const [userId, setUserId]             = useState<string | null>(null)
   const [uploading, setUploading]       = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [uploadError, setUploadError]     = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => { loadDashboard() }, [])
@@ -484,22 +486,76 @@ export default function DashboardPage() {
   }
 
   // ─── Avatar upload ─────────────────────────────────────────────────────────
+  // Validates file type + size client-side, shows instant preview via FileReader,
+  // uploads to Supabase Storage `avatars` bucket, then saves the public URL to
+  // profiles.avatar_url.  All existing save logic is unaffected.
 
   async function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    // Reset input so the same file can be re-selected after an error
+    event.target.value = ''
+
+    if (!file || !profile) return
+
+    // ── Client-side validation ──────────────────────────────────────────────
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    const MAX_BYTES     = 5 * 1024 * 1024 // 5 MB
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setUploadError('Please upload a JPG, PNG, WebP, or GIF image.')
+      return
+    }
+    if (file.size > MAX_BYTES) {
+      setUploadError('Image must be smaller than 5 MB.')
+      return
+    }
+
+    setUploadError(null)
+    setUploading(true)
+
+    // ── Instant local preview ───────────────────────────────────────────────
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') setAvatarPreview(reader.result)
+    }
+    reader.readAsDataURL(file)
+
+    // ── Upload to Supabase Storage ──────────────────────────────────────────
     try {
-      const file = event.target.files?.[0]
-      if (!file || !profile) return
-      setUploading(true)
-      const fileExt  = file.name.split('.').pop()
-      const filePath = `${profile.id}/${Date.now()}.${fileExt}`
-      const { error: uploadError } = await supabase.storage
-        .from('avatars').upload(filePath, file, { upsert: true })
-      if (uploadError) { console.error(uploadError); return }
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
-      const avatarUrl = data.publicUrl
-      await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', profile.id)
-      setProfile({ ...profile, avatar_url: avatarUrl })
+      const ext      = file.name.split('.').pop() ?? 'jpg'
+      const filePath = `${profile.id}/${Date.now()}.${ext}`
+
+      const { error: storageError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true, cacheControl: '3600' })
+
+      if (storageError) {
+        setUploadError('Upload failed — please try again.')
+        setAvatarPreview(null)
+        console.error('[avatar upload]', storageError)
+        return
+      }
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
+      const publicUrl = urlData.publicUrl
+
+      const { error: dbError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', profile.id)
+
+      if (dbError) {
+        setUploadError('Saved to storage but failed to update profile — refresh and try again.')
+        console.error('[avatar db]', dbError)
+        return
+      }
+
+      // Commit to state — clears preview (real URL takes over)
+      setProfile({ ...profile, avatar_url: publicUrl })
+      setAvatarPreview(null)
     } catch (err) {
+      setUploadError('Something went wrong. Please try again.')
+      setAvatarPreview(null)
       console.error(err)
     } finally {
       setUploading(false)
@@ -599,6 +655,9 @@ export default function DashboardPage() {
 
         /* ── Ghost / upload button ── */
         .ti-upload-btn:hover { border-color: ${colors.border.focus} !important; color: ${colors.white[90]} !important; background: rgba(255,255,255,0.06) !important; }
+
+        /* ── Avatar camera hint ── */
+        button[aria-label="Upload avatar"]:not(:disabled):hover > div:last-of-type { opacity: 1 !important; }
 
         /* ── NFC open button ── */
         .ti-nfc-btn:hover  { background: #e8e8e8 !important; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.35) !important; }
@@ -879,37 +938,96 @@ export default function DashboardPage() {
             {/* ────── PROFILE TAB ────── */}
             {activeTab === 'profile' && (
               <div style={s.tabContent}>
+                {/* ── Avatar upload row ── */}
                 <div style={s.avatarRow} className="ti-avatar-row">
-                  <div style={s.avatarWrap}>
-                    {profile?.avatar_url ? (
-                      <img src={profile.avatar_url} alt="" style={s.avatarImg} />
+
+                  {/* Clickable avatar — acts as the upload trigger */}
+                  <button
+                    onClick={() => !uploading && fileInputRef.current?.click()}
+                    disabled={uploading}
+                    title="Click to change avatar"
+                    style={s.avatarUploadTrigger}
+                    aria-label="Upload avatar"
+                  >
+                    {/* Spinner overlay while uploading */}
+                    {uploading && (
+                      <div style={s.avatarSpinnerOverlay}>
+                        <div style={s.avatarSpinner} />
+                      </div>
+                    )}
+
+                    {/* Image or initials — show preview first, then saved URL, then initials */}
+                    {(avatarPreview ?? profile?.avatar_url) ? (
+                      <img
+                        src={avatarPreview ?? profile!.avatar_url!}
+                        alt="Avatar"
+                        style={{ ...s.avatarImg, opacity: uploading ? 0.4 : 1 }}
+                      />
                     ) : (
-                      <span style={s.avatarInitials}>
+                      <span style={{ ...s.avatarInitials, opacity: uploading ? 0.3 : 1 }}>
                         {(profile?.display_name || 'TI').slice(0, 2).toUpperCase()}
                       </span>
                     )}
-                  </div>
+
+                    {/* Camera icon hint on hover (CSS handles visibility) */}
+                    <div style={s.avatarCameraHint} aria-hidden="true">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                      </svg>
+                    </div>
+                  </button>
+
                   <div style={s.avatarMeta}>
                     <p style={s.avatarName}>{profile?.display_name || 'Your name'}</p>
                     <p style={s.avatarSub}>
                       {profile?.username ? `tappedin.uk/u/${profile.username}` : 'Username not set'}
                     </p>
+
+                    {/* Upload button */}
                     <button
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => !uploading && fileInputRef.current?.click()}
                       disabled={uploading}
                       className="ti-upload-btn"
                       style={s.uploadBtn}
                     >
-                      {uploading ? 'Uploading…' : 'Change avatar'}
+                      {uploading ? (
+                        <>
+                          <span style={s.uploadSpinnerInline} />
+                          Uploading…
+                        </>
+                      ) : (
+                        <>
+                          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                            <path d="M8 12V4M4 8l4-4 4 4"/>
+                            <path d="M2 14h12"/>
+                          </svg>
+                          {profile?.avatar_url ? 'Change avatar' : 'Upload avatar'}
+                        </>
+                      )}
                     </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      onChange={handleAvatarUpload}
-                    />
+
+                    {/* Error message */}
+                    {uploadError && (
+                      <p style={s.uploadErrorMsg}>
+                        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                          <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 018 4zm0 7a1 1 0 100-2 1 1 0 000 2z"/>
+                        </svg>
+                        {uploadError}
+                      </p>
+                    )}
+
+                    <p style={s.uploadHint}>JPG, PNG, WebP or GIF · max 5 MB</p>
                   </div>
+
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    style={{ display: 'none' }}
+                    onChange={handleAvatarUpload}
+                  />
                 </div>
 
                 <div style={s.formGrid} className="ti-form-grid">
@@ -1920,6 +2038,90 @@ const s: Record<string, CSSProperties> = {
     textDecoration: 'none',
     transition: transitions.button,
     alignSelf: 'flex-start',
+  },
+
+  // ── Avatar upload trigger (the clickable avatar circle) ──────────────────
+
+  avatarUploadTrigger: {
+    position: 'relative' as const,
+    width: '62px',
+    height: '62px',
+    borderRadius: radius.xl,
+    overflow: 'hidden' as const,
+    background: colors.white[5],
+    border: borders.subtle,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+    cursor: 'pointer',
+    padding: 0,
+    // The camera hint overlay is toggled via CSS class — we use the :hover
+    // pseudo-class in the <style> block injected in the render return.
+  },
+
+  avatarSpinnerOverlay: {
+    position: 'absolute' as const,
+    inset: 0,
+    background: 'rgba(0,0,0,0.55)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+
+  avatarSpinner: {
+    width: '20px',
+    height: '20px',
+    borderRadius: '50%' as const,
+    border: '2px solid rgba(255,255,255,0.15)',
+    borderTop: '2px solid rgba(255,255,255,0.9)',
+    animation: 'spin 0.75s linear infinite',
+  },
+
+  avatarCameraHint: {
+    position: 'absolute' as const,
+    inset: 0,
+    background: 'rgba(0,0,0,0.52)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'rgba(255,255,255,0.85)',
+    opacity: 0,
+    // opacity toggled to 1 by .ti-avatar-trigger:hover rule in <style>
+    transition: 'opacity 0.18s ease',
+    zIndex: 1,
+  },
+
+  uploadSpinnerInline: {
+    display: 'inline-block',
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    border: '1.5px solid rgba(255,255,255,0.18)',
+    borderTop: `1.5px solid ${colors.text.muted}`,
+    animation: 'spin 0.75s linear infinite',
+    flexShrink: 0,
+  } as CSSProperties,
+
+  uploadErrorMsg: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
+    fontSize: font.size.xs,
+    color: colors.accent.error,
+    fontWeight: font.weight.medium,
+    marginTop: spacing[1],
+    lineHeight: font.leading.snug,
+  },
+
+  uploadHint: {
+    fontSize: font.size['2xs'],
+    color: colors.text.ghost,
+    fontWeight: font.weight.regular,
+    marginTop: '2px',
+    letterSpacing: '0.01em',
   },
 
   formGrid: {
