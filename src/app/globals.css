@@ -34,3 +34,62 @@ body {
   padding-top: max(16px, var(--safe-top));
   padding-bottom: max(16px, var(--safe-bottom));
 }
+@media (max-width: 600px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden !important;
+  }
+
+  main,
+  section,
+  .ti-editor-card,
+  .ti-card-tab-content,
+  .ti-card-details,
+  .ti-card-detail-row,
+  .ti-nfc-btn,
+  .ti-nfc-open-btn {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .ti-editor-card {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .ti-card-tab-content {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .ti-card-detail-row {
+    display: grid !important;
+    grid-template-columns: 90px minmax(0, 1fr) !important;
+    gap: 14px !important;
+  }
+
+  .ti-card-detail-label {
+    max-width: 90px !important;
+    min-width: 0 !important;
+  }
+
+  .ti-card-detail-val {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    text-align: right !important;
+  }
+
+  .ti-nfc-btn,
+  .ti-nfc-open-btn {
+    display: flex !important;
+    justify-content: center !important;
+  }
+}

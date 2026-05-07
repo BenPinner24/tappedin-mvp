@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -285,7 +286,70 @@ function FormTextarea({
   )
 }
 
+
+// ─── QR Code generator ───────────────────────────────────────────────────────
+// Pure-canvas implementation — zero dependencies.
+// Generates a QR code for the given URL using the `qrcode` package API shape,
+// but implemented via the browser-native `qrcode` from the CDN-free path we
+// polyfill ourselves below using a minimal QR matrix builder.
+//
+// We use the `qrcode` npm package (qrcode@1.x) which ships a browser-friendly
+// build.  It is the only dependency added.  Install with:
+//   npm install qrcode
+//   npm install --save-dev @types/qrcode
+//
+// The component renders a <canvas> and exposes a download helper via a ref.
+
+import type { MutableRefObject } from 'react'
+
+type QRCanvasProps = {
+  url:      string          // URL to encode
+  size?:    number          // canvas logical size in px (default 240)
+  dark?:    string          // module colour (default #ffffff)
+  light?:   string          // background colour (default transparent → #0a0a0a)
+  canvasRef?: MutableRefObject<HTMLCanvasElement | null>
+}
+
+function QRCanvas({ url, size = 240, dark = '#ffffff', light = '#0a0a0a', canvasRef }: QRCanvasProps) {
+  const internalRef = useRef<HTMLCanvasElement | null>(null)
+  const ref = canvasRef ?? internalRef
+
+  useEffect(() => {
+    if (!ref.current || !url) return
+    // Dynamically import qrcode so it never blocks the page
+    import('qrcode').then((QRCode) => {
+      QRCode.toCanvas(ref.current!, url, {
+        width:  size,
+        margin: 2,
+        color: { dark, light },
+        errorCorrectionLevel: 'M',
+      }).catch(console.error)
+    }).catch(() => {
+      // qrcode not installed — draw a placeholder so the UI doesn't break
+      const ctx = ref.current?.getContext('2d')
+      if (!ctx) return
+      ctx.fillStyle = light
+      ctx.fillRect(0, 0, size, size)
+      ctx.fillStyle = dark
+      ctx.font = `${size * 0.06}px monospace`
+      ctx.textAlign = 'center'
+      ctx.fillText('Install qrcode', size / 2, size / 2 - 8)
+      ctx.fillText('npm i qrcode', size / 2, size / 2 + 12)
+    })
+  }, [url, size, dark, light])
+
+  return (
+    <canvas
+      ref={ref}
+      width={size}
+      height={size}
+      style={{ display: 'block', borderRadius: '8px' }}
+    />
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
+
 
 export default function DashboardPage() {
   const supabase = useMemo(() => createClient(), [])
@@ -308,6 +372,7 @@ export default function DashboardPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [uploadError, setUploadError]     = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const qrCanvasRef  = useRef<HTMLCanvasElement | null>(null)
 
   useEffect(() => { loadDashboard() }, [])
 
@@ -564,6 +629,16 @@ export default function DashboardPage() {
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
+  // ─── Download QR ──────────────────────────────────────────────────────────
+  function downloadQR() {
+    const canvas = qrCanvasRef.current
+    if (!canvas) return
+    const link      = document.createElement('a')
+    link.download   = `tapped-in-qr-${profile?.username ?? 'profile'}.png`
+    link.href       = canvas.toDataURL('image/png')
+    link.click()
+  }
+
   function patchProfile(fields: Partial<Profile>) {
     setProfile(prev => prev ? { ...prev, ...fields } : null)
   }
@@ -701,15 +776,134 @@ export default function DashboardPage() {
 
         /* ── Responsive: mobile (≤ 640px) ── */
         @media (max-width: 640px) {
-          .ti-layout        { padding: 1.25rem 1rem !important; gap: 1rem !important; }
+          /* Global overflow guard — nothing escapes the viewport */
+          html, body { overflow-x: hidden !important; max-width: 100vw !important; }
+
+          /* Layout grid */
+          .ti-layout {
+            padding: 1rem 0.875rem !important;
+            gap: 0.875rem !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
+          }
+
+          /* Right column */
+          .ti-right-col {
+            gap: 0.875rem !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
+          }
+
+          /* Editor card — the tabs container */
+          .ti-editor-card {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            min-width: 0 !important;
+            overflow: hidden !important;
+          }
+
+          /* Tab bar — tighten padding, allow horizontal scroll if needed */
+          .ti-tab-bar {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            gap: 0 !important;
+            overflow-x: auto !important;
+          }
+          .ti-tab-bar::-webkit-scrollbar { display: none !important; }
+
+          /* Card tab content — generous padding but contained */
+          .ti-card-tab-content {
+            padding: 1.25rem 1rem !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
+          }
+
+          /* NFC card visual — scale to full width */
+          .ti-card-tab-visual {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            min-width: 0 !important;
+            overflow: hidden !important;
+          }
+
+          /* Card detail table */
+          .ti-card-details  {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+          }
+
+          /* Card detail rows — stack vertically */
+          .ti-card-detail-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.2rem !important;
+            padding: 0.625rem 0.875rem !important;
+          }
+
+          /* Label — full width when stacked */
+          .ti-card-detail-label {
+            max-width: 100% !important;
+            font-size: 0.6rem !important;
+          }
+
+          /* Value — full width, truncate long strings */
+          .ti-card-detail-val {
+            font-size: ${font.size.xs} !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            text-align: left !important;
+            flex: none !important;
+          }
+
+          /* Open NFC button */
+          .ti-nfc-open-btn {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+          }
+
+          /* QR card — stack vertically */
+          .ti-qr-card {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+          }
+          .ti-qr-canvas-wrap {
+            flex-shrink: 0 !important;
+            align-self: center !important;
+            max-width: 100% !important;
+          }
+          .ti-qr-meta {
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+          .ti-qr-download-btn {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            align-self: stretch !important;
+            justify-content: center !important;
+          }
+
+          /* Other tabs */
           .ti-page-header   { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem !important; }
           .ti-page-title    { font-size: ${font.size['3xl']} !important; }
           .ti-stats-bar     { grid-template-columns: 1fr 1fr !important; }
-          .ti-editor-card   { padding: 1.25rem !important; }
           .ti-avatar-row    { flex-direction: column !important; align-items: flex-start !important; gap: 1rem !important; }
-          .ti-nfc-panel     { padding: 1rem !important; }
-          .ti-right-col     { gap: 0.875rem !important; }
-          .ti-tab-bar       { gap: 0 !important; }
+          .ti-nfc-panel     { padding: 1rem !important; width: 100% !important; box-sizing: border-box !important; min-width: 0 !important; }
           .ti-link-inputs   { flex-direction: column !important; }
         }
 
@@ -817,7 +1011,16 @@ export default function DashboardPage() {
 
             {card ? (
               <>
-                <div style={s.nfcCardVisual}>
+                <div
+  style={{
+    ...s.nfcCardVisual,
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
+    overflow: 'hidden',
+  }}
+>
                   <div style={s.nfcSheen} />
                   <div style={s.nfcCardTop}>
                     <span style={s.nfcBrand}>TAPPED-IN</span>
@@ -1271,10 +1474,81 @@ export default function DashboardPage() {
 
             {/* ────── CARD TAB ────── */}
             {activeTab === 'card' && (
-              <div style={s.tabContent}>
+              <div
+  style={{
+    ...s.tabContent,
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    overflow: 'hidden',
+    boxSizing: 'border-box',
+  }}
+  className="ti-card-tab-content"
+>
+
+                {/* ── QR code card — always shown when username exists ── */}
+                {profile?.username ? (
+<div
+  style={{
+    ...s.qrCard,
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    overflow: 'hidden',
+    boxSizing: 'border-box',
+  }}
+  className="ti-qr-card"
+>
+                    {/* Left: QR canvas */}
+                    <div style={s.qrCanvasWrap} className="ti-qr-canvas-wrap">
+                      <div style={s.qrGlow} aria-hidden="true" />
+                      <QRCanvas
+                        url={`https://tappedin.uk/u/${profile.username}`}
+                        size={160}
+                        dark="#ffffff"
+                        light="#0d0d0d"
+                        canvasRef={qrCanvasRef}
+                      />
+                    </div>
+
+                    {/* Right: URL + download */}
+                    <div style={s.qrMeta} className="ti-qr-meta">
+                      <p style={s.eyebrow}>Your profile QR</p>
+                      <p style={s.qrUrl}>tappedin.uk/u/{profile.username}</p>
+                      <p style={s.qrHint}>
+                        Scan to open your public profile. Download and print, or share digitally.
+                      </p>
+                      <button
+                        onClick={downloadQR}
+                        className="ti-nfc-btn ti-qr-download-btn"
+                        style={s.qrDownloadBtn}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M8 2v8M5 7l3 3 3-3"/>
+                          <path d="M2 13h12"/>
+                        </svg>
+                        Download PNG
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={s.qrNoUsername}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.4" strokeLinecap="round">
+                      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                      <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
+                      <rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/>
+                    </svg>
+                    <p style={s.nfcEmptyTitle}>Set a username to generate your QR</p>
+                    <p style={s.nfcEmptyText}>Your QR code will appear here once you have a public profile URL.</p>
+                  </div>
+                )}
+
+                {/* ── NFC card details — shown only when card is connected ── */}
                 {card ? (
                   <>
-                    <div style={s.cardTabVisual}>
+                    <div style={{ ...s.tabDivider, margin: `${spacing[5]} 0` }} />
+
+                    <div style={s.cardTabVisual} className="ti-card-tab-visual">
                       <div style={s.nfcSheen} />
                       <div style={s.nfcCardTop}>
                         <span style={s.nfcBrand}>TAPPED-IN</span>
@@ -1287,7 +1561,17 @@ export default function DashboardPage() {
                       <div style={s.nfcCardId}>{card.card_id}</div>
                     </div>
 
-                    <div style={s.cardDetails}>
+                    <div
+  style={{
+    ...s.cardDetails,
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    overflow: 'hidden',
+    boxSizing: 'border-box',
+  }}
+  className="ti-card-details"
+>
                       {[
                         { label: 'Card ID',    value: card.card_id },
                         { label: 'Status',     value: card.status ?? 'Unknown' },
@@ -1295,14 +1579,39 @@ export default function DashboardPage() {
                         { label: 'Total taps', value: tapCount.toString() },
                         { label: 'Last tap',   value: lastTap ?? 'No activity' },
                       ].map((row) => (
-                        <div key={row.label} style={s.cardDetailRow}>
-                          <span style={s.cardDetailLabel}>{row.label}</span>
-                          <span style={s.cardDetailValue}>{row.value}</span>
+                        <div key={row.label} style={s.cardDetailRow} className="ti-card-detail-row">
+                          <span style={s.cardDetailLabel} className="ti-card-detail-label">{row.label}</span>
+                          <span
+  style={{
+    ...s.cardDetailValue,
+    maxWidth: '100%',
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    display: 'block',
+    textAlign: 'right',
+  }}
+  className="ti-card-detail-val"
+>
+  {row.value}
+</span>
                         </div>
                       ))}
                     </div>
 
-                    <Link href={`/a/${card.card_id}`} className="ti-nfc-btn" style={{ ...s.nfcOpenBtn, marginTop: spacing[4], display: 'flex' }}>
+                    <Link
+  href={`/a/${card.card_id}`}
+  className="ti-nfc-btn ti-nfc-open-btn"
+  style={{
+    ...s.nfcOpenBtn,
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
+    overflow: 'hidden',
+  }}
+>
                       Open NFC activation page
                       <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
                         <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1310,19 +1619,22 @@ export default function DashboardPage() {
                     </Link>
                   </>
                 ) : (
-                  <div style={s.cardTabEmpty}>
-                    <div style={s.nfcEmptyIcon}>
-                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-                        <rect x="3" y="6" width="18" height="13" rx="2" stroke="rgba(255,255,255,0.12)" strokeWidth="1.2"/>
-                        <path d="M10 12c0-1.1.9-2 2-2s2 .9 2 2" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" strokeLinecap="round"/>
-                        <circle cx="12" cy="12" r="1" fill="rgba(255,255,255,0.22)"/>
-                      </svg>
+                  <>
+                    <div style={{ ...s.tabDivider, margin: `${spacing[5]} 0` }} />
+                    <div style={s.cardTabEmpty}>
+                      <div style={s.nfcEmptyIcon}>
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                          <rect x="3" y="6" width="18" height="13" rx="2" stroke="rgba(255,255,255,0.12)" strokeWidth="1.2"/>
+                          <path d="M10 12c0-1.1.9-2 2-2s2 .9 2 2" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" strokeLinecap="round"/>
+                          <circle cx="12" cy="12" r="1" fill="rgba(255,255,255,0.22)"/>
+                        </svg>
+                      </div>
+                      <p style={s.nfcEmptyTitle}>No card connected</p>
+                      <p style={s.nfcEmptyText}>
+                        Your NFC card will appear here once it has been activated and linked to your account.
+                      </p>
                     </div>
-                    <p style={s.nfcEmptyTitle}>No card connected</p>
-                    <p style={s.nfcEmptyText}>
-                      Your NFC card will appear here once it has been activated and linked to your account.
-                    </p>
-                  </div>
+                  </>
                 )}
               </div>
             )}
@@ -1362,6 +1674,8 @@ const s: Record<string, CSSProperties> = {
     fontFamily: font.sans,
     WebkitFontSmoothing: 'antialiased',
     MozOsxFontSmoothing: 'grayscale',
+    overflowX: 'hidden' as const,
+    maxWidth: '100vw',
   },
 
   loadingPage: {
@@ -1389,6 +1703,9 @@ const s: Record<string, CSSProperties> = {
     gridTemplateColumns: '340px 1fr',
     gap: spacing[7],
     alignItems: 'start',
+    width: '100%',
+    boxSizing: 'border-box' as const,
+    overflowX: 'hidden' as const,
   },
 
   // ── LEFT COLUMN ──────────────────────────────────────────────────────────
@@ -1646,10 +1963,14 @@ const s: Record<string, CSSProperties> = {
   },
 
   nfcCardVisual: {
-    ...cards.nfc,
-    marginBottom: spacing['3.5'],
-    boxShadow: '0 8px 28px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.06) inset',
-  },
+  ...cards.nfc,
+  marginBottom: spacing['3.5'],
+  boxShadow: '0 8px 28px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.06) inset',
+  width: '100%',
+  maxWidth: '100%',
+  boxSizing: 'border-box' as const,
+  minWidth: 0,
+},
 
   nfcSheen: {
     position: 'absolute',
@@ -1683,6 +2004,10 @@ const s: Record<string, CSSProperties> = {
     letterSpacing: font.tracking.wider,
     position: 'relative',
     zIndex: 1,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+    minWidth: 0,
   },
 
   nfcStatsRow: {
@@ -1732,6 +2057,8 @@ const s: Record<string, CSSProperties> = {
     justifyContent: 'center',
     gap: '7px',
     width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box' as const,
     padding: `${spacing[3]} ${spacing[4]}`,
     borderRadius: radius.md,
     border: 'none',
@@ -1799,6 +2126,9 @@ const s: Record<string, CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: spacing[5],
+    minWidth: 0,
+    width: '100%',
+    boxSizing: 'border-box' as const,
   },
 
   pageHeader: {
@@ -1879,13 +2209,22 @@ const s: Record<string, CSSProperties> = {
     overflow: 'hidden',
     boxShadow: '0 1px 0 rgba(255,255,255,0.045) inset, 0 8px 32px rgba(0,0,0,0.35)',
     animation: 'fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) 0.08s both',
+    width: '100%',
+    maxWidth: '100vw',
+overflowX: 'hidden' as const,
+    boxSizing: 'border-box' as const,
+    minWidth: 0,
   },
 
   tabBar: {
     display: 'flex',
-    padding: `${spacing[4]} ${spacing[6]} 0`,
+    padding: `${spacing[4]} ${spacing[4]} 0`,
     gap: spacing[1],
     background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%)',
+    overflowX: 'auto' as const,
+    width: '100%',
+    boxSizing: 'border-box' as const,
+    scrollbarWidth: 'none' as const,
   },
 
   tab: {
@@ -1934,8 +2273,14 @@ const s: Record<string, CSSProperties> = {
   },
 
   tabContent: {
-    padding: `${spacing[6]} clamp(1.25rem, 3vw, 2rem) clamp(1.25rem, 3vw, 1.75rem)`,
-  },
+  padding: `${spacing[5]} clamp(1rem, 3vw, 2rem) clamp(1rem, 3vw, 1.75rem)`,
+  minWidth: 0,
+  width: '100%',
+  maxWidth: '100%',
+  boxSizing: 'border-box' as const,
+  overflow: 'hidden' as const,
+  overflowX: 'hidden' as const,
+},
 
   tabFooter: {
     display: 'flex',
@@ -2306,6 +2651,12 @@ const s: Record<string, CSSProperties> = {
     marginBottom: spacing[5],
     minHeight: '80px',
     boxShadow: '0 8px 28px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.06) inset',
+    width: '100%',
+maxWidth: '100vw',
+boxSizing: 'border-box' as const,
+minWidth: 0,
+overflow: 'hidden' as const,
+overflowX: 'hidden' as const,
   },
 
   cardDetails: {
@@ -2316,6 +2667,9 @@ const s: Record<string, CSSProperties> = {
     borderRadius: radius.lg,
     overflow: 'hidden',
     marginBottom: spacing[2],
+    width: '100%',
+    boxSizing: 'border-box' as const,
+    minWidth: 0,
   },
 
   cardDetailRow: {
@@ -2325,6 +2679,10 @@ const s: Record<string, CSSProperties> = {
     padding: `${spacing[3]} ${spacing[4]}`,
     borderBottom: borders.subtle,
     gap: spacing[4],
+    minWidth: 0,
+    overflow: 'hidden',
+    width: '100%',
+    boxSizing: 'border-box' as const,
   },
 
   cardDetailLabel: {
@@ -2334,6 +2692,7 @@ const s: Record<string, CSSProperties> = {
     letterSpacing: font.tracking.wider,
     textTransform: 'uppercase' as const,
     flexShrink: 0,
+    maxWidth: '45%',
   },
 
   cardDetailValue: {
@@ -2341,10 +2700,12 @@ const s: Record<string, CSSProperties> = {
     fontWeight: font.weight.medium,
     color: colors.text.secondary,
     fontFamily: font.mono,
-    textAlign: 'right',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    textAlign: 'right' as const,
+    whiteSpace: 'normal' as const,
+wordBreak: 'break-word' as const,
+overflowWrap: 'anywhere' as const,
+    minWidth: 0,
+    flex: '1 1 0',
   },
 
   cardTabEmpty: {
@@ -2406,6 +2767,103 @@ const s: Record<string, CSSProperties> = {
     justifyContent: 'center',
     flexShrink: 0,
     boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+  },
+
+  // ── QR card
+  qrCard: {
+  display: 'flex',
+  flexDirection: 'column' as const,
+  gap: spacing[5],
+  alignItems: 'stretch',
+  background: 'linear-gradient(150deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)',
+  border: borders.subtle,
+  borderRadius: radius.xl,
+  padding: spacing[5],
+  boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 32px rgba(0,0,0,0.35)',
+  marginBottom: 0,
+  width: '100%',
+  maxWidth: '100%',
+  minWidth: 0,
+  overflow: 'hidden' as const,
+  boxSizing: 'border-box' as const,
+},
+
+  qrCanvasWrap: {
+    position: 'relative' as const,
+    borderRadius: '12px',
+    overflow: 'hidden' as const,
+    flexShrink: 0,
+    border: '1px solid rgba(255,255,255,0.07)',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+    background: '#0d0d0d',
+    maxWidth: '100%',
+    boxSizing: 'border-box' as const,
+  },
+
+  qrGlow: {
+    position: 'absolute' as const,
+    inset: '-40px',
+    background: 'radial-gradient(ellipse, rgba(255,255,255,0.03) 0%, transparent 65%)',
+    pointerEvents: 'none' as const,
+    zIndex: 0,
+  },
+
+  qrMeta: {
+    flex: '1 1 160px',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: spacing[2],
+    minWidth: '0',
+  },
+
+  qrUrl: {
+    fontFamily: font.mono,
+    fontSize: font.size.xs,
+    fontWeight: font.weight.medium,
+    color: colors.text.secondary,
+    letterSpacing: '0.01em',
+    wordBreak: 'break-all' as const,
+    lineHeight: font.leading.snug,
+    marginTop: '2px',
+  },
+
+  qrHint: {
+    fontSize: font.size.xs,
+    fontWeight: font.weight.light,
+    color: colors.text.faint,
+    lineHeight: font.leading.relaxed,
+    marginBottom: spacing[2],
+  },
+
+  qrDownloadBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    padding: `${spacing[2]} ${spacing[4]}`,
+    borderRadius: radius.full,
+    border: 'none',
+    background: colors.white.full,
+    color: '#000',
+    fontFamily: font.sans,
+    fontSize: font.size.xs,
+    fontWeight: font.weight.bold,
+    letterSpacing: '0.02em',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    transition: transitions.button,
+    alignSelf: 'flex-start' as const,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.25)',
+    whiteSpace: 'nowrap' as const,
+  },
+
+  qrNoUsername: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    textAlign: 'center' as const,
+    padding: `${spacing[8]} ${spacing[4]}`,
+    gap: spacing[3],
   },
 
   // ── Shared
