@@ -41,21 +41,34 @@ function SignupContent() {
         ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/claim/${cardId}`)}`
         : `${window.location.origin}/auth/callback`
 
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectTo,
-          data: { display_name: name },
-        },
-      })
+      const { data, error: signUpError } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    emailRedirectTo: redirectTo,
+    data: { display_name: name },
+  },
+})
 
-      if (signUpError) {
-        setError(signUpError.message)
-        return
-      }
+if (signUpError) {
+  setError(signUpError.message)
+  return
+}
 
-      setSent(true)
+// If email confirmation is OFF,
+// Supabase returns a session immediately.
+if (data.session) {
+  if (cardId) {
+    router.push(`/claim/${cardId}`)
+  } else {
+    router.push('/dashboard')
+  }
+
+  return
+}
+
+// Fallback for email confirmation mode
+setSent(true)
     } catch (err) {
       setError('Something went wrong. Please try again.')
       console.error(err)
