@@ -537,7 +537,78 @@ export default function HomePage() {
                 <a href="#product" className="btn-ghost">View the card</a>
                 <a
   href="https://www.instagram.com/tappedinspace/"
+  target="_blank"<a
+  href="https://www.instagram.com/tappedinspace/"
   target="_blank"
+  rel="noopener noreferrer"
+  className="btn-ghost"
+  style={{
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '12px 18px',
+    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(255,255,255,0.03)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    borderRadius: '14px',
+    textDecoration: 'none',
+    transition: 'all .25s ease',
+    width: 'fit-content',
+    marginTop: '-.25rem'
+  }}
+>
+  <div
+    style={{
+      width: '28px',
+      height: '28px',
+      borderRadius: '999px',
+      background: 'rgba(255,255,255,0.08)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0
+    }}
+  >
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      style={{ color: '#fff' }}
+    >
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="18" cy="6" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  </div>
+
+  <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.05 }}>
+    <span
+      style={{
+        fontSize: '.62rem',
+        letterSpacing: '.16em',
+        textTransform: 'uppercase',
+        opacity: .45,
+        fontWeight: 600
+      }}
+    >
+      Instagram
+    </span>
+
+    <span
+      style={{
+        fontSize: '.82rem',
+        fontWeight: 600,
+        letterSpacing: '-0.02em'
+      }}
+    >
+      Follow the drop
+    </span>
+  </div>
+</a>
   rel="noopener noreferrer"
   className="btn-ghost"
   style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
