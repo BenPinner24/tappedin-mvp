@@ -537,8 +537,6 @@ export default function HomePage() {
                 <a href="#product" className="btn-ghost">View the card</a>
                 <a
   href="https://www.instagram.com/tappedinspace/"
-  target="_blank"<a
-  href="https://www.instagram.com/tappedinspace/"
   target="_blank"
   rel="noopener noreferrer"
   className="btn-ghost"
@@ -547,17 +545,10 @@ export default function HomePage() {
     alignItems: 'center',
     gap: '10px',
     padding: '12px 18px',
-    border: '1px solid rgba(255,255,255,0.12)',
-    background: 'rgba(255,255,255,0.03)',
-    backdropFilter: 'blur(8px)',
-    WebkitBackdropFilter: 'blur(8px)',
     borderRadius: '14px',
-    textDecoration: 'none',
-    transition: 'all .25s ease',
-    width: 'fit-content',
-    marginTop: '-.25rem'
   }}
 >
+
   <div
     style={{
       width: '28px',
@@ -609,12 +600,7 @@ export default function HomePage() {
     </span>
   </div>
 </a>
-  rel="noopener noreferrer"
-  className="btn-ghost"
-  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
->
-  Follow the drop
-</a>
+
               </div>
 
               {/* Stats */}
