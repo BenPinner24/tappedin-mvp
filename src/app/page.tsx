@@ -99,6 +99,7 @@ const G = `
     transition:color .2s;
   }
   .footer-link:hover { color:rgba(255,255,255,.6); }
+  .ti-ig-link:hover { color:rgba(255,255,255,.65) !important; }
 
   /* ── Tablet (≤ 960px) ── */
   @media (max-width: 960px) {
@@ -534,6 +535,10 @@ export default function HomePage() {
               }}>
                 <Link href="/signup" className="btn-primary">Founder Access Opening Soon</Link>
                 <a href="#product" className="btn-ghost">View the card</a>
+                <a href="https://www.instagram.com/tappedinspace/" target="_blank" rel="noopener noreferrer" className="btn-ghost" ><a href="https://www.instagram.com/tappedinspace/" target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+                  Follow the drop
+                </a>
               </div>
 
               {/* Stats */}
@@ -797,6 +802,27 @@ export default function HomePage() {
               <Link href="/signup" className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Founder Drop Opens Soon</Link>
               <Link href="/u/benpinner" className="btn-ghost">View demo profile</Link>
             </div>
+            <div className="reveal d3" style={{ marginTop:'1.25rem', display:'flex', justifyContent:'center' }}>
+              <a
+                href="https://www.instagram.com/tappedinspace/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display:'inline-flex', alignItems:'center', gap:'8px',
+                  fontFamily:'Oswald, Arial, sans-serif', fontSize:'.82rem', fontWeight:400,
+                  color:'rgba(255,255,255,.35)', letterSpacing:'.06em',
+                  textDecoration:'none', transition:'color .2s',
+                }}
+                className="ti-ig-link"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+                  <rect x="2" y="2" width="20" height="20" rx="5"/>
+                  <circle cx="12" cy="12" r="5"/>
+                  <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/>
+                </svg>
+                Follow the drop on Instagram
+              </a>
+            </div>
           </div>
         </section>
 
@@ -816,6 +842,7 @@ export default function HomePage() {
                 {[
                   { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['#editions','Editions'],['/u/benpinner','Demo profile']] },
                   { head:'Account', links:[['/signup','Coming Soon'],['/login','Sign in'],['/dashboard','Dashboard']] },
+                  { head:'Follow',  links:[['https://www.instagram.com/tappedinspace/','Instagram ↗']] },
                 ].map(col=>(
                   <div key={col.head} style={{ display:'flex', flexDirection:'column', gap:'.65rem' }}>
                     <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:500, letterSpacing:'.26em', textTransform:'uppercase', color:'rgba(255,255,255,.2)', marginBottom:'.2rem' }}>{col.head}</div>
