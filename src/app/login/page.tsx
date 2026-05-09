@@ -7,7 +7,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -15,7 +15,7 @@ import type { CSSProperties } from 'react'
 
 const FONT = `'DM Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif`
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams()
   const router       = useRouter()
   const cardId       = searchParams.get('card_id') ?? ''
@@ -171,4 +171,12 @@ const s: Record<string, CSSProperties> = {
   switchText:{fontSize:'0.78rem',color:'rgba(255,255,255,0.3)',textAlign:'center' as const,marginBottom:'1.5rem'},
   switchLink:{color:'rgba(255,255,255,0.65)',textDecoration:'none',fontWeight:500},
   footer:{fontSize:'0.58rem',color:'rgba(255,255,255,0.12)',letterSpacing:'0.04em',fontStyle:'italic' as const,textAlign:'center' as const,marginTop:'0.5rem'},
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
+  )
 }
