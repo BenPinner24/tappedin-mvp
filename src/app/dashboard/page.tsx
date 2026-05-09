@@ -76,6 +76,27 @@ const THEME_STYLES = [
   { value: 'darker', label: 'Deeper black' },
 ]
 
+// Preset platform options for the link label dropdown.
+// The value IS the label stored in the DB — no mapping needed.
+// detectLinkKind() reads the label to determine normalisation behaviour,
+// so 'WhatsApp' and 'Email' drive their special-case handling automatically.
+const PLATFORM_OPTIONS = [
+  { value: 'Instagram',    kind: 'url'       },
+  { value: 'TikTok',       kind: 'url'       },
+  { value: 'YouTube',      kind: 'url'       },
+  { value: 'Spotify',      kind: 'url'       },
+  { value: 'SoundCloud',   kind: 'url'       },
+  { value: 'Apple Music',  kind: 'url'       },
+  { value: 'Website',      kind: 'url'       },
+  { value: 'Portfolio',    kind: 'url'       },
+  { value: 'LinkedIn',     kind: 'url'       },
+  { value: 'X / Twitter',  kind: 'url'       },
+  { value: 'WhatsApp',     kind: 'whatsapp'  },
+  { value: 'Email',        kind: 'email'     },
+  { value: 'Booking',      kind: 'url'       },
+  { value: 'Other',        kind: 'url'       },
+] as const
+
 // ─── Link-type detection & normalisation ──────────────────────────────────────
 
 type LinkKind = 'whatsapp' | 'email' | 'url'
@@ -364,6 +385,7 @@ export default function DashboardPage() {
   const [todayTaps, setTodayTaps]       = useState(0)
   const [profileSave, setProfileSave]   = useState<SaveState>('idle')
   const [linksSave, setLinksSave]       = useState<SaveState>('idle')
+  const [saveError, setSaveError]        = useState<string | null>(null)
   const [styleSave, setStyleSave]       = useState<SaveState>('idle')
   const [linkErrors, setLinkErrors]     = useState<(string | null)[]>([])
   const [activeTab, setActiveTab]       = useState<ActiveTab>('profile')
@@ -375,6 +397,16 @@ export default function DashboardPage() {
   const qrCanvasRef  = useRef<HTMLCanvasElement | null>(null)
 
   useEffect(() => { loadDashboard() }, [])
+
+  // ─── isMobile — drives all mobile inline-style overrides ─────────────────
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 768)
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
+
 
   // ─── Load ─────────────────────────────────────────────────────────────────
 
@@ -458,72 +490,140 @@ export default function DashboardPage() {
   }
 
   // ─── Save links — stable ID rule ──────────────────────────────────────────
-  // Validate against NORMALISED values; upsert in-place; never delete rows.
+  // ─── Save links ──────────────────────────────────────────────────────────
+  // Splits into explicit UPDATE (rows with real DB ids) and INSERT (new rows).
+  // Logs the full Supabase error so the real rejection reason is always visible
+  // in DevTools Console regardless of what the UI shows.
 
   async function saveLinks() {
-    // Guard: both profile and authenticated userId must be present.
-    // Without userId we cannot satisfy the NOT NULL constraint on profile_links.user_id.
-    if (!profile || !userId) {
+    setSaveError(null)
+
+    // Re-read session so uid is always fresh — state.userId may lag on first render
+    const { data: { session } } = await supabase.auth.getSession()
+    const uid = session?.user?.id ?? userId
+
+    if (!profile || !uid) {
+      const msg = '[saveLinks] aborted — missing ' + (!profile ? 'profile' : 'uid')
+      console.error(msg, { hasProfile: !!profile, uid })
+      setSaveError(msg)
       setLinksSave('error')
       return
     }
 
-    // Validate each row against the normalised value so that e.g. "07901109774"
-    // (which normalises to https://wa.me/447901109774) passes rather than failing.
+    // Validate non-empty rows against their normalised values
     const errs = links.map(l => validateLinkRow(l.label, l.url))
     setLinkErrors(errs)
-    // If any row has an error the inline messages are already visible — just return.
-    if (errs.some(e => e !== null)) {
-      return
-    }
+    if (errs.some(e => e !== null)) return
+
+    setLinksSave('saving')
+
+    // ── Build row payloads ────────────────────────────────────────────────────
+    const existingRows: {
+      id: string; user_id: string; profile_id: string
+      label: string; url: string; link_type: string
+      position: number; is_active: boolean
+    }[] = []
+
+    const newRows: {
+      user_id: string; profile_id: string
+      label: string; url: string; link_type: string
+      position: number; is_active: boolean
+    }[] = []
+
+    links.forEach((l, i) => {
+      const isNew   = !l.id || l.id.startsWith('__new__')
+      const active  = !!(l.label.trim() && l.url.trim()) && l.is_active
+      const normUrl = normaliseUrl(l.label, l.url)
+      const shared  = {
+        user_id:    uid,
+        profile_id: profile.id,
+        label:      l.label.trim(),
+        url:        normUrl,
+        link_type:  detectLinkKind(l.label),  // derive from label, don't trust stored value
+        position:   i,
+        is_active:  active,
+      }
+      if (isNew) newRows.push(shared)
+      else       existingRows.push({ id: l.id, ...shared })
+    })
+
+    // ── Diagnostic log — always visible in DevTools ───────────────────────────
+    console.group('[saveLinks] diagnostic')
+    console.log('uid:        ', uid)
+    console.log('profile.id: ', profile.id)
+    console.log('uid === profile.id:', uid === profile.id)
+    console.log('existingRows:', existingRows)
+    console.log('newRows:     ', newRows)
+    console.groupEnd()
 
     try {
-      setLinksSave('saving')
+      // ── 1. UPDATE existing rows ─────────────────────────────────────────────
+      for (const row of existingRows) {
+        const { error } = await supabase
+          .from('profile_links')
+          .update({
+            label:     row.label,
+            url:       row.url,
+            link_type: row.link_type,
+            position:  row.position,
+            is_active: row.is_active,
+          })
+          .eq('id',      row.id)
+          .eq('user_id', uid)       // RLS: only touch own rows
 
-      const upserts = links.map((l, i) => {
-        const isNew = !l.id || l.id.startsWith('__new__')
-        return {
-          // Only include id for existing rows so Supabase matches on conflict;
-          // omit it for new rows so Supabase auto-generates a UUID.
-          ...(!isNew ? { id: l.id } : {}),
-          // user_id satisfies the NOT NULL constraint on profile_links
-          user_id:    userId,
-          profile_id: profile.id,
-          label:      l.label.trim(),
-          url:        normaliseUrl(l.label, l.url),
-          link_type:  l.link_type ?? 'custom',
-          position:   i,
-          // Empty rows are stored but hidden (is_active=false)
-          is_active:  (l.label.trim() && l.url.trim()) ? l.is_active : false,
+        if (error) {
+          const msg = `Update failed: ${error.message} (code ${error.code})`
+          console.error('[saveLinks] update error', error, 'row:', row)
+          setSaveError(msg)
+          setLinksSave('error')
+          return
         }
-      })
-
-      const { error } = await supabase
-        .from('profile_links')
-        .upsert(upserts, { onConflict: 'id' })
-
-      setLinksSave(error ? 'error' : 'saved')
-      if (!error) {
-        setTimeout(() => setLinksSave('idle'), 2200)
-        await loadLinks()
       }
-    } catch {
+
+      // ── 2. INSERT new rows ──────────────────────────────────────────────────
+      if (newRows.length > 0) {
+        const { error } = await supabase
+          .from('profile_links')
+          .insert(newRows)
+
+        if (error) {
+          const msg = `Update failed: ${error.message} (code ${error.code})`
+          console.error('[saveLinks] insert error', error, 'rows:', newRows)
+          setSaveError(msg)
+          setLinksSave('error')
+          return
+        }
+      }
+
+      // ── 3. Reload so state has real DB-generated UUIDs ──────────────────────
+      setLinksSave('saved')
+      setSaveError(null)
+      setTimeout(() => setLinksSave('idle'), 2200)
+      await loadLinks(profile.id)
+
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[saveLinks] unexpected exception', err)
+      setSaveError(msg)
       setLinksSave('error')
     }
   }
 
-  async function loadLinks() {
-    if (!profile) return
+  // loadLinks accepts an explicit profileId so it works even before
+  // the `profile` state value has propagated (e.g. right after a save).
+  async function loadLinks(profileId?: string) {
+    const pid = profileId ?? profile?.id
+    if (!pid) return
     const { data } = await supabase
       .from('profile_links')
       .select('id, label, url, link_type, position, is_active')
-      .eq('profile_id', profile.id)
+      .eq('profile_id', pid)
       .order('position', { ascending: true })
     if (data) {
       const mapped = (data as ProfileLink[]).map(l => ({
         ...l,
-        label: l.label ?? '',
-        url:   l.url   ?? '',
+        label:     l.label     ?? '',
+        url:       l.url       ?? '',
         link_type: l.link_type ?? null,
         is_active: l.is_active ?? true,
       }))
@@ -705,7 +805,7 @@ export default function DashboardPage() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <main style={s.page}>
+    <main style={{ ...s.page, overflowX: 'hidden', maxWidth: '100vw', width: '100%' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
 
@@ -755,6 +855,22 @@ export default function DashboardPage() {
 
         /* ── Style option ── */
         .ti-style-opt:hover { border-color: ${colors.border.strong} !important; background: rgba(255,255,255,0.06) !important; }
+
+        /* ── Platform select — native option elements inherit page bg on most browsers;
+              force a dark background so text is readable when the list drops open ── */
+        select.ti-link-select option {
+          background-color: #1a1a1a;
+          color: #fff;
+        }
+        select.ti-link-select option:disabled {
+          color: rgba(255,255,255,0.35);
+        }
+        select.ti-link-select:focus {
+          border-color: ${colors.border.strong} !important;
+          background-color: rgba(255,255,255,0.06) !important;
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(255,255,255,0.04) !important;
+        }
 
         /* ── Mini stats link ── */
         .ti-mini-link:hover { color: ${colors.white[70]} !important; }
@@ -913,12 +1029,27 @@ export default function DashboardPage() {
         }
       `}</style>
 
-      <div style={s.layout} className="ti-layout">
+      <div
+        className="ti-layout"
+        style={isMobile ? {
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+          padding: '16px',
+          width: '100%',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
+          overflowX: 'hidden',
+        } : s.layout}
+      >
 
         {/* ═══════════════════════════════════════════════════════════
             LEFT COLUMN
         ═══════════════════════════════════════════════════════════ */}
-        <aside style={s.leftCol} className="ti-left-col">
+        <aside
+          className="ti-left-col"
+          style={isMobile ? { display: 'none' } : s.leftCol}
+        >
 
           {/* ── Live preview ── */}
           <div style={s.previewCard} className="ti-preview-card">
@@ -1011,16 +1142,7 @@ export default function DashboardPage() {
 
             {card ? (
               <>
-                <div
-  style={{
-    ...s.nfcCardVisual,
-    width: '100%',
-    maxWidth: '100%',
-    minWidth: 0,
-    boxSizing: 'border-box',
-    overflow: 'hidden',
-  }}
->
+                <div style={s.nfcCardVisual}>
                   <div style={s.nfcSheen} />
                   <div style={s.nfcCardTop}>
                     <span style={s.nfcBrand}>TAPPED-IN</span>
@@ -1078,14 +1200,34 @@ export default function DashboardPage() {
         {/* ═══════════════════════════════════════════════════════════
             RIGHT COLUMN
         ═══════════════════════════════════════════════════════════ */}
-        <div style={s.rightCol} className="ti-right-col">
+        <div
+          className="ti-right-col"
+          style={isMobile ? {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            boxSizing: 'border-box',
+            overflowX: 'hidden',
+          } : s.rightCol}
+        >
 
           {/* ── Page header ── */}
-          <div style={s.pageHeader} className="ti-page-header">
+          <div
+            className="ti-page-header"
+            style={isMobile ? {
+              ...s.pageHeader,
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '0.75rem',
+            } : s.pageHeader}
+          >
             <div style={s.pageHeaderLeft}>
               <p style={s.eyebrow}>Dashboard</p>
               <h1 style={s.pageTitle} className="ti-page-title">
-                {profile?.display_name ? profile.display_name.split(' ')[0] : 'Your profile'}
+                {profile?.display_name || 'Your profile'}
               </h1>
             </div>
             {profile?.username && (
@@ -1096,7 +1238,16 @@ export default function DashboardPage() {
           </div>
 
           {/* ── Stats bar ── */}
-          <div style={s.statsBar} className="ti-stats-bar">
+          <div
+            className="ti-stats-bar"
+            style={isMobile ? {
+              ...s.statsBar,
+              gridTemplateColumns: '1fr 1fr',
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+            } : s.statsBar}
+          >
             {[
               { label: 'Total taps',  value: tapCount.toString() },
               { label: 'Card status', value: card?.status ?? 'No card' },
@@ -1114,10 +1265,29 @@ export default function DashboardPage() {
           </div>
 
           {/* ── Tabbed editor ── */}
-          <div style={s.editorCard} className="ti-editor-card">
+          <div
+            className="ti-editor-card"
+            style={isMobile ? {
+              ...s.editorCard,
+              width: '100%',
+              maxWidth: '100%',
+              minWidth: 0,
+              boxSizing: 'border-box',
+              overflowX: 'hidden',
+            } : s.editorCard}
+          >
 
             {/* Tab bar */}
-            <div style={s.tabBar} className="ti-tab-bar">
+            <div
+              className="ti-tab-bar"
+              style={isMobile ? {
+                ...s.tabBar,
+                padding: '0.875rem 0.75rem 0',
+                overflowX: 'auto',
+                width: '100%',
+                boxSizing: 'border-box',
+              } : s.tabBar}
+            >
               {(['profile', 'links', 'style', 'card'] as ActiveTab[]).map((tab) => {
                 const isActive = activeTab === tab
                 return (
@@ -1140,9 +1310,17 @@ export default function DashboardPage() {
 
             {/* ────── PROFILE TAB ────── */}
             {activeTab === 'profile' && (
-              <div style={s.tabContent}>
+              <div style={isMobile ? { ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.tabContent}>
                 {/* ── Avatar upload row ── */}
-                <div style={s.avatarRow} className="ti-avatar-row">
+                <div
+                  className="ti-avatar-row"
+                  style={isMobile ? {
+                    ...s.avatarRow,
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: '1rem',
+                  } : s.avatarRow}
+                >
 
                   {/* Clickable avatar — acts as the upload trigger */}
                   <button
@@ -1233,7 +1411,10 @@ export default function DashboardPage() {
                   />
                 </div>
 
-                <div style={s.formGrid} className="ti-form-grid">
+                <div
+                  className="ti-form-grid"
+                  style={isMobile ? { ...s.formGrid, gridTemplateColumns: '1fr' } : s.formGrid}
+                >
                   <FormInput
                     label="Display name"
                     value={profile?.display_name ?? ''}
@@ -1277,10 +1458,10 @@ export default function DashboardPage() {
 
             {/* ────── LINKS TAB ────── */}
             {activeTab === 'links' && (
-              <div style={s.tabContent}>
+              <div style={isMobile ? { ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.tabContent}>
                 <div style={s.linksHeader}>
                   <p style={s.linksSubtitle}>
-                    Add up to {MAX_LINKS} links. WhatsApp accepts phone numbers. Email rows accept plain addresses.
+                    Add up to {MAX_LINKS} links. Select a platform, then enter the URL, phone number, or email address.
                   </p>
                 </div>
 
@@ -1313,19 +1494,28 @@ export default function DashboardPage() {
 
                           {/* Inputs */}
                           <div style={s.linkInputs} className="ti-link-inputs">
-                            {/* Label */}
+                            {/* Platform dropdown — replaces free-text label */}
                             <div style={s.linkInputInner}>
-                              <input
+                              <select
                                 value={link.label}
-                                placeholder={`Link ${i + 1} label`}
-                                onChange={(e) => patchLink(i, { label: e.target.value })}
+                                onChange={(e) => {
+                                  // Clear URL when switching platform so stale values don't persist
+                                  patchLink(i, { label: e.target.value, url: '' })
+                                }}
+                                className="ti-link-select"
                                 style={{
                                   ...inputs.base,
+                                  ...s.linkSelect,
                                   opacity: link.is_active ? 1 : 0.45,
-                                  ...(err && !link.label ? { borderColor: colors.accent.errorBorder } : {}),
+                                  borderColor: (err && !link.label) ? colors.accent.errorBorder : undefined,
                                 }}
-                              />
-                              {/* Link kind badge */}
+                              >
+                                <option value="" disabled>Select platform…</option>
+                                {PLATFORM_OPTIONS.map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.value}</option>
+                                ))}
+                              </select>
+                              {/* Kind badge — still shown for context */}
                               {link.label && (
                                 <div style={{
                                   ...s.linkKindBadge,
@@ -1398,13 +1588,17 @@ export default function DashboardPage() {
                   >
                     {saveBtnLabel(linksSave, 'Save links')}
                   </button>
+                  {/* Show real error detail so the cause is always visible */}
+                  {linksSave === 'error' && saveError && (
+                    <p style={s.saveErrorDetail}>{saveError}</p>
+                  )}
                 </div>
               </div>
             )}
 
             {/* ────── STYLE TAB ────── */}
             {activeTab === 'style' && (
-              <div style={s.tabContent}>
+              <div style={isMobile ? { ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.tabContent}>
                 <div style={s.styleSection}>
                   <p style={s.styleSectionLabel}>Button style</p>
                   <p style={s.styleSectionHint}>Controls how your profile links appear to visitors.</p>
@@ -1475,30 +1669,29 @@ export default function DashboardPage() {
             {/* ────── CARD TAB ────── */}
             {activeTab === 'card' && (
               <div
-  style={{
-    ...s.tabContent,
-    width: '100%',
-    maxWidth: '100%',
-    minWidth: 0,
-    overflow: 'hidden',
-    boxSizing: 'border-box',
-  }}
-  className="ti-card-tab-content"
->
+                className="ti-card-tab-content"
+                style={isMobile ? {
+                  ...s.tabContent,
+                  padding: '1rem',
+                  width: '100%',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  overflowX: 'hidden',
+                } : s.tabContent}
+              >
 
                 {/* ── QR code card — always shown when username exists ── */}
                 {profile?.username ? (
-<div
-  style={{
-    ...s.qrCard,
-    width: '100%',
-    maxWidth: '100%',
-    minWidth: 0,
-    overflow: 'hidden',
-    boxSizing: 'border-box',
-  }}
-  className="ti-qr-card"
->
+                  <div
+                    className="ti-qr-card"
+                    style={isMobile ? {
+                      ...s.qrCard,
+                      flexDirection: 'column',
+                      width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
+                    } : s.qrCard}
+                  >
                     {/* Left: QR canvas */}
                     <div style={s.qrCanvasWrap} className="ti-qr-canvas-wrap">
                       <div style={s.qrGlow} aria-hidden="true" />
@@ -1512,7 +1705,15 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Right: URL + download */}
-                    <div style={s.qrMeta} className="ti-qr-meta">
+                    <div
+                      className="ti-qr-meta"
+                      style={isMobile ? {
+                        ...s.qrMeta,
+                        width: '100%',
+                        minWidth: 0,
+                        flex: '1 1 auto',
+                      } : s.qrMeta}
+                    >
                       <p style={s.eyebrow}>Your profile QR</p>
                       <p style={s.qrUrl}>tappedin.uk/u/{profile.username}</p>
                       <p style={s.qrHint}>
@@ -1548,7 +1749,15 @@ export default function DashboardPage() {
                   <>
                     <div style={{ ...s.tabDivider, margin: `${spacing[5]} 0` }} />
 
-                    <div style={s.cardTabVisual} className="ti-card-tab-visual">
+                    <div
+                      className="ti-card-tab-visual"
+                      style={isMobile ? {
+                        ...s.cardTabVisual,
+                        width: '100%',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box',
+                      } : s.cardTabVisual}
+                    >
                       <div style={s.nfcSheen} />
                       <div style={s.nfcCardTop}>
                         <span style={s.nfcBrand}>TAPPED-IN</span>
@@ -1562,16 +1771,14 @@ export default function DashboardPage() {
                     </div>
 
                     <div
-  style={{
-    ...s.cardDetails,
-    width: '100%',
-    maxWidth: '100%',
-    minWidth: 0,
-    overflow: 'hidden',
-    boxSizing: 'border-box',
-  }}
-  className="ti-card-details"
->
+                      className="ti-card-details"
+                      style={isMobile ? {
+                        ...s.cardDetails,
+                        width: '100%',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box',
+                      } : s.cardDetails}
+                    >
                       {[
                         { label: 'Card ID',    value: card.card_id },
                         { label: 'Status',     value: card.status ?? 'Unknown' },
@@ -1579,39 +1786,52 @@ export default function DashboardPage() {
                         { label: 'Total taps', value: tapCount.toString() },
                         { label: 'Last tap',   value: lastTap ?? 'No activity' },
                       ].map((row) => (
-                        <div key={row.label} style={s.cardDetailRow} className="ti-card-detail-row">
-                          <span style={s.cardDetailLabel} className="ti-card-detail-label">{row.label}</span>
+                        <div
+                          key={row.label}
+                          className="ti-card-detail-row"
+                          style={isMobile ? {
+                            ...s.cardDetailRow,
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            gap: '2px',
+                            padding: '0.625rem 0.875rem',
+                          } : s.cardDetailRow}
+                        >
                           <span
-  style={{
-    ...s.cardDetailValue,
-    maxWidth: '100%',
-    minWidth: 0,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    display: 'block',
-    textAlign: 'right',
-  }}
-  className="ti-card-detail-val"
->
-  {row.value}
-</span>
+                            className="ti-card-detail-label"
+                            style={isMobile ? {
+                              ...s.cardDetailLabel,
+                              fontSize: '0.6rem',
+                              maxWidth: '100%',
+                            } : s.cardDetailLabel}
+                          >{row.label}</span>
+                          <span
+                            className="ti-card-detail-val"
+                            style={isMobile ? {
+                              ...s.cardDetailValue,
+                              textAlign: 'left',
+                              width: '100%',
+                              maxWidth: '100%',
+                              flex: 'none',
+                              fontSize: font.size.xs,
+                            } : s.cardDetailValue}
+                          >{row.value}</span>
                         </div>
                       ))}
                     </div>
 
                     <Link
-  href={`/a/${card.card_id}`}
-  className="ti-nfc-btn ti-nfc-open-btn"
-  style={{
-    ...s.nfcOpenBtn,
-    width: '100%',
-    maxWidth: '100%',
-    minWidth: 0,
-    boxSizing: 'border-box',
-    overflow: 'hidden',
-  }}
->
+                      href={`/a/${card.card_id}`}
+                      className="ti-nfc-btn ti-nfc-open-btn"
+                      style={isMobile ? {
+                        ...s.nfcOpenBtn,
+                        marginTop: spacing[4],
+                        display: 'flex',
+                        width: '100%',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box',
+                      } : { ...s.nfcOpenBtn, marginTop: spacing[4], display: 'flex' }}
+                    >
                       Open NFC activation page
                       <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
                         <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1963,14 +2183,13 @@ const s: Record<string, CSSProperties> = {
   },
 
   nfcCardVisual: {
-  ...cards.nfc,
-  marginBottom: spacing['3.5'],
-  boxShadow: '0 8px 28px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.06) inset',
-  width: '100%',
-  maxWidth: '100%',
-  boxSizing: 'border-box' as const,
-  minWidth: 0,
-},
+    ...cards.nfc,
+    marginBottom: spacing['3.5'],
+    boxShadow: '0 8px 28px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.06) inset',
+    width: '100%',
+    boxSizing: 'border-box' as const,
+    minWidth: 0,
+  },
 
   nfcSheen: {
     position: 'absolute',
@@ -2210,8 +2429,6 @@ const s: Record<string, CSSProperties> = {
     boxShadow: '0 1px 0 rgba(255,255,255,0.045) inset, 0 8px 32px rgba(0,0,0,0.35)',
     animation: 'fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) 0.08s both',
     width: '100%',
-    maxWidth: '100vw',
-overflowX: 'hidden' as const,
     boxSizing: 'border-box' as const,
     minWidth: 0,
   },
@@ -2273,14 +2490,12 @@ overflowX: 'hidden' as const,
   },
 
   tabContent: {
-  padding: `${spacing[5]} clamp(1rem, 3vw, 2rem) clamp(1rem, 3vw, 1.75rem)`,
-  minWidth: 0,
-  width: '100%',
-  maxWidth: '100%',
-  boxSizing: 'border-box' as const,
-  overflow: 'hidden' as const,
-  overflowX: 'hidden' as const,
-},
+    padding: `${spacing[5]} clamp(1rem, 3vw, 2rem) clamp(1rem, 3vw, 1.75rem)`,
+    minWidth: 0,
+    width: '100%',
+    boxSizing: 'border-box' as const,
+    overflowX: 'hidden' as const,
+  },
 
   tabFooter: {
     display: 'flex',
@@ -2530,6 +2745,28 @@ overflowX: 'hidden' as const,
     alignItems: 'center',
   },
 
+  // Dropdown select — inherits inputs.base, overrides appearance
+  linkSelect: {
+    appearance: 'none' as const,
+    WebkitAppearance: 'none' as const,
+    paddingRight: '2rem',
+    cursor: 'pointer',
+    color: '#fff',                        // text colour of the selected value
+    backgroundColor: 'rgba(255,255,255,0.05)',  // closed-state background
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='rgba(255,255,255,0.3)' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 10px center',
+  },
+
+  saveErrorDetail: {
+    marginTop: spacing[2],
+    fontSize: font.size.xs,
+    color: colors.accent.error,
+    fontFamily: font.mono,
+    lineHeight: font.leading.normal,
+    wordBreak: 'break-all' as const,
+  },
+
   linkKindBadge: {
     position: 'absolute',
     right: '10px',
@@ -2652,11 +2889,10 @@ overflowX: 'hidden' as const,
     minHeight: '80px',
     boxShadow: '0 8px 28px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.06) inset',
     width: '100%',
-maxWidth: '100vw',
-boxSizing: 'border-box' as const,
-minWidth: 0,
-overflow: 'hidden' as const,
-overflowX: 'hidden' as const,
+    maxWidth: '100%',
+    boxSizing: 'border-box' as const,
+    minWidth: 0,
+    overflow: 'hidden' as const,
   },
 
   cardDetails: {
@@ -2701,9 +2937,9 @@ overflowX: 'hidden' as const,
     color: colors.text.secondary,
     fontFamily: font.mono,
     textAlign: 'right' as const,
-    whiteSpace: 'normal' as const,
-wordBreak: 'break-word' as const,
-overflowWrap: 'anywhere' as const,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
     minWidth: 0,
     flex: '1 1 0',
   },
@@ -2771,22 +3007,21 @@ overflowWrap: 'anywhere' as const,
 
   // ── QR card
   qrCard: {
-  display: 'flex',
-  flexDirection: 'column' as const,
-  gap: spacing[5],
-  alignItems: 'stretch',
-  background: 'linear-gradient(150deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)',
-  border: borders.subtle,
-  borderRadius: radius.xl,
-  padding: spacing[5],
-  boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 32px rgba(0,0,0,0.35)',
-  marginBottom: 0,
-  width: '100%',
-  maxWidth: '100%',
-  minWidth: 0,
-  overflow: 'hidden' as const,
-  boxSizing: 'border-box' as const,
-},
+    display: 'flex',
+    gap: spacing[5],
+    alignItems: 'flex-start',
+    background: 'linear-gradient(150deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)',
+    border: borders.subtle,
+    borderRadius: radius.xl,
+    padding: spacing[5],
+    boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 32px rgba(0,0,0,0.35)',
+    flexWrap: 'wrap' as const,
+    marginBottom: 0,
+    width: '100%',
+    boxSizing: 'border-box' as const,
+    minWidth: 0,
+    overflow: 'hidden',
+  },
 
   qrCanvasWrap: {
     position: 'relative' as const,

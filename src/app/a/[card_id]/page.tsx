@@ -66,97 +66,56 @@ export default async function ActivateCardPage({ params }: ActivateCardPageProps
     .eq('id', card.owner_user_id)
     .maybeSingle<ProfileRecord>()
 
-  if (!profile?.username) redirect(`/claim/${card_id}`)
+  // Profile exists but username not yet set — owner hasn't finished setup.
+  // Do NOT redirect to /claim/ here: that page would show "Already claimed"
+  // to a public visitor. Show a soft "profile coming soon" screen instead.
+  if (!profile?.username) return <ProfileNotReady />
 
+  // Log tap event then show the cinematic splash → auto-redirects to /u/[username]
   const hdrs      = await headers()
   const userAgent = hdrs.get('user-agent') || 'Unknown'
 
   await supabase.from('tap_events').insert({
-    profile_id: profile.id,
+    profile_id: profile!.id,
     card_code:  card.card_id,
     event_type: 'card_tap',
     user_agent: userAgent,
     tapped_at:  new Date().toISOString(),
   })
 
-  return (
-    <ActivationScreen
-      username={profile.username}
-      displayName={profile.display_name}
-      avatarUrl={profile.avatar_url}
-      role={profile.role}
-    />
-  )
+  // Redirect immediately to the public profile (fast path for repeat taps)
+  redirect(`/u/${profile.username}`)
 }
 
-function ActivationScreen({ username, displayName, avatarUrl, role }: {
-  username: string; displayName: string | null; avatarUrl: string | null; role: string | null
-}) {
-  const name     = displayName || username
-  const initials = getInitials(name)
+// ─── Profile Not Ready ────────────────────────────────────────────────────────
+// Shown when the card is claimed but the owner hasn't set a username yet.
+// A public visitor seeing this should never see "Already claimed" — this is
+// the correct soft state: the card is live but the profile is being set up.
+
+function ProfileNotReady() {
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        html,body{background:#030303;min-height:100vh}
-        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-        @keyframes riseUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes avatarShow{from{opacity:0;transform:scale(0.88)}to{opacity:1;transform:scale(1)}}
-        @keyframes pulseRing{0%,100%{transform:scale(1);opacity:.18}50%{transform:scale(1.18);opacity:.06}}
-        @keyframes fill{from{width:0%}to{width:100%}}
-        @keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
-        .ti-bg{animation:fadeIn .6s ease both}
-        .ti-brand{animation:riseUp .7s cubic-bezier(.16,1,.3,1) .1s both}
-        .ti-avatar{animation:avatarShow .8s cubic-bezier(.16,1,.3,1) .2s both}
-        .ti-name{animation:riseUp .7s cubic-bezier(.16,1,.3,1) .38s both}
-        .ti-label{animation:riseUp .7s cubic-bezier(.16,1,.3,1) .48s both}
-        .ti-status{animation:riseUp .7s cubic-bezier(.16,1,.3,1) .56s both}
-        .ti-bar{animation:riseUp .7s cubic-bezier(.16,1,.3,1) .62s both}
-        .ti-footer{animation:riseUp .7s cubic-bezier(.16,1,.3,1) .72s both}
-        .ti-fill{animation:fill 1.6s cubic-bezier(.4,0,.2,1) .85s both}
-        .ti-d1{animation:blink 1.4s ease .9s infinite}
-        .ti-d2{animation:blink 1.4s ease 1.1s infinite}
-        .ti-d3{animation:blink 1.4s ease 1.3s infinite}
-        .ti-ring{animation:pulseRing 3s ease-in-out .5s infinite}
-      `}</style>
-      <meta httpEquiv="refresh" content={`2;url=/u/${username}`} />
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html,body{background:#030303}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes riseUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}.ti-bg{animation:fadeIn .5s ease both}.ti-card{animation:riseUp .7s cubic-bezier(.16,1,.3,1) .1s both}`}</style>
       <main className="ti-bg" style={s.page}>
         <div style={s.bgGrid}/><div style={s.bgGlow}/>
         <div style={s.shell}>
-          <div className="ti-brand" style={s.brandRow}><span style={s.brandMark}>TAPPED-IN</span></div>
-          <div className="ti-avatar" style={s.avatarSection}>
-            <div style={s.pulseWrap}>
-              <div className="ti-ring" style={s.pulseRing}/>
-              <div style={s.avatarOuter}>
-                <div style={s.avatarInner}>
-                  {avatarUrl ? <img src={avatarUrl} alt={name} style={s.avatarImg}/> : <span style={s.avatarInitials}>{initials}</span>}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="ti-name" style={s.nameRow}>
-            <h1 style={s.name}>{name}</h1>
-            {role && <p style={s.role}>{role}</p>}
-          </div>
-          <div className="ti-label" style={s.verifiedRow}>
-            <div style={s.verifiedBadge}>
-              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" style={{flexShrink:0}}>
-                <path d="M2 6l3 3 5-5" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <div className="ti-card" style={s.unavailCard}>
+            <div style={s.brandRow}><span style={s.brandMark}>TAPPED-IN</span></div>
+            <div style={s.unavailIcon}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2"/>
+                <path d="M12 8v4" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" strokeLinecap="round"/>
+                <circle cx="12" cy="15.5" r="1" fill="rgba(255,255,255,0.35)"/>
               </svg>
-              <span style={s.verifiedText}>Identity verified</span>
             </div>
+            <p style={s.unavailEyebrow}>NFC CARD</p>
+            <h1 style={s.unavailTitle}>Profile coming soon.</h1>
+            <p style={s.unavailDesc}>
+              This card has been activated. The owner is setting up their digital profile — check back shortly.
+            </p>
+            <a href="/" style={s.unavailCta}>Learn about Tapped-In →</a>
+            <p style={s.unavailFooter}>A new standard of Networking.</p>
           </div>
-          <div className="ti-status" style={s.statusRow}>
-            <span style={s.statusText}>Opening digital profile</span>
-            <span style={s.statusDots}>
-              <span className="ti-d1" style={s.dot}/><span className="ti-d2" style={s.dot}/><span className="ti-d3" style={s.dot}/>
-            </span>
-          </div>
-          <div className="ti-bar" style={s.barWrap}>
-            <div style={s.barTrack}><div className="ti-fill" style={s.barFill}/></div>
-          </div>
-          <div className="ti-footer" style={s.footer}><span style={s.footerSlogan}>A new standard of Networking.</span></div>
         </div>
       </main>
     </>
@@ -219,12 +178,6 @@ function SuspendedCard() {
   )
 }
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(' ').filter(Boolean)
-  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-  return name.slice(0, 2).toUpperCase()
-}
-
 const FONT = `'DM Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif`
 
 const s: Record<string, CSSProperties> = {
@@ -234,28 +187,6 @@ const s: Record<string, CSSProperties> = {
   shell:{width:'100%',maxWidth:'360px',display:'flex',flexDirection:'column',alignItems:'center',position:'relative',zIndex:1,gap:'0'},
   brandRow:{marginBottom:'2.5rem',textAlign:'center' as const},
   brandMark:{fontFamily:'monospace',fontSize:'0.58rem',fontWeight:700,letterSpacing:'0.28em',color:'rgba(255,255,255,0.2)'},
-  avatarSection:{marginBottom:'1.75rem',display:'flex',alignItems:'center',justifyContent:'center'},
-  pulseWrap:{position:'relative',width:'108px',height:'108px',display:'flex',alignItems:'center',justifyContent:'center'},
-  pulseRing:{position:'absolute',inset:'-12px',borderRadius:'50%',border:'1px solid rgba(255,255,255,0.22)',pointerEvents:'none'},
-  avatarOuter:{width:'100px',height:'100px',borderRadius:'28px',padding:'2px',background:'linear-gradient(145deg,rgba(255,255,255,0.16) 0%,rgba(255,255,255,0.04) 100%)'},
-  avatarInner:{width:'100%',height:'100%',borderRadius:'26px',overflow:'hidden',background:'linear-gradient(145deg,#1c1c1c,#111)',border:'1px solid rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center'},
-  avatarImg:{width:'100%',height:'100%',objectFit:'cover' as const},
-  avatarInitials:{fontSize:'1.75rem',fontWeight:700,color:'rgba(255,255,255,0.55)',letterSpacing:'-0.03em',fontFamily:FONT},
-  nameRow:{textAlign:'center' as const,marginBottom:'1.25rem'},
-  name:{fontSize:'1.75rem',fontWeight:700,letterSpacing:'-0.04em',color:'#fff',lineHeight:1.1,marginBottom:'0.35rem'},
-  role:{fontSize:'0.82rem',fontWeight:400,color:'rgba(255,255,255,0.38)',letterSpacing:'0.01em'},
-  verifiedRow:{marginBottom:'1.75rem',display:'flex',justifyContent:'center'},
-  verifiedBadge:{display:'inline-flex',alignItems:'center',gap:'6px',padding:'5px 12px',borderRadius:'100px',background:'rgba(74,222,128,0.07)',border:'1px solid rgba(74,222,128,0.18)'},
-  verifiedText:{fontSize:'0.72rem',fontWeight:500,color:'#4ade80',letterSpacing:'0.04em'},
-  statusRow:{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginBottom:'1.25rem'},
-  statusText:{fontSize:'0.75rem',fontWeight:400,color:'rgba(255,255,255,0.3)',letterSpacing:'0.03em'},
-  statusDots:{display:'flex',alignItems:'center',gap:'3px'},
-  dot:{width:'3px',height:'3px',borderRadius:'50%',background:'rgba(255,255,255,0.4)',display:'inline-block'},
-  barWrap:{width:'100%',maxWidth:'240px',marginBottom:'3rem'},
-  barTrack:{width:'100%',height:'1px',background:'rgba(255,255,255,0.07)',borderRadius:'1px',overflow:'hidden'},
-  barFill:{height:'100%',background:'rgba(255,255,255,0.4)',borderRadius:'1px',width:'0%'},
-  footer:{textAlign:'center' as const},
-  footerSlogan:{fontSize:'0.62rem',fontWeight:300,color:'rgba(255,255,255,0.14)',letterSpacing:'0.04em',fontStyle:'italic' as const},
   unavailCard:{width:'100%',maxWidth:'380px',background:'#0a0a0a',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'28px',padding:'2.5rem 2rem',display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center' as const,gap:'0',boxShadow:'0 40px 100px rgba(0,0,0,0.6),0 1px 0 rgba(255,255,255,0.04) inset'},
   unavailIcon:{marginBottom:'1.25rem',marginTop:'0.5rem',opacity:0.7},
   unavailEyebrow:{fontFamily:'monospace',fontSize:'0.58rem',fontWeight:700,letterSpacing:'0.22em',color:'rgba(255,255,255,0.2)',marginBottom:'0.75rem'},
