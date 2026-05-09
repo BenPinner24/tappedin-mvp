@@ -1,257 +1,248 @@
-// src/app/claim/[card_id]/page.tsx
-//
-// This is the ONLY place that writes ownership to the cards table.
-//
-// Scenarios handled:
-//   A. User is already authenticated → claim immediately → redirect /dashboard
-//   B. User is not authenticated     → show sign-up / sign-in links with card_id in URL
-//   C. Card already claimed by THIS user → redirect /dashboard
-//   D. Card already claimed by different user → show "already claimed" error
-//   E. Card does not exist → show error
+// src/app/signup/page.tsx
+'use client'
 
-import { createClient } from '@/lib/supabase/server'
-import { redirect }     from 'next/navigation'
-import Link             from 'next/link'
+import { Suspense, useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 import type { CSSProperties } from 'react'
 
-type ClaimPageProps = { params: Promise<{ card_id: string }> }
+const FONT = `'DM Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif`
 
-type CardRow = {
-  card_id:       string
-  status:        string | null
-  owner_user_id: string | null
-}
+function SignupContent() {
+  const searchParams = useSearchParams()
+  const router       = useRouter()
+  const cardId       = searchParams.get('card_id') ?? ''
 
-export default async function ClaimPage({ params }: ClaimPageProps) {
-  const { card_id } = await params
-  const supabase    = await createClient()
+  const [email,    setEmail]    = useState('')
+  const [password, setPassword] = useState('')
+  const [name,     setName]     = useState('')
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState<string | null>(null)
+  const [sent,     setSent]     = useState(false)
 
-  // ── Load card ──────────────────────────────────────────────────────────────
-  const { data: card } = await supabase
-    .from('cards')
-    .select('card_id, status, owner_user_id')
-    .eq('card_id', card_id)
-    .maybeSingle<CardRow>()
+  const supabase = createClient()
 
-  if (!card) return <ClaimError message="This card does not exist in our system." />
+  async function handleSignup(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
 
-  if (card.status === 'suspended' || card.status === 'replaced') {
-    return <ClaimError message="This card is not available for activation. Please contact support@tappedin.uk." />
-  }
+    try {
+      const redirectTo = cardId
+        ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/claim/${cardId}`)}`
+        : `${window.location.origin}/auth/callback`
 
-  // ── Load session ───────────────────────────────────────────────────────────
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // ── Card already fully claimed ─────────────────────────────────────────────
-  if (card.status === 'claimed' && card.owner_user_id) {
-    if (user && card.owner_user_id === user.id) {
-      // This user already owns it
-      redirect('/dashboard')
-    }
-    if (user && card.owner_user_id !== user.id) {
-      return <ClaimError message="This card has already been claimed by another account." />
-    }
-    // Not logged in + card claimed by someone else
-    return <ClaimError message="This card has already been claimed." />
-  }
-
-  // ── User is authenticated → claim now ─────────────────────────────────────
-  if (user) {
-    const now = new Date().toISOString()
-
-    // Re-fetch to guard against a concurrent claim between our first read and now
-    const { data: freshCard } = await supabase
-      .from('cards')
-      .select('card_id, status, owner_user_id, first_tap_at')
-      .eq('card_id', card_id)
-      .maybeSingle<CardRow & { first_tap_at: string | null }>()
-
-    // Race-condition guard: another session claimed it between our first read and now
-    if (freshCard?.status === 'claimed' && freshCard.owner_user_id) {
-      if (freshCard.owner_user_id === user.id) redirect('/dashboard')
-      return <ClaimError message="This card was just claimed by another account." />
-    }
-
-    // Perform the claim — explicit, atomic update
-    const { error: claimError } = await supabase
-      .from('cards')
-      .update({
-        status:        'claimed',
-        owner_user_id: user.id,          // ← the critical field
-        activated_at:  now,
-        // Only set first_tap_at if it isn't already set
-        ...(freshCard?.first_tap_at ? {} : { first_tap_at: now }),
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectTo,
+          data: { display_name: name },
+        },
       })
-      .eq('card_id', card_id)
-      // Safety: only update if still unclaimed (prevents overwriting a concurrent claim)
-      .or('owner_user_id.is.null,status.neq.claimed')
 
-    if (claimError) {
-      console.error('[claim] DB error:', claimError)
-      return <ClaimError message="Something went wrong while activating your card. Please try again." />
+      if (signUpError) {
+        setError(signUpError.message)
+        return
+      }
+
+      // Email confirmation OFF — session returned immediately.
+      // router.refresh() flushes the server-side session cache so the claim
+      // page's server component sees the authenticated user when it loads.
+      if (data.session) {
+        router.refresh()
+        router.push(cardId ? `/claim/${cardId}` : '/dashboard')
+        return
+      }
+
+      // Email confirmation ON — show "check your email" screen.
+      setSent(true)
+    } catch (err) {
+      setError('Something went wrong. Please try again.')
+      console.error(err)
+    } finally {
+      setLoading(false)
     }
-
-    // Verify the write actually applied (row-level guard might have blocked it)
-    const { data: verifyCard } = await supabase
-      .from('cards')
-      .select('owner_user_id, status')
-      .eq('card_id', card_id)
-      .maybeSingle<{ owner_user_id: string | null; status: string | null }>()
-
-    if (verifyCard?.owner_user_id !== user.id || verifyCard?.status !== 'claimed') {
-      return <ClaimError message="This card was claimed by someone else. Please contact support." />
-    }
-
-    // Success — card is claimed, send user to their dashboard
-    redirect('/dashboard')
   }
 
-  // ── User is NOT authenticated → show gate ─────────────────────────────────
-  return <ClaimGate cardId={card_id} />
-}
-
-// ─── Claim Gate (not logged in) ───────────────────────────────────────────────
-
-function ClaimGate({ cardId }: { cardId: string }) {
-  const signupHref = `/signup?card_id=${encodeURIComponent(cardId)}`
-  const loginHref  = `/login?card_id=${encodeURIComponent(cardId)}`
+  if (sent) {
+    return (
+      <>
+        <style>{CSS}</style>
+        <main style={s.page}>
+          <div style={s.bgGrid}/><div style={s.bgGlow}/>
+          <div style={s.shell}>
+            <div style={s.card}>
+              <div style={s.brandRow}><span style={s.brandMark}>TAPPED-IN</span></div>
+              <div style={s.iconWrap}>
+                <div style={s.iconOuter}>
+                  <div style={s.iconInner}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="rgba(255,255,255,0.55)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <h1 style={s.title}>Check your email.</h1>
+              <p style={s.body}>
+                We sent a confirmation link to <strong style={{color:'rgba(255,255,255,0.7)'}}>{email}</strong>.
+                {cardId && <> Click it to confirm your account and activate your card.</>}
+                {!cardId && <> Click it to confirm your account.</>}
+              </p>
+              {cardId && (
+                <div style={s.cardHint}>
+                  <span style={s.cardHintLabel}>Activating</span>
+                  <span style={s.cardHintId}>{cardId}</span>
+                </div>
+              )}
+              <p style={s.footer}>A new standard of Networking.</p>
+            </div>
+          </div>
+        </main>
+      </>
+    )
+  }
 
   return (
     <>
       <style>{CSS}</style>
-      <main className="ti-bg" style={s.page}>
+      <main style={s.page}>
         <div style={s.bgGrid}/><div style={s.bgGlow}/>
         <div style={s.shell}>
+          <div style={s.card}>
+            <div style={s.brandRow}><span style={s.brandMark}>TAPPED-IN</span></div>
 
-          <div className="ti-r1" style={s.brandRow}><span style={s.brandMark}>TAPPED-IN</span></div>
-
-          {/* NFC icon */}
-          <div className="ti-r2" style={s.iconWrap}>
-            <div style={s.iconOuter}>
-              <div style={s.iconInner}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path d="M8.5 12c0-1.93 1.57-3.5 3.5-3.5s3.5 1.57 3.5 3.5" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round"/>
-                  <path d="M5 12c0-3.87 3.13-7 7-7s7 3.13 7 7" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round"/>
-                  <circle cx="12" cy="12" r="1.75" fill="rgba(255,255,255,0.7)"/>
-                </svg>
+            {cardId && (
+              <div style={s.cardHint}>
+                <span style={s.cardHintLabel}>Activating card</span>
+                <span style={s.cardHintId}>{cardId}</span>
               </div>
-            </div>
-          </div>
+            )}
 
-          <div className="ti-r3" style={s.eyebrowWrap}>
-            <span style={s.eyebrow}>NFC · {cardId}</span>
-          </div>
-
-          <div className="ti-r4">
-            <h1 style={s.title}>Activate your card.</h1>
-          </div>
-
-          <div className="ti-r5">
+            <h1 style={s.title}>{cardId ? 'Create your account.' : 'Join Tapped-In.'}</h1>
             <p style={s.body}>
-              Create your account or sign in to claim this card and connect it to your digital profile.
+              {cardId
+                ? 'Create your account to claim this card and build your digital profile.'
+                : 'Create your digital identity.'}
             </p>
-          </div>
 
-          <div className="ti-r5" style={s.divider}/>
+            {error && <div style={s.errorBox}>{error}</div>}
 
-          <div className="ti-r6" style={s.ctaGroup}>
-            <Link href={signupHref} className="ti-btn-primary" style={s.primaryBtn}>
-              Create account & activate
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style={{flexShrink:0}}>
-                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </Link>
-            <Link href={loginHref} className="ti-btn-secondary" style={s.secondaryBtn}>
-              Already have an account? Sign in →
-            </Link>
-          </div>
-
-          <div className="ti-r7" style={s.footer}>
-            <p style={s.slogan}>A new standard of Networking.</p>
-          </div>
-
-        </div>
-      </main>
-    </>
-  )
-}
-
-// ─── Claim Error ──────────────────────────────────────────────────────────────
-
-function ClaimError({ message }: { message: string }) {
-  return (
-    <>
-      <style>{CSS}</style>
-      <main className="ti-bg" style={s.page}>
-        <div style={s.bgGrid}/><div style={s.bgGlow}/>
-        <div style={s.shell}>
-          <div className="ti-r1" style={s.brandRow}><span style={s.brandMark}>TAPPED-IN</span></div>
-          <div className="ti-r2" style={s.iconWrap}>
-            <div style={{...s.iconOuter, background:'linear-gradient(145deg,rgba(239,68,68,0.18) 0%,rgba(239,68,68,0.04) 100%)'}}>
-              <div style={{...s.iconInner, border:'1px solid rgba(239,68,68,0.16)'}}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="9" stroke="rgba(239,68,68,0.6)" strokeWidth="1.4"/>
-                  <path d="M12 7v5" stroke="rgba(239,68,68,0.8)" strokeWidth="1.6" strokeLinecap="round"/>
-                  <circle cx="12" cy="16" r="1.1" fill="rgba(239,68,68,0.8)"/>
-                </svg>
+            <form onSubmit={handleSignup} style={s.form}>
+              <div style={s.field}>
+                <label style={s.label}>Full name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Ben Pinner"
+                  required
+                  autoComplete="name"
+                  style={s.input}
+                  className="ti-input"
+                />
               </div>
-            </div>
+              <div style={s.field}>
+                <label style={s.label}>Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="ben@example.com"
+                  required
+                  autoComplete="email"
+                  style={s.input}
+                  className="ti-input"
+                />
+              </div>
+              <div style={s.field}>
+                <label style={s.label}>Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Min 8 characters"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  style={s.input}
+                  className="ti-input"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="ti-btn-primary"
+                style={{ ...s.primaryBtn, opacity: loading ? 0.6 : 1 }}
+              >
+                {loading ? 'Creating account…' : cardId ? 'Create account & activate' : 'Create account'}
+              </button>
+            </form>
+
+            <div style={s.divider}/>
+            <p style={s.switchText}>
+              Already have an account?{' '}
+              <Link
+                href={cardId ? `/login?card_id=${encodeURIComponent(cardId)}` : '/login'}
+                style={s.switchLink}
+              >
+                Sign in
+              </Link>
+            </p>
+
+            <p style={s.footer}>A new standard of Networking.</p>
           </div>
-          <div className="ti-r3"><h1 style={{...s.title, fontSize:'1.65rem'}}>Unable to activate</h1></div>
-          <div className="ti-r4"><p style={s.body}>{message}</p></div>
-          <div className="ti-r5" style={s.ctaGroup}>
-            <Link href="/" className="ti-btn-secondary" style={s.secondaryBtn}>Return to Tapped-In →</Link>
-          </div>
-          <div className="ti-r6" style={s.footer}><p style={s.slogan}>A new standard of Networking.</p></div>
         </div>
       </main>
     </>
   )
 }
-
-// ─── Shared CSS ───────────────────────────────────────────────────────────────
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   html,body{background:#030303;min-height:100vh;-webkit-font-smoothing:antialiased}
-  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  @keyframes riseUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-  .ti-bg{animation:fadeIn .5s ease both}
-  .ti-r1{animation:riseUp .6s cubic-bezier(.16,1,.3,1) .08s both}
-  .ti-r2{animation:riseUp .6s cubic-bezier(.16,1,.3,1) .18s both}
-  .ti-r3{animation:riseUp .6s cubic-bezier(.16,1,.3,1) .28s both}
-  .ti-r4{animation:riseUp .6s cubic-bezier(.16,1,.3,1) .36s both}
-  .ti-r5{animation:riseUp .6s cubic-bezier(.16,1,.3,1) .44s both}
-  .ti-r6{animation:riseUp .6s cubic-bezier(.16,1,.3,1) .52s both}
-  .ti-r7{animation:riseUp .6s cubic-bezier(.16,1,.3,1) .60s both}
-  .ti-btn-primary{transition:background .18s,transform .18s cubic-bezier(.16,1,.3,1),box-shadow .18s}
-  .ti-btn-primary:hover{background:#e4e4e4 !important;transform:translateY(-2px);box-shadow:0 10px 32px rgba(255,255,255,0.14) !important}
+  .ti-input{outline:none;transition:border-color .18s,box-shadow .18s}
+  .ti-input:focus{border-color:rgba(255,255,255,0.3) !important;box-shadow:0 0 0 3px rgba(255,255,255,0.04) !important}
+  .ti-btn-primary{transition:background .18s,transform .18s cubic-bezier(.16,1,.3,1),box-shadow .18s;cursor:pointer}
+  .ti-btn-primary:hover:not(:disabled){background:#e4e4e4 !important;transform:translateY(-1px);box-shadow:0 8px 24px rgba(255,255,255,0.12) !important}
   .ti-btn-primary:active{transform:translateY(0)}
-  .ti-btn-secondary{transition:opacity .18s}
-  .ti-btn-secondary:hover{opacity:.6 !important}
 `
 
-const FONT = `'DM Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif`
-
 const s: Record<string, CSSProperties> = {
-  page:{minHeight:'100vh',background:'#030303',color:'#fff',fontFamily:FONT,display:'flex',alignItems:'center',justifyContent:'center',padding:'2rem 1.5rem',position:'relative',overflow:'hidden'},
-  bgGrid:{position:'fixed',inset:0,backgroundImage:`linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px)`,backgroundSize:'56px 56px',WebkitMaskImage:'radial-gradient(ellipse 70% 70% at 50% 40%,black 10%,transparent 74%)',maskImage:'radial-gradient(ellipse 70% 70% at 50% 40%,black 10%,transparent 74%)',pointerEvents:'none',zIndex:0},
-  bgGlow:{position:'fixed',top:'-60px',left:'50%',transform:'translateX(-50%)',width:'500px',height:'300px',background:'radial-gradient(ellipse,rgba(255,255,255,0.025) 0%,transparent 65%)',filter:'blur(24px)',pointerEvents:'none',zIndex:0},
-  shell:{width:'100%',maxWidth:'360px',display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',position:'relative',zIndex:1},
-  brandRow:{marginBottom:'2.5rem'},
-  brandMark:{fontFamily:'monospace',fontSize:'0.58rem',fontWeight:700,letterSpacing:'0.28em',color:'rgba(255,255,255,0.2)'},
-  iconWrap:{marginBottom:'1.75rem'},
-  iconOuter:{width:'64px',height:'64px',borderRadius:'20px',padding:'2px',background:'linear-gradient(145deg,rgba(255,255,255,0.14) 0%,rgba(255,255,255,0.04) 100%)'},
-  iconInner:{width:'100%',height:'100%',borderRadius:'18px',background:'#0a0a0a',border:'1px solid rgba(255,255,255,0.1)',display:'flex',alignItems:'center',justifyContent:'center'},
-  eyebrowWrap:{marginBottom:'0.65rem'},
-  eyebrow:{fontFamily:'monospace',fontSize:'0.56rem',fontWeight:700,letterSpacing:'0.2em',color:'rgba(255,255,255,0.22)',textTransform:'uppercase' as const},
-  title:{fontSize:'2rem',fontWeight:700,letterSpacing:'-0.045em',color:'#fff',lineHeight:1.05,marginBottom:'0.9rem'},
-  body:{fontSize:'0.84rem',fontWeight:300,color:'rgba(255,255,255,0.38)',lineHeight:1.75,maxWidth:'290px',marginBottom:'2rem'},
-  divider:{width:'100%',height:'1px',background:'rgba(255,255,255,0.055)',marginBottom:'1.75rem'},
-  ctaGroup:{width:'100%',display:'flex',flexDirection:'column',alignItems:'center',gap:'0.85rem',marginBottom:'2.5rem'},
-  primaryBtn:{width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',padding:'0.88rem 1.5rem',borderRadius:'100px',background:'#fff',color:'#000',fontFamily:FONT,fontSize:'0.88rem',fontWeight:700,textDecoration:'none',letterSpacing:'0.01em',boxShadow:'0 4px 20px rgba(0,0,0,0.3)'},
-  secondaryBtn:{fontSize:'0.78rem',fontWeight:500,color:'rgba(255,255,255,0.32)',textDecoration:'none',letterSpacing:'0.01em'},
-  footer:{textAlign:'center' as const},
-  slogan:{fontSize:'0.6rem',fontWeight:300,color:'rgba(255,255,255,0.14)',letterSpacing:'0.04em',fontStyle:'italic' as const},
+  page:{minHeight:'100vh',background:'#030303',color:'#fff',fontFamily:FONT,display:'flex',alignItems:'center',justifyContent:'center',padding:'2rem 1.25rem',position:'relative',WebkitFontSmoothing:'antialiased'},
+  bgGrid:{position:'fixed',inset:0,backgroundImage:`linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px)`,backgroundSize:'60px 60px',WebkitMaskImage:'radial-gradient(ellipse 80% 80% at 50% 20%,black 20%,transparent 72%)',maskImage:'radial-gradient(ellipse 80% 80% at 50% 20%,black 20%,transparent 72%)',pointerEvents:'none',zIndex:0},
+  bgGlow:{position:'fixed',top:'-140px',left:'50%',transform:'translateX(-50%)',width:'600px',height:'400px',background:'radial-gradient(ellipse,rgba(255,255,255,0.03) 0%,transparent 68%)',filter:'blur(8px)',pointerEvents:'none',zIndex:0},
+  shell:{width:'100%',maxWidth:'400px',position:'relative',zIndex:1},
+  card:{background:'#0a0a0a',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'24px',padding:'2.25rem 2rem',boxShadow:'0 40px 100px rgba(0,0,0,0.6),0 1px 0 rgba(255,255,255,0.04) inset'},
+  brandRow:{marginBottom:'1.75rem',textAlign:'center' as const},
+  brandMark:{fontFamily:'monospace',fontSize:'0.56rem',fontWeight:700,letterSpacing:'0.26em',color:'rgba(255,255,255,0.2)'},
+  iconWrap:{display:'flex',justifyContent:'center',marginBottom:'1.5rem'},
+  iconOuter:{width:'60px',height:'60px',borderRadius:'18px',padding:'2px',background:'linear-gradient(145deg,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.04) 100%)'},
+  iconInner:{width:'100%',height:'100%',borderRadius:'16px',background:'#111',border:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center'},
+  cardHint:{display:'flex',alignItems:'center',gap:'8px',padding:'7px 12px',borderRadius:'100px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',marginBottom:'1.25rem',alignSelf:'center' as const,width:'fit-content',margin:'0 auto 1.25rem'},
+  cardHintLabel:{fontSize:'0.62rem',fontWeight:600,letterSpacing:'0.12em',color:'rgba(255,255,255,0.35)',textTransform:'uppercase' as const,fontFamily:'monospace'},
+  cardHintId:{fontSize:'0.72rem',fontWeight:600,color:'rgba(255,255,255,0.65)',fontFamily:'monospace',letterSpacing:'0.04em'},
+  title:{fontSize:'1.65rem',fontWeight:700,letterSpacing:'-0.04em',color:'#fff',lineHeight:1.1,marginBottom:'0.6rem',textAlign:'center' as const},
+  body:{fontSize:'0.82rem',fontWeight:300,color:'rgba(255,255,255,0.35)',lineHeight:1.65,marginBottom:'1.75rem',textAlign:'center' as const},
+  errorBox:{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'10px',padding:'0.75rem 1rem',marginBottom:'1.25rem',fontSize:'0.82rem',color:'rgba(239,68,68,0.9)',lineHeight:1.5},
+  form:{display:'flex',flexDirection:'column',gap:'1rem',marginBottom:'1.5rem'},
+  field:{display:'flex',flexDirection:'column',gap:'0.4rem'},
+  label:{fontSize:'0.72rem',fontWeight:600,color:'rgba(255,255,255,0.45)',letterSpacing:'0.04em'},
+  input:{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'0.75rem 1rem',color:'#fff',fontFamily:FONT,fontSize:'0.88rem',fontWeight:400,width:'100%'},
+  primaryBtn:{width:'100%',padding:'0.88rem 1.5rem',borderRadius:'100px',border:'none',background:'#fff',color:'#000',fontFamily:FONT,fontSize:'0.88rem',fontWeight:700,letterSpacing:'0.01em',boxShadow:'0 4px 20px rgba(0,0,0,0.3)',marginTop:'0.25rem'},
+  divider:{height:'1px',background:'rgba(255,255,255,0.06)',margin:'1.5rem 0'},
+  switchText:{fontSize:'0.78rem',color:'rgba(255,255,255,0.3)',textAlign:'center' as const,marginBottom:'1.5rem'},
+  switchLink:{color:'rgba(255,255,255,0.65)',textDecoration:'none',fontWeight:500},
+  footer:{fontSize:'0.58rem',color:'rgba(255,255,255,0.12)',letterSpacing:'0.04em',fontStyle:'italic' as const,textAlign:'center' as const,marginTop:'0.5rem'},
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupContent />
+    </Suspense>
+  )
 }

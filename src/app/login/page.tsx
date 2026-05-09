@@ -1,10 +1,4 @@
 // src/app/login/page.tsx
-//
-// If ?card_id=pvc-002 is present, threads it through to the auth callback
-// via the emailRedirectTo / next param so the claim happens after sign-in.
-// For password auth (no email confirmation step), we redirect directly to
-// /claim/[card_id] after a successful signInWithPassword call.
-
 'use client'
 
 import { Suspense, useState } from 'react'
@@ -40,13 +34,10 @@ function LoginContent() {
         return
       }
 
-      // Password login is immediate — no email confirmation step.
-      // Route to claim page if card_id is present, otherwise dashboard.
-      if (cardId) {
-        router.push(`/claim/${cardId}`)
-      } else {
-        router.push('/dashboard')
-      }
+      // router.refresh() flushes the server-side session cache so the claim
+      // page's server component sees the authenticated user when it loads.
+      router.refresh()
+      router.push(cardId ? `/claim/${cardId}` : '/dashboard')
     } catch (err) {
       setError('Something went wrong. Please try again.')
       console.error(err)
