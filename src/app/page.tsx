@@ -535,10 +535,15 @@ export default function HomePage() {
               }}>
                 <Link href="/signup" className="btn-primary">Founder Access Opening Soon</Link>
                 <a href="#product" className="btn-ghost">View the card</a>
-                <a href="https://www.instagram.com/tappedinspace/" target="_blank" rel="noopener noreferrer" className="btn-ghost" ><a href="https://www.instagram.com/tappedinspace/" target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
-                  Follow the drop
-                </a>
+                <a
+  href="https://www.instagram.com/tappedinspace/"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="btn-ghost"
+  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+>
+  Follow the drop
+</a>
               </div>
 
               {/* Stats */}
