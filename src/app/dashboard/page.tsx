@@ -76,10 +76,6 @@ const THEME_STYLES = [
   { value: 'darker', label: 'Deeper black' },
 ]
 
-// Preset platform options for the link label dropdown.
-// The value IS the label stored in the DB — no mapping needed.
-// detectLinkKind() reads the label to determine normalisation behaviour,
-// so 'WhatsApp' and 'Email' drive their special-case handling automatically.
 const PLATFORM_OPTIONS = [
   { value: 'Instagram',    kind: 'url'       },
   { value: 'TikTok',       kind: 'url'       },
@@ -122,47 +118,31 @@ function urlInputMode(label: string): 'tel' | 'email' | 'url' | 'text' {
   return 'url'
 }
 
-/** Normalise a raw URL/phone/email value before saving */
 function normaliseUrl(label: string, raw: string): string {
   const v = raw.trim()
   if (!v) return v
   const kind = detectLinkKind(label)
 
   if (kind === 'whatsapp') {
-    // Accept existing wa.me URLs (with or without protocol)
     if (v.startsWith('https://wa.me/') || v.startsWith('http://wa.me/')) return v
     if (v.startsWith('wa.me/')) return `https://${v}`
-
-    // Strip formatting: spaces, hyphens, dots, brackets, parens, square brackets
     const stripped = v.replace(/[\s\-.()\[\]]/g, '')
-
-    // Remove anything that isn't a digit or a leading +
     const withPlus = stripped.replace(/[^\d+]/g, '')
-
-    // Drop the leading + so we have raw digits only
     const digitsRaw = withPlus.replace(/^\+/, '')
-
-    // Normalise leading zeros:
-    //   00xx… → xx…   (international dialling prefix, e.g. 00447901… → 447901…)
-    //   0x…   → 44x…  (UK local, e.g. 07901… → 447901…)
     let digits = digitsRaw
     if (digits.startsWith('00')) {
       digits = digits.slice(2)
     } else if (digits.startsWith('0')) {
       digits = '44' + digits.slice(1)
     }
-
     return `https://wa.me/${digits}`
   }
 
   if (kind === 'email') {
-    // Extract raw email address from whatever form the user entered
     let email = ''
     if (v.startsWith('mailto:')) {
-      // Strip mailto: prefix (and any query string)
       email = v.slice(7).split('?')[0].trim()
     } else if (v.startsWith('https://mail.google.com/')) {
-      // Already a Gmail compose URL — extract the `to=` param if present
       try {
         const url = new URL(v)
         email = url.searchParams.get('to') ?? ''
@@ -170,64 +150,33 @@ function normaliseUrl(label: string, raw: string): string {
     } else if (v.includes('@')) {
       email = v.trim()
     }
-
     if (email) {
-      // Produce a Gmail compose deep-link so the button reliably opens compose
       return `https://mail.google.com/mail/u/0/?view=cm&fs=1&tf=1&to=${encodeURIComponent(email)}`
     }
-
-    // No recognisable email — return as-is
     return v
   }
 
-  // Standard URL — ensure protocol
   if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('mailto:') || v.startsWith('tel:')) return v
   return `https://${v}`
 }
 
-/**
- * Per-row inline validation — validates against the NORMALISED value so that
- * a user typing "07901109774" (which normalises to https://wa.me/447901109774)
- * passes validation rather than failing on the raw input.
- *
- * Returns an error string, or null if the row is valid.
- */
 function validateLinkRow(label: string, url: string): string | null {
   const rawLabel = label.trim()
   const rawUrl   = url.trim()
-
-  // Both empty → skip row entirely, no error
   if (!rawLabel && !rawUrl) return null
-
-  // One side filled, the other empty
   if (rawLabel && !rawUrl) return 'Add a URL, phone number, or email address'
   if (!rawLabel && rawUrl) return 'Add a label for this link'
-
   const kind = detectLinkKind(rawLabel)
-
-  // Normalise first, then validate the normalised form
   const normalised = normaliseUrl(rawLabel, rawUrl)
-
   if (kind === 'whatsapp') {
-    // After normalisation a valid number becomes https://wa.me/<digits>
-    // Accept 8–15 digits (E.164 minimum is 8, maximum is 15)
     const waMatch = normalised.match(/^https:\/\/wa\.me\/(\d+)$/)
-    if (!waMatch) {
-      return 'Enter a phone number or WhatsApp link'
-    }
+    if (!waMatch) return 'Enter a phone number or WhatsApp link'
     const digitCount = waMatch[1].length
-    if (digitCount < 8) {
-      return 'Phone number is too short — include your country code (e.g. 447901109774)'
-    }
-    if (digitCount > 15) {
-      return 'Phone number is too long — check and re-enter'
-    }
+    if (digitCount < 8) return 'Phone number is too short — include your country code (e.g. 447901109774)'
+    if (digitCount > 15) return 'Phone number is too long — check and re-enter'
     return null
   }
-
   if (kind === 'email') {
-    // After normalisation, a valid email becomes a Gmail compose URL.
-    // Extract the `to` param and validate it contains a proper email address.
     let email = ''
     if (normalised.startsWith('https://mail.google.com/')) {
       try {
@@ -244,14 +193,22 @@ function validateLinkRow(label: string, url: string): string | null {
     }
     return null
   }
-
-  // Standard URL — normalised value must parse as a valid URL
   try {
     new URL(normalised)
     return null
   } catch {
     return 'Enter a valid URL (e.g. https://example.com or instagram.com/yourname)'
   }
+}
+
+// ─── Username normalisation ───────────────────────────────────────────────────
+
+function normaliseUsername(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\-_]/g, '')
+    .replace(/^-+|-+$/g, '')
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -307,27 +264,15 @@ function FormTextarea({
   )
 }
 
-
 // ─── QR Code generator ───────────────────────────────────────────────────────
-// Pure-canvas implementation — zero dependencies.
-// Generates a QR code for the given URL using the `qrcode` package API shape,
-// but implemented via the browser-native `qrcode` from the CDN-free path we
-// polyfill ourselves below using a minimal QR matrix builder.
-//
-// We use the `qrcode` npm package (qrcode@1.x) which ships a browser-friendly
-// build.  It is the only dependency added.  Install with:
-//   npm install qrcode
-//   npm install --save-dev @types/qrcode
-//
-// The component renders a <canvas> and exposes a download helper via a ref.
 
 import type { MutableRefObject } from 'react'
 
 type QRCanvasProps = {
-  url:      string          // URL to encode
-  size?:    number          // canvas logical size in px (default 240)
-  dark?:    string          // module colour (default #ffffff)
-  light?:   string          // background colour (default transparent → #0a0a0a)
+  url:      string
+  size?:    number
+  dark?:    string
+  light?:   string
   canvasRef?: MutableRefObject<HTMLCanvasElement | null>
 }
 
@@ -337,7 +282,6 @@ function QRCanvas({ url, size = 240, dark = '#ffffff', light = '#0a0a0a', canvas
 
   useEffect(() => {
     if (!ref.current || !url) return
-    // Dynamically import qrcode so it never blocks the page
     import('qrcode').then((QRCode) => {
       QRCode.toCanvas(ref.current!, url, {
         width:  size,
@@ -346,7 +290,6 @@ function QRCanvas({ url, size = 240, dark = '#ffffff', light = '#0a0a0a', canvas
         errorCorrectionLevel: 'M',
       }).catch(console.error)
     }).catch(() => {
-      // qrcode not installed — draw a placeholder so the UI doesn't break
       const ctx = ref.current?.getContext('2d')
       if (!ctx) return
       ctx.fillStyle = light
@@ -371,7 +314,6 @@ function QRCanvas({ url, size = 240, dark = '#ffffff', light = '#0a0a0a', canvas
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-
 export default function DashboardPage() {
   const supabase = useMemo(() => createClient(), [])
 
@@ -393,12 +335,12 @@ export default function DashboardPage() {
   const [uploading, setUploading]       = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [uploadError, setUploadError]     = useState<string | null>(null)
+  const [usernameError, setUsernameError]  = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const qrCanvasRef  = useRef<HTMLCanvasElement | null>(null)
 
   useEffect(() => { loadDashboard() }, [])
 
-  // ─── isMobile — drives all mobile inline-style overrides ─────────────────
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 768)
@@ -406,7 +348,6 @@ export default function DashboardPage() {
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
   }, [])
-
 
   // ─── Load ─────────────────────────────────────────────────────────────────
 
@@ -473,6 +414,32 @@ export default function DashboardPage() {
 
   async function saveProfile() {
     if (!profile) return
+    setUsernameError(null)
+
+    const normUsername = normaliseUsername(profile.username ?? '')
+
+    if (normUsername && normUsername.length < 2) {
+      setUsernameError('Username must be at least 2 characters.')
+      return
+    }
+    if (normUsername && normUsername.length > 32) {
+      setUsernameError('Username must be 32 characters or fewer.')
+      return
+    }
+
+    if (normUsername) {
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', normUsername)
+        .neq('id', profile.id)
+        .maybeSingle()
+      if (existing) {
+        setUsernameError(`"${normUsername}" is already taken. Please choose another.`)
+        return
+      }
+    }
+
     try {
       setProfileSave('saving')
       const { error } = await supabase.from('profiles').update({
@@ -481,7 +448,11 @@ export default function DashboardPage() {
         role:         profile.role,
         website:      profile.website,
         accent_color: profile.accent_color,
+        username:     normUsername || null,
       }).eq('id', profile.id)
+      if (!error && normUsername !== (profile.username ?? '')) {
+        setProfile(prev => prev ? { ...prev, username: normUsername || null } : null)
+      }
       setProfileSave(error ? 'error' : 'saved')
       if (!error) setTimeout(() => setProfileSave('idle'), 2200)
     } catch {
@@ -489,19 +460,12 @@ export default function DashboardPage() {
     }
   }
 
-  // ─── Save links — stable ID rule ──────────────────────────────────────────
-  // ─── Save links ──────────────────────────────────────────────────────────
-  // Splits into explicit UPDATE (rows with real DB ids) and INSERT (new rows).
-  // Logs the full Supabase error so the real rejection reason is always visible
-  // in DevTools Console regardless of what the UI shows.
+  // ─── Save links ────────────────────────────────────────────────────────────
 
   async function saveLinks() {
     setSaveError(null)
-
-    // Re-read session so uid is always fresh — state.userId may lag on first render
     const { data: { session } } = await supabase.auth.getSession()
     const uid = session?.user?.id ?? userId
-
     if (!profile || !uid) {
       const msg = '[saveLinks] aborted — missing ' + (!profile ? 'profile' : 'uid')
       console.error(msg, { hasProfile: !!profile, uid })
@@ -509,21 +473,16 @@ export default function DashboardPage() {
       setLinksSave('error')
       return
     }
-
-    // Validate non-empty rows against their normalised values
     const errs = links.map(l => validateLinkRow(l.label, l.url))
     setLinkErrors(errs)
     if (errs.some(e => e !== null)) return
-
     setLinksSave('saving')
 
-    // ── Build row payloads ────────────────────────────────────────────────────
     const existingRows: {
       id: string; user_id: string; profile_id: string
       label: string; url: string; link_type: string
       position: number; is_active: boolean
     }[] = []
-
     const newRows: {
       user_id: string; profile_id: string
       label: string; url: string; link_type: string
@@ -539,7 +498,7 @@ export default function DashboardPage() {
         profile_id: profile.id,
         label:      l.label.trim(),
         url:        normUrl,
-        link_type:  detectLinkKind(l.label),  // derive from label, don't trust stored value
+        link_type:  detectLinkKind(l.label),
         position:   i,
         is_active:  active,
       }
@@ -547,7 +506,6 @@ export default function DashboardPage() {
       else       existingRows.push({ id: l.id, ...shared })
     })
 
-    // ── Diagnostic log — always visible in DevTools ───────────────────────────
     console.group('[saveLinks] diagnostic')
     console.log('uid:        ', uid)
     console.log('profile.id: ', profile.id)
@@ -557,7 +515,6 @@ export default function DashboardPage() {
     console.groupEnd()
 
     try {
-      // ── 1. UPDATE existing rows ─────────────────────────────────────────────
       for (const row of existingRows) {
         const { error } = await supabase
           .from('profile_links')
@@ -569,8 +526,7 @@ export default function DashboardPage() {
             is_active: row.is_active,
           })
           .eq('id',      row.id)
-          .eq('user_id', uid)       // RLS: only touch own rows
-
+          .eq('user_id', uid)
         if (error) {
           const msg = `Update failed: ${error.message} (code ${error.code})`
           console.error('[saveLinks] update error', error, 'row:', row)
@@ -579,13 +535,8 @@ export default function DashboardPage() {
           return
         }
       }
-
-      // ── 2. INSERT new rows ──────────────────────────────────────────────────
       if (newRows.length > 0) {
-        const { error } = await supabase
-          .from('profile_links')
-          .insert(newRows)
-
+        const { error } = await supabase.from('profile_links').insert(newRows)
         if (error) {
           const msg = `Update failed: ${error.message} (code ${error.code})`
           console.error('[saveLinks] insert error', error, 'rows:', newRows)
@@ -594,13 +545,10 @@ export default function DashboardPage() {
           return
         }
       }
-
-      // ── 3. Reload so state has real DB-generated UUIDs ──────────────────────
       setLinksSave('saved')
       setSaveError(null)
       setTimeout(() => setLinksSave('idle'), 2200)
       await loadLinks(profile.id)
-
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[saveLinks] unexpected exception', err)
@@ -609,8 +557,6 @@ export default function DashboardPage() {
     }
   }
 
-  // loadLinks accepts an explicit profileId so it works even before
-  // the `profile` state value has propagated (e.g. right after a save).
   async function loadLinks(profileId?: string) {
     const pid = profileId ?? profile?.id
     if (!pid) return
@@ -651,21 +597,13 @@ export default function DashboardPage() {
   }
 
   // ─── Avatar upload ─────────────────────────────────────────────────────────
-  // Validates file type + size client-side, shows instant preview via FileReader,
-  // uploads to Supabase Storage `avatars` bucket, then saves the public URL to
-  // profiles.avatar_url.  All existing save logic is unaffected.
 
   async function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
-    // Reset input so the same file can be re-selected after an error
     event.target.value = ''
-
     if (!file || !profile) return
-
-    // ── Client-side validation ──────────────────────────────────────────────
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-    const MAX_BYTES     = 5 * 1024 * 1024 // 5 MB
-
+    const MAX_BYTES     = 5 * 1024 * 1024
     if (!ALLOWED_TYPES.includes(file.type)) {
       setUploadError('Please upload a JPG, PNG, WebP, or GIF image.')
       return
@@ -674,48 +612,36 @@ export default function DashboardPage() {
       setUploadError('Image must be smaller than 5 MB.')
       return
     }
-
     setUploadError(null)
     setUploading(true)
-
-    // ── Instant local preview ───────────────────────────────────────────────
     const reader = new FileReader()
     reader.onloadend = () => {
       if (typeof reader.result === 'string') setAvatarPreview(reader.result)
     }
     reader.readAsDataURL(file)
-
-    // ── Upload to Supabase Storage ──────────────────────────────────────────
     try {
       const ext      = file.name.split('.').pop() ?? 'jpg'
       const filePath = `${profile.id}/${Date.now()}.${ext}`
-
       const { error: storageError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true, cacheControl: '3600' })
-
       if (storageError) {
         setUploadError('Upload failed — please try again.')
         setAvatarPreview(null)
         console.error('[avatar upload]', storageError)
         return
       }
-
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
       const publicUrl = urlData.publicUrl
-
       const { error: dbError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
         .eq('id', profile.id)
-
       if (dbError) {
         setUploadError('Saved to storage but failed to update profile — refresh and try again.')
         console.error('[avatar db]', dbError)
         return
       }
-
-      // Commit to state — clears preview (real URL takes over)
       setProfile({ ...profile, avatar_url: publicUrl })
       setAvatarPreview(null)
     } catch (err) {
@@ -729,7 +655,6 @@ export default function DashboardPage() {
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
-  // ─── Download QR ──────────────────────────────────────────────────────────
   function downloadQR() {
     const canvas = qrCanvasRef.current
     if (!canvas) return
@@ -745,7 +670,6 @@ export default function DashboardPage() {
 
   function patchLink(index: number, fields: Partial<ProfileLink>) {
     setLinks(prev => prev.map((l, i) => i === index ? { ...l, ...fields } : l))
-    // Clear error for this row when user edits it
     setLinkErrors(prev => prev.map((e, i) => i === index ? null : e))
   }
 
@@ -763,8 +687,6 @@ export default function DashboardPage() {
   const cardStatusBadge = card?.status
     ? statusBadgeStyle(card.status as Parameters<typeof statusBadgeStyle>[0])
     : null
-
-  // ─── Save button helpers ───────────────────────────────────────────────────
 
   function saveBtnLabel(state: SaveState, idle: string) {
     if (state === 'saving') return 'Saving…'
@@ -824,61 +746,24 @@ export default function DashboardPage() {
           box-shadow: 0 0 0 3px rgba(255,255,255,0.04) !important;
         }
 
-        /* ── Primary / save button ── */
         .ti-save-btn:hover   { background: #e8e8e8 !important; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(255,255,255,0.18) !important; }
         .ti-save-btn:active  { transform: translateY(0) !important; }
-
-        /* ── Ghost / upload button ── */
         .ti-upload-btn:hover { border-color: ${colors.border.focus} !important; color: ${colors.white[90]} !important; background: rgba(255,255,255,0.06) !important; }
-
-        /* ── Avatar camera hint ── */
         button[aria-label="Upload avatar"]:not(:disabled):hover > div:last-of-type { opacity: 1 !important; }
-
-        /* ── NFC open button ── */
         .ti-nfc-btn:hover  { background: #e8e8e8 !important; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.35) !important; }
         .ti-nfc-btn:active { transform: translateY(0) !important; }
-
-        /* ── Analytics CTA ── */
         .ti-analytics:hover { border-color: ${colors.border.strong} !important; background: rgba(255,255,255,0.04) !important; }
-
-        /* ── View link ── */
         .ti-view-link:hover { color: ${colors.white[90]} !important; }
-
-        /* ── Add link ── */
         .ti-add-link:hover { border-color: ${colors.border.default} !important; color: ${colors.text.secondary} !important; background: rgba(255,255,255,0.05) !important; }
-
-        /* ── Tabs ── */
         .ti-tab:hover { color: ${colors.text.secondary} !important; }
-
-        /* ── Toggle ── */
         .ti-link-toggle:hover { opacity: 0.75 !important; }
-
-        /* ── Style option ── */
         .ti-style-opt:hover { border-color: ${colors.border.strong} !important; background: rgba(255,255,255,0.06) !important; }
-
-        /* ── Platform select — native option elements inherit page bg on most browsers;
-              force a dark background so text is readable when the list drops open ── */
-        select.ti-link-select option {
-          background-color: #1a1a1a;
-          color: #fff;
-        }
-        select.ti-link-select option:disabled {
-          color: rgba(255,255,255,0.35);
-        }
-        select.ti-link-select:focus {
-          border-color: ${colors.border.strong} !important;
-          background-color: rgba(255,255,255,0.06) !important;
-          outline: none;
-          box-shadow: 0 0 0 3px rgba(255,255,255,0.04) !important;
-        }
-
-        /* ── Mini stats link ── */
+        select.ti-link-select option { background-color: #1a1a1a; color: #fff; }
+        select.ti-link-select option:disabled { color: rgba(255,255,255,0.35); }
+        select.ti-link-select:focus { border-color: ${colors.border.strong} !important; background-color: rgba(255,255,255,0.06) !important; outline: none; box-shadow: 0 0 0 3px rgba(255,255,255,0.04) !important; }
         .ti-mini-link:hover { color: ${colors.white[70]} !important; }
-
-        /* ── Stat cell ── */
         .ti-stat-cell:last-child { border-right: none !important; }
 
-        /* ── Responsive: tablet (≤ 1024px) ── */
         @media (max-width: 1024px) {
           .ti-layout          { grid-template-columns: 1fr !important; padding: 2rem 1.5rem !important; max-width: 680px !important; }
           .ti-left-col        { position: static !important; top: auto !important; }
@@ -890,131 +775,24 @@ export default function DashboardPage() {
           .ti-form-grid       { grid-template-columns: 1fr !important; }
         }
 
-        /* ── Responsive: mobile (≤ 640px) ── */
         @media (max-width: 640px) {
-          /* Global overflow guard — nothing escapes the viewport */
           html, body { overflow-x: hidden !important; max-width: 100vw !important; }
-
-          /* Layout grid */
-          .ti-layout {
-            padding: 1rem 0.875rem !important;
-            gap: 0.875rem !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-            overflow-x: hidden !important;
-          }
-
-          /* Right column */
-          .ti-right-col {
-            gap: 0.875rem !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            min-width: 0 !important;
-            box-sizing: border-box !important;
-            overflow-x: hidden !important;
-          }
-
-          /* Editor card — the tabs container */
-          .ti-editor-card {
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-            min-width: 0 !important;
-            overflow: hidden !important;
-          }
-
-          /* Tab bar — tighten padding, allow horizontal scroll if needed */
-          .ti-tab-bar {
-            padding-left: 0.75rem !important;
-            padding-right: 0.75rem !important;
-            gap: 0 !important;
-            overflow-x: auto !important;
-          }
+          .ti-layout { padding: 1rem 0.875rem !important; gap: 0.875rem !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; overflow-x: hidden !important; }
+          .ti-right-col { gap: 0.875rem !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; box-sizing: border-box !important; overflow-x: hidden !important; }
+          .ti-editor-card { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; min-width: 0 !important; overflow: hidden !important; }
+          .ti-tab-bar { padding-left: 0.75rem !important; padding-right: 0.75rem !important; gap: 0 !important; overflow-x: auto !important; }
           .ti-tab-bar::-webkit-scrollbar { display: none !important; }
-
-          /* Card tab content — generous padding but contained */
-          .ti-card-tab-content {
-            padding: 1.25rem 1rem !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-            overflow-x: hidden !important;
-          }
-
-          /* NFC card visual — scale to full width */
-          .ti-card-tab-visual {
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-            min-width: 0 !important;
-            overflow: hidden !important;
-          }
-
-          /* Card detail table */
-          .ti-card-details  {
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-            overflow: hidden !important;
-          }
-
-          /* Card detail rows — stack vertically */
-          .ti-card-detail-row {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 0.2rem !important;
-            padding: 0.625rem 0.875rem !important;
-          }
-
-          /* Label — full width when stacked */
-          .ti-card-detail-label {
-            max-width: 100% !important;
-            font-size: 0.6rem !important;
-          }
-
-          /* Value — full width, truncate long strings */
-          .ti-card-detail-val {
-            font-size: ${font.size.xs} !important;
-            max-width: 100% !important;
-            width: 100% !important;
-            text-align: left !important;
-            flex: none !important;
-          }
-
-          /* Open NFC button */
-          .ti-nfc-open-btn {
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-          }
-
-          /* QR card — stack vertically */
-          .ti-qr-card {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-          }
-          .ti-qr-canvas-wrap {
-            flex-shrink: 0 !important;
-            align-self: center !important;
-            max-width: 100% !important;
-          }
-          .ti-qr-meta {
-            width: 100% !important;
-            min-width: 0 !important;
-          }
-          .ti-qr-download-btn {
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-            align-self: stretch !important;
-            justify-content: center !important;
-          }
-
-          /* Other tabs */
+          .ti-card-tab-content { padding: 1.25rem 1rem !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; overflow-x: hidden !important; }
+          .ti-card-tab-visual { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; min-width: 0 !important; overflow: hidden !important; }
+          .ti-card-details  { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; overflow: hidden !important; }
+          .ti-card-detail-row { flex-direction: column !important; align-items: flex-start !important; gap: 0.2rem !important; padding: 0.625rem 0.875rem !important; }
+          .ti-card-detail-label { max-width: 100% !important; font-size: 0.6rem !important; }
+          .ti-card-detail-val { font-size: ${font.size.xs} !important; max-width: 100% !important; width: 100% !important; text-align: left !important; flex: none !important; }
+          .ti-nfc-open-btn { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
+          .ti-qr-card { flex-direction: column !important; align-items: stretch !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
+          .ti-qr-canvas-wrap { flex-shrink: 0 !important; align-self: center !important; max-width: 100% !important; }
+          .ti-qr-meta { width: 100% !important; min-width: 0 !important; }
+          .ti-qr-download-btn { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; align-self: stretch !important; justify-content: center !important; }
           .ti-page-header   { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem !important; }
           .ti-page-title    { font-size: ${font.size['3xl']} !important; }
           .ti-stats-bar     { grid-template-columns: 1fr 1fr !important; }
@@ -1023,7 +801,6 @@ export default function DashboardPage() {
           .ti-link-inputs   { flex-direction: column !important; }
         }
 
-        /* ── Large desktop (≥ 1280px) ── */
         @media (min-width: 1280px) {
           .ti-layout { grid-template-columns: 360px 1fr !important; }
         }
@@ -1032,35 +809,21 @@ export default function DashboardPage() {
       <div
         className="ti-layout"
         style={isMobile ? {
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem',
-          padding: '16px',
-          width: '100%',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
-          overflowX: 'hidden',
+          display: 'flex', flexDirection: 'column', gap: '1rem', padding: '16px',
+          width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden',
         } : s.layout}
       >
 
         {/* ═══════════════════════════════════════════════════════════
             LEFT COLUMN
         ═══════════════════════════════════════════════════════════ */}
-        <aside
-          className="ti-left-col"
-          style={isMobile ? { display: 'none' } : s.leftCol}
-        >
+        <aside className="ti-left-col" style={isMobile ? { display: 'none' } : s.leftCol}>
 
-          {/* ── Live preview ── */}
           <div style={s.previewCard} className="ti-preview-card">
             <div style={s.previewHeader}>
               <span style={s.eyebrow}>Live preview</span>
-              <span style={s.livePill}>
-                <span style={s.liveDot} />
-                Live
-              </span>
+              <span style={s.livePill}><span style={s.liveDot} />Live</span>
             </div>
-
             <div style={s.previewBody}>
               <div style={s.previewAvatarOuter}>
                 <div style={s.previewAvatarInner}>
@@ -1073,12 +836,10 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-
               <p style={s.previewMicroLabel}>Digital profile</p>
               <h2 style={s.previewName}>{profile?.display_name || 'Your name'}</h2>
               <p style={s.previewRole}>{profile?.role || 'Your role'}</p>
               {profile?.bio && <p style={s.previewBio}>{profile.bio}</p>}
-
               <div style={s.previewLinks}>
                 {activeLinks.length > 0
                   ? activeLinks.slice(0, 4).map((l) => (
@@ -1089,7 +850,6 @@ export default function DashboardPage() {
                     ))}
               </div>
             </div>
-
             {profile?.username ? (
               <div style={s.previewFooter}>
                 <span style={s.previewUrl}>tappedin.uk/u/{profile.username}</span>
@@ -1104,7 +864,6 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* ── Analytics mini-cards ── */}
           <div style={s.miniStats} className="ti-preview-card">
             <div style={s.miniStatsHeader}>
               <span style={s.eyebrow}>Analytics</span>
@@ -1125,7 +884,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ── NFC card panel ── */}
           <div style={s.nfcPanel} className="ti-nfc-panel">
             <div style={s.nfcPanelHeader}>
               <div>
@@ -1139,7 +897,6 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-
             {card ? (
               <>
                 <div style={s.nfcCardVisual}>
@@ -1189,7 +946,6 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* ── Brand mark ── */}
           <div style={s.brandMark}>
             <span style={s.brandMarkLogo}>TAPPED-IN</span>
             <span style={s.brandMarkSlogan}>A new standard of Networking.</span>
@@ -1203,26 +959,14 @@ export default function DashboardPage() {
         <div
           className="ti-right-col"
           style={isMobile ? {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-            width: '100%',
-            maxWidth: '100%',
-            minWidth: 0,
-            boxSizing: 'border-box',
-            overflowX: 'hidden',
+            display: 'flex', flexDirection: 'column', gap: '1rem',
+            width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowX: 'hidden',
           } : s.rightCol}
         >
 
-          {/* ── Page header ── */}
           <div
             className="ti-page-header"
-            style={isMobile ? {
-              ...s.pageHeader,
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: '0.75rem',
-            } : s.pageHeader}
+            style={isMobile ? { ...s.pageHeader, flexDirection: 'column', alignItems: 'flex-start', gap: '0.75rem' } : s.pageHeader}
           >
             <div style={s.pageHeaderLeft}>
               <p style={s.eyebrow}>Dashboard</p>
@@ -1237,16 +981,9 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* ── Stats bar ── */}
           <div
             className="ti-stats-bar"
-            style={isMobile ? {
-              ...s.statsBar,
-              gridTemplateColumns: '1fr 1fr',
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-            } : s.statsBar}
+            style={isMobile ? { ...s.statsBar, gridTemplateColumns: '1fr 1fr', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.statsBar}
           >
             {[
               { label: 'Total taps',  value: tapCount.toString() },
@@ -1264,29 +1001,14 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* ── Tabbed editor ── */}
           <div
             className="ti-editor-card"
-            style={isMobile ? {
-              ...s.editorCard,
-              width: '100%',
-              maxWidth: '100%',
-              minWidth: 0,
-              boxSizing: 'border-box',
-              overflowX: 'hidden',
-            } : s.editorCard}
+            style={isMobile ? { ...s.editorCard, width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowX: 'hidden' } : s.editorCard}
           >
 
-            {/* Tab bar */}
             <div
               className="ti-tab-bar"
-              style={isMobile ? {
-                ...s.tabBar,
-                padding: '0.875rem 0.75rem 0',
-                overflowX: 'auto',
-                width: '100%',
-                boxSizing: 'border-box',
-              } : s.tabBar}
+              style={isMobile ? { ...s.tabBar, padding: '0.875rem 0.75rem 0', overflowX: 'auto', width: '100%', boxSizing: 'border-box' } : s.tabBar}
             >
               {(['profile', 'links', 'style', 'card'] as ActiveTab[]).map((tab) => {
                 const isActive = activeTab === tab
@@ -1311,18 +1033,10 @@ export default function DashboardPage() {
             {/* ────── PROFILE TAB ────── */}
             {activeTab === 'profile' && (
               <div style={isMobile ? { ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.tabContent}>
-                {/* ── Avatar upload row ── */}
                 <div
                   className="ti-avatar-row"
-                  style={isMobile ? {
-                    ...s.avatarRow,
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    gap: '1rem',
-                  } : s.avatarRow}
+                  style={isMobile ? { ...s.avatarRow, flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' } : s.avatarRow}
                 >
-
-                  {/* Clickable avatar — acts as the upload trigger */}
                   <button
                     onClick={() => !uploading && fileInputRef.current?.click()}
                     disabled={uploading}
@@ -1330,14 +1044,11 @@ export default function DashboardPage() {
                     style={s.avatarUploadTrigger}
                     aria-label="Upload avatar"
                   >
-                    {/* Spinner overlay while uploading */}
                     {uploading && (
                       <div style={s.avatarSpinnerOverlay}>
                         <div style={s.avatarSpinner} />
                       </div>
                     )}
-
-                    {/* Image or initials — show preview first, then saved URL, then initials */}
                     {(avatarPreview ?? profile?.avatar_url) ? (
                       <img
                         src={avatarPreview ?? profile!.avatar_url!}
@@ -1349,8 +1060,6 @@ export default function DashboardPage() {
                         {(profile?.display_name || 'TI').slice(0, 2).toUpperCase()}
                       </span>
                     )}
-
-                    {/* Camera icon hint on hover (CSS handles visibility) */}
                     <div style={s.avatarCameraHint} aria-hidden="true">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
@@ -1364,8 +1073,6 @@ export default function DashboardPage() {
                     <p style={s.avatarSub}>
                       {profile?.username ? `tappedin.uk/u/${profile.username}` : 'Username not set'}
                     </p>
-
-                    {/* Upload button */}
                     <button
                       onClick={() => !uploading && fileInputRef.current?.click()}
                       disabled={uploading}
@@ -1387,8 +1094,6 @@ export default function DashboardPage() {
                         </>
                       )}
                     </button>
-
-                    {/* Error message */}
                     {uploadError && (
                       <p style={s.uploadErrorMsg}>
                         <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -1397,11 +1102,9 @@ export default function DashboardPage() {
                         {uploadError}
                       </p>
                     )}
-
                     <p style={s.uploadHint}>JPG, PNG, WebP or GIF · max 5 MB</p>
                   </div>
 
-                  {/* Hidden file input */}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -1421,6 +1124,37 @@ export default function DashboardPage() {
                     placeholder="Your full name"
                     onChange={(v) => patchProfile({ display_name: v })}
                   />
+
+                  {/* ── Username ── */}
+                  <div style={inputs.group}>
+                    <label style={inputs.label}>Username</label>
+                    <input
+                      type="text"
+                      value={profile?.username ?? ''}
+                      placeholder="e.g. benpinner"
+                      autoComplete="username"
+                      maxLength={32}
+                      onChange={(e) => {
+                        patchProfile({ username: normaliseUsername(e.target.value) })
+                        if (usernameError) setUsernameError(null)
+                      }}
+                      style={{
+                        ...inputs.base,
+                        ...(usernameError ? { borderColor: colors.accent.errorBorder } : {}),
+                      }}
+                    />
+                    {usernameError && (
+                      <p style={{ marginTop: spacing[1], fontSize: font.size.xs, color: colors.accent.error, lineHeight: font.leading.normal }}>
+                        {usernameError}
+                      </p>
+                    )}
+                    <p style={{ marginTop: spacing[1], fontSize: font.size['2xs'], color: colors.text.ghost, lineHeight: font.leading.normal }}>
+                      {profile?.username
+                        ? `tappedin.uk/u/${profile.username}`
+                        : 'Letters, numbers, hyphens, underscores. Min 2 chars.'}
+                    </p>
+                  </div>
+
                   <FormInput
                     label="Role / headline"
                     value={profile?.role ?? ''}
@@ -1472,7 +1206,6 @@ export default function DashboardPage() {
                     return (
                       <div key={link.id} style={s.linkRowWrap}>
                         <div style={s.linkRow}>
-                          {/* Active toggle */}
                           <button
                             onClick={() => patchLink(i, { is_active: !link.is_active })}
                             className="ti-link-toggle"
@@ -1492,14 +1225,11 @@ export default function DashboardPage() {
                             }} />
                           </button>
 
-                          {/* Inputs */}
                           <div style={s.linkInputs} className="ti-link-inputs">
-                            {/* Platform dropdown — replaces free-text label */}
                             <div style={s.linkInputInner}>
                               <select
                                 value={link.label}
                                 onChange={(e) => {
-                                  // Clear URL when switching platform so stale values don't persist
                                   patchLink(i, { label: e.target.value, url: '' })
                                 }}
                                 className="ti-link-select"
@@ -1515,7 +1245,6 @@ export default function DashboardPage() {
                                   <option key={opt.value} value={opt.value}>{opt.value}</option>
                                 ))}
                               </select>
-                              {/* Kind badge — still shown for context */}
                               {link.label && (
                                 <div style={{
                                   ...s.linkKindBadge,
@@ -1526,7 +1255,6 @@ export default function DashboardPage() {
                               )}
                             </div>
 
-                            {/* URL / phone / email value */}
                             <input
                               value={link.url}
                               placeholder={urlPlaceholder(link.label)}
@@ -1545,7 +1273,6 @@ export default function DashboardPage() {
                           </div>
                         </div>
 
-                        {/* Inline error */}
                         {err && (
                           <div style={s.linkError}>
                             <svg width="11" height="11" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
@@ -1560,7 +1287,6 @@ export default function DashboardPage() {
                   })}
                 </div>
 
-                {/* Add link */}
                 {links.length < MAX_LINKS && (
                   <button onClick={addLink} className="ti-add-link" style={s.addLinkBtn}>
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -1588,7 +1314,6 @@ export default function DashboardPage() {
                   >
                     {saveBtnLabel(linksSave, 'Save links')}
                   </button>
-                  {/* Show real error detail so the cause is always visible */}
                   {linksSave === 'error' && saveError && (
                     <p style={s.saveErrorDetail}>{saveError}</p>
                   )}
@@ -1671,28 +1396,15 @@ export default function DashboardPage() {
               <div
                 className="ti-card-tab-content"
                 style={isMobile ? {
-                  ...s.tabContent,
-                  padding: '1rem',
-                  width: '100%',
-                  maxWidth: '100%',
-                  boxSizing: 'border-box',
-                  overflowX: 'hidden',
+                  ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%',
+                  boxSizing: 'border-box', overflowX: 'hidden',
                 } : s.tabContent}
               >
-
-                {/* ── QR code card — always shown when username exists ── */}
                 {profile?.username ? (
                   <div
                     className="ti-qr-card"
-                    style={isMobile ? {
-                      ...s.qrCard,
-                      flexDirection: 'column',
-                      width: '100%',
-                      maxWidth: '100%',
-                      boxSizing: 'border-box',
-                    } : s.qrCard}
+                    style={isMobile ? { ...s.qrCard, flexDirection: 'column', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.qrCard}
                   >
-                    {/* Left: QR canvas */}
                     <div style={s.qrCanvasWrap} className="ti-qr-canvas-wrap">
                       <div style={s.qrGlow} aria-hidden="true" />
                       <QRCanvas
@@ -1703,16 +1415,9 @@ export default function DashboardPage() {
                         canvasRef={qrCanvasRef}
                       />
                     </div>
-
-                    {/* Right: URL + download */}
                     <div
                       className="ti-qr-meta"
-                      style={isMobile ? {
-                        ...s.qrMeta,
-                        width: '100%',
-                        minWidth: 0,
-                        flex: '1 1 auto',
-                      } : s.qrMeta}
+                      style={isMobile ? { ...s.qrMeta, width: '100%', minWidth: 0, flex: '1 1 auto' } : s.qrMeta}
                     >
                       <p style={s.eyebrow}>Your profile QR</p>
                       <p style={s.qrUrl}>tappedin.uk/u/{profile.username}</p>
@@ -1744,19 +1449,12 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {/* ── NFC card details — shown only when card is connected ── */}
                 {card ? (
                   <>
                     <div style={{ ...s.tabDivider, margin: `${spacing[5]} 0` }} />
-
                     <div
                       className="ti-card-tab-visual"
-                      style={isMobile ? {
-                        ...s.cardTabVisual,
-                        width: '100%',
-                        maxWidth: '100%',
-                        boxSizing: 'border-box',
-                      } : s.cardTabVisual}
+                      style={isMobile ? { ...s.cardTabVisual, width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.cardTabVisual}
                     >
                       <div style={s.nfcSheen} />
                       <div style={s.nfcCardTop}>
@@ -1769,15 +1467,9 @@ export default function DashboardPage() {
                       </div>
                       <div style={s.nfcCardId}>{card.card_id}</div>
                     </div>
-
                     <div
                       className="ti-card-details"
-                      style={isMobile ? {
-                        ...s.cardDetails,
-                        width: '100%',
-                        maxWidth: '100%',
-                        boxSizing: 'border-box',
-                      } : s.cardDetails}
+                      style={isMobile ? { ...s.cardDetails, width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.cardDetails}
                     >
                       {[
                         { label: 'Card ID',    value: card.card_id },
@@ -1790,46 +1482,30 @@ export default function DashboardPage() {
                           key={row.label}
                           className="ti-card-detail-row"
                           style={isMobile ? {
-                            ...s.cardDetailRow,
-                            flexDirection: 'column',
-                            alignItems: 'flex-start',
-                            gap: '2px',
-                            padding: '0.625rem 0.875rem',
+                            ...s.cardDetailRow, flexDirection: 'column', alignItems: 'flex-start',
+                            gap: '2px', padding: '0.625rem 0.875rem',
                           } : s.cardDetailRow}
                         >
                           <span
                             className="ti-card-detail-label"
-                            style={isMobile ? {
-                              ...s.cardDetailLabel,
-                              fontSize: '0.6rem',
-                              maxWidth: '100%',
-                            } : s.cardDetailLabel}
+                            style={isMobile ? { ...s.cardDetailLabel, fontSize: '0.6rem', maxWidth: '100%' } : s.cardDetailLabel}
                           >{row.label}</span>
                           <span
                             className="ti-card-detail-val"
                             style={isMobile ? {
-                              ...s.cardDetailValue,
-                              textAlign: 'left',
-                              width: '100%',
-                              maxWidth: '100%',
-                              flex: 'none',
-                              fontSize: font.size.xs,
+                              ...s.cardDetailValue, textAlign: 'left', width: '100%',
+                              maxWidth: '100%', flex: 'none', fontSize: font.size.xs,
                             } : s.cardDetailValue}
                           >{row.value}</span>
                         </div>
                       ))}
                     </div>
-
                     <Link
                       href={`/a/${card.card_id}`}
                       className="ti-nfc-btn ti-nfc-open-btn"
                       style={isMobile ? {
-                        ...s.nfcOpenBtn,
-                        marginTop: spacing[4],
-                        display: 'flex',
-                        width: '100%',
-                        maxWidth: '100%',
-                        boxSizing: 'border-box',
+                        ...s.nfcOpenBtn, marginTop: spacing[4], display: 'flex',
+                        width: '100%', maxWidth: '100%', boxSizing: 'border-box',
                       } : { ...s.nfcOpenBtn, marginTop: spacing[4], display: 'flex' }}
                     >
                       Open NFC activation page
@@ -1861,7 +1537,6 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* ── Analytics CTA ── */}
           <Link href="/analytics" className="ti-analytics" style={s.analyticsCard}>
             <div style={s.analyticsLeft}>
               <p style={s.eyebrow}>Analytics</p>
@@ -1927,8 +1602,6 @@ const s: Record<string, CSSProperties> = {
     boxSizing: 'border-box' as const,
     overflowX: 'hidden' as const,
   },
-
-  // ── LEFT COLUMN ──────────────────────────────────────────────────────────
 
   leftCol: {
     display: 'flex',
@@ -2104,7 +1777,6 @@ const s: Record<string, CSSProperties> = {
     transition: transitions.base,
   },
 
-  // Mini analytics
   miniStats: {
     background: colors.bg.surface,
     border: borders.subtle,
@@ -2157,7 +1829,6 @@ const s: Record<string, CSSProperties> = {
     textTransform: 'uppercase' as const,
   },
 
-  // NFC panel
   nfcPanel: {
     background: colors.bg.surface,
     border: borders.subtle,
@@ -2339,8 +2010,6 @@ const s: Record<string, CSSProperties> = {
     color: 'rgba(255,255,255,0.1)',
   },
 
-  // ── RIGHT COLUMN ─────────────────────────────────────────────────────────
-
   rightCol: {
     display: 'flex',
     flexDirection: 'column',
@@ -2420,7 +2089,6 @@ const s: Record<string, CSSProperties> = {
     color: 'rgba(255,255,255,0.28)',
   },
 
-  // ── Editor card (tabs)
   editorCard: {
     background: colors.bg.surface,
     border: borders.subtle,
@@ -2465,8 +2133,6 @@ const s: Record<string, CSSProperties> = {
 
   tabActive: {
     background: 'transparent',
-    // Use individual border longhands to avoid React style conflict warning
-    // (mixing shorthand 'border' with 'borderBottom' on alternating renders).
     borderTop: 'none',
     borderLeft: 'none',
     borderRight: 'none',
@@ -2515,7 +2181,6 @@ const s: Record<string, CSSProperties> = {
     lineHeight: font.leading.normal,
   },
 
-  // ── Profile tab
   avatarRow: {
     display: 'flex',
     alignItems: 'center',
@@ -2600,8 +2265,6 @@ const s: Record<string, CSSProperties> = {
     alignSelf: 'flex-start',
   },
 
-  // ── Avatar upload trigger (the clickable avatar circle) ──────────────────
-
   avatarUploadTrigger: {
     position: 'relative' as const,
     width: '62px',
@@ -2617,8 +2280,6 @@ const s: Record<string, CSSProperties> = {
     boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
     cursor: 'pointer',
     padding: 0,
-    // The camera hint overlay is toggled via CSS class — we use the :hover
-    // pseudo-class in the <style> block injected in the render return.
   },
 
   avatarSpinnerOverlay: {
@@ -2649,7 +2310,6 @@ const s: Record<string, CSSProperties> = {
     justifyContent: 'center',
     color: 'rgba(255,255,255,0.85)',
     opacity: 0,
-    // opacity toggled to 1 by .ti-avatar-trigger:hover rule in <style>
     transition: 'opacity 0.18s ease',
     zIndex: 1,
   },
@@ -2690,7 +2350,6 @@ const s: Record<string, CSSProperties> = {
     gap: `${spacing[4]} ${spacing[5]}`,
   },
 
-  // ── Links tab
   linksHeader: { marginBottom: spacing[4] },
 
   linksSubtitle: {
@@ -2745,14 +2404,13 @@ const s: Record<string, CSSProperties> = {
     alignItems: 'center',
   },
 
-  // Dropdown select — inherits inputs.base, overrides appearance
   linkSelect: {
     appearance: 'none' as const,
     WebkitAppearance: 'none' as const,
     paddingRight: '2rem',
     cursor: 'pointer',
-    color: '#fff',                        // text colour of the selected value
-    backgroundColor: 'rgba(255,255,255,0.05)',  // closed-state background
+    color: '#fff',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='rgba(255,255,255,0.3)' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'right 10px center',
@@ -2806,7 +2464,7 @@ const s: Record<string, CSSProperties> = {
     fontWeight: font.weight.regular,
     color: colors.accent.error,
     lineHeight: font.leading.normal,
-    marginLeft: `calc(30px + ${spacing[3]})`, // align under inputs, not toggle
+    marginLeft: `calc(30px + ${spacing[3]})`,
     padding: `${spacing[1]} 0`,
   },
 
@@ -2844,7 +2502,6 @@ const s: Record<string, CSSProperties> = {
     textAlign: 'center',
   },
 
-  // ── Style tab
   styleSection: { marginBottom: spacing[6] },
 
   styleSectionLabel: {
@@ -2882,7 +2539,6 @@ const s: Record<string, CSSProperties> = {
     letterSpacing: font.tracking.normal,
   },
 
-  // ── Card tab
   cardTabVisual: {
     ...cards.nfc,
     marginBottom: spacing[5],
@@ -2953,7 +2609,6 @@ const s: Record<string, CSSProperties> = {
     gap: spacing[3],
   },
 
-  // ── Analytics CTA
   analyticsCard: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -3005,7 +2660,6 @@ const s: Record<string, CSSProperties> = {
     boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
   },
 
-  // ── QR card
   qrCard: {
     display: 'flex',
     gap: spacing[5],
@@ -3101,7 +2755,6 @@ const s: Record<string, CSSProperties> = {
     gap: spacing[3],
   },
 
-  // ── Shared
   eyebrow: {
     ...text.eyebrow,
     fontSize: font.size['2xs'],
