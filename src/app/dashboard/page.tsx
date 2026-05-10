@@ -25,7 +25,15 @@ import {
   layout,
   statusBadgeStyle,
 } from '@/lib/design'
+function cleanUsername(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-_]/g, "")
+}
 
+const USERNAME_REGEX = /^[a-z0-9-_]{3,30}$/
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Profile = {
@@ -416,16 +424,12 @@ export default function DashboardPage() {
     if (!profile) return
     setUsernameError(null)
 
-    const normUsername = normaliseUsername(profile.username ?? '')
+    const normUsername = cleanUsername(profile.username ?? '')
 
-    if (normUsername && normUsername.length < 2) {
-      setUsernameError('Username must be at least 2 characters.')
-      return
-    }
-    if (normUsername && normUsername.length > 32) {
-      setUsernameError('Username must be 32 characters or fewer.')
-      return
-    }
+    if (normUsername && !USERNAME_REGEX.test(normUsername)) {
+  setUsernameError('Username must be 3–30 characters and can only use letters, numbers, hyphens, or underscores.')
+  return
+}
 
     if (normUsername) {
       const { data: existing } = await supabase
