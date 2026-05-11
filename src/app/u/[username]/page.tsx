@@ -289,19 +289,34 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
 
             {/* ── Website ── */}
             {profile.website && (
-              
-                href={resolveHref(profile.website)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ti-site"
-                style={s.website}
-              >
-                <IconGlobe />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {profile.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                </span>
-              </a>
-            )}
+  <a
+    href={resolveHref(profile.website)}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="ti-site"
+  >
+    {profile.website.replace(/^https?:\/\//, '')}
+  </a>
+)}
+                {profile.website && (
+  <a
+    href={resolveHref(profile.website)}
+    target="_blank"
+    rel="noopener noreferrer"
+    style={s.website}
+  >
+    <IconGlobe />
+    <span
+      style={{
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {profile.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+    </span>
+  </a>
+)}
 
             {/* ── Divider ── */}
             {activeLinks.length > 0 && <div style={s.divider} />}
@@ -317,33 +332,31 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                     : 'rgba(255,255,255,0.55)'
 
                   return (
-                    
-                      key={link.id}
-                      href={`/r/${link.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ti-link"
-                      style={{
-                        ...s.linkBtn,
-                        ...btnStyle,
-                        animationDelay: `${0.3 + i * 0.055}s`,
-                        transition: 'transform 0.22s cubic-bezier(0.16,1,0.3,1), filter 0.15s ease, box-shadow 0.22s ease',
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.06) inset',
-                      }}
-                    >
-                      <span style={{ ...s.linkIconLeft, color: iconColor }}>
-                        {kind === 'whatsapp' && <IconWhatsApp />}
-                        {kind === 'email'    && <IconEmail />}
-                        {kind === 'url'      && (
-                          <span style={{ width: 15, display: 'inline-block' }} />
-                        )}
-                      </span>
-                      <span style={s.linkLabel}>{link.label}</span>
-                      <span style={{ ...s.linkArrow, color: iconColor }}>
-                        <IconArrow />
-                      </span>
-                    </a>
-                  )
+  <a
+    key={link.id}
+    href={`/r/${link.id}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="ti-link"
+    style={{
+      ...s.linkBtn,
+      ...btnStyle,
+      animationDelay: `${0.3 + i * 0.055}s`,
+      transition: 'transform 0.22s cubic-bezier(0.16,1,0.3,1), filter 0.15s ease, box-shadow 0.22s ease',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.06) inset',
+    }}
+  >
+    <span style={{ ...s.linkIconLeft, color: iconColor }}>
+      {kind === 'whatsapp' && <IconWhatsApp />}
+      {kind === 'email' && <IconEmail />}
+      {kind === 'url' && <span style={{ width: 15, display: 'inline-block' }} />}
+    </span>
+    <span style={s.linkLabel}>{link.label}</span>
+    <span style={{ ...s.linkArrow, color: iconColor }}>
+      <IconArrow />
+    </span>
+  </a>
+)
                 })}
               </div>
             )}
@@ -398,14 +411,15 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                   <span style={s.footerSlogan}>A new standard of Networking.</span>
                 </span>
                 
-                  href="/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ti-cta"
-                  style={s.footerCta}
-                >
-                  Get your card →
-                </a>
+                  <a
+  href="/"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="ti-cta"
+  style={s.footerCta}
+>
+  Get your card →
+</a>
               </div>
             </div>
 
