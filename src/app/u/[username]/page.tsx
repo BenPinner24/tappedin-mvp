@@ -33,6 +33,13 @@ type ProfileLink = {
   is_active: boolean | null
 }
 
+type GalleryItem = {
+  id:        string
+  image_url: string
+  caption:   string | null
+  position:  number
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getInitials(value: string): string {
@@ -41,29 +48,12 @@ function getInitials(value: string): string {
   return value.slice(0, 2).toUpperCase()
 }
 
-/**
- * Normalise a raw link URL from the database into a usable href.
- *
- * The DB stores values exactly as the user typed in the dashboard
- * (after dashboard normalisation).  We handle three formats here:
- *
- *  1. WhatsApp  — stored as https://wa.me/<digits>
- *  2. Email     — stored as https://mail.google.com/…?to=<encoded-email>
- *  3. URL       — already has https:// prefix
- *
- * In every case we just return the stored value unchanged — the dashboard
- * already normalised it.  The only thing we must NOT do is wrap a full URL
- * in another https:// prefix.
- */
 function resolveHref(url: string): string {
   if (!url) return '#'
-  // Already a full URL (covers wa.me, mail.google.com, https://…)
   if (url.startsWith('http://') || url.startsWith('https://')) return url
-  // Bare domain / path — add https
   return `https://${url}`
 }
 
-/** Detect the link kind so we can render the right icon */
 function detectKind(label: string, url: string): 'whatsapp' | 'email' | 'url' {
   const l = label.toLowerCase()
   if (l.includes('whatsapp') || l.includes('whats app') || url.includes('wa.me')) return 'whatsapp'
@@ -71,7 +61,6 @@ function detectKind(label: string, url: string): 'whatsapp' | 'email' | 'url' {
   return 'url'
 }
 
-/** Button style variants matching the dashboard selector */
 function getLinkButtonStyle(buttonStyle: string | null): CSSProperties {
   if (buttonStyle === 'sharp') {
     return {
@@ -97,7 +86,6 @@ function getLinkButtonStyle(buttonStyle: string | null): CSSProperties {
       borderRadius: '14px',
     }
   }
-  // default — solid white with slight radius
   return {
     background: 'rgba(255,255,255,0.95)',
     color: '#000',
@@ -145,7 +133,6 @@ function IconGlobe() {
   )
 }
 
-// Grain texture data-uri
 const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E")`
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -170,9 +157,18 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     .eq('is_active', true)
     .order('position', { ascending: true })
 
+  const { data: galleryData } = await supabase
+    .from('profile_gallery')
+    .select('id, image_url, caption, position')
+    .eq('profile_id', profile.id)
+    .order('position', { ascending: true })
+    .limit(3)
+
   const activeLinks = ((links || []) as ProfileLink[]).filter(
     (l) => l.label && l.url && l.is_active
   )
+
+  const galleryItems = ((galleryData || []) as GalleryItem[]).filter(g => g.image_url)
 
   const displayName = profile.display_name || profile.username || 'Creator'
   const role        = profile.role || profile.headline || ''
@@ -211,23 +207,33 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
           50%      { box-shadow: 0 0 0 4px rgba(74,222,128,0); }
         }
 
-        /* Link button hover — only pointer devices */
         @media (hover: hover) {
           .ti-link:hover {
             transform: translateY(-2px) !important;
             filter: brightness(1.05);
           }
+          .ti-gallery-img:hover {
+            transform: scale(1.03);
+          }
         }
         .ti-link:active { transform: translateY(0px) !important; }
-
-        /* Website / footer hover */
         .ti-site:hover  { opacity: 0.65 !important; }
         .ti-cta:hover   { opacity: 0.7 !important; }
+        .ti-gallery-img { transition: transform 0.4s cubic-bezier(0.16,1,0.3,1); }
 
-        /* Mobile full-width on tiny screens */
-        @media (max-width: 380px) {
+        .ti-gallery-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0.65rem;
+        }
+
+        @media (max-width: 480px) {
           .ti-card { padding: 1.5rem 1.1rem 1.75rem !important; }
           .ti-name { font-size: 2rem !important; }
+          .ti-gallery-grid { grid-template-columns: 1fr; gap: 1rem; }
+        }
+        @media (min-width: 481px) and (max-width: 600px) {
+          .ti-gallery-grid { grid-template-columns: repeat(2, 1fr); }
         }
       `}</style>
 
@@ -283,7 +289,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
 
             {/* ── Website ── */}
             {profile.website && (
-              <a
+              
                 href={resolveHref(profile.website)}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -306,13 +312,12 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                 {activeLinks.map((link, i) => {
                   const kind = detectKind(link.label ?? '', link.url ?? '')
                   const isDefault = !profile.button_style || profile.button_style === 'default'
-                  // Icon colour: dark on white buttons, light on dark buttons
                   const iconColor = (isDefault || profile.button_style === 'sharp')
                     ? 'rgba(0,0,0,0.45)'
                     : 'rgba(255,255,255,0.55)'
 
                   return (
-                    <a
+                    
                       key={link.id}
                       href={`/r/${link.id}`}
                       target="_blank"
@@ -326,7 +331,6 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                         boxShadow: '0 2px 12px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.06) inset',
                       }}
                     >
-                      {/* Left icon */}
                       <span style={{ ...s.linkIconLeft, color: iconColor }}>
                         {kind === 'whatsapp' && <IconWhatsApp />}
                         {kind === 'email'    && <IconEmail />}
@@ -334,11 +338,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                           <span style={{ width: 15, display: 'inline-block' }} />
                         )}
                       </span>
-
-                      {/* Label */}
                       <span style={s.linkLabel}>{link.label}</span>
-
-                      {/* Right arrow */}
                       <span style={{ ...s.linkArrow, color: iconColor }}>
                         <IconArrow />
                       </span>
@@ -355,6 +355,40 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
               </div>
             )}
 
+            {/* ── Featured Work gallery ── */}
+            {galleryItems.length > 0 && (
+              <>
+                <div style={{ ...s.divider, marginTop: '1.5rem' }} />
+                <div style={s.gallerySection}>
+                  <p style={s.galleryHeading}>Featured Work</p>
+                  <div className="ti-gallery-grid">
+                    {galleryItems.map((item, i) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          ...s.galleryItem,
+                          animationDelay: `${0.32 + i * 0.07}s`,
+                        }}
+                      >
+                        {/* 4:5 frame using paddingBottom trick */}
+                        <div style={s.galleryFrame}>
+                          <img
+                            src={item.image_url}
+                            alt={item.caption ?? 'Featured work'}
+                            className="ti-gallery-img"
+                            style={s.galleryImg}
+                          />
+                        </div>
+                        {item.caption && (
+                          <p style={s.galleryCaption}>{item.caption}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* ── Footer brand mark ── */}
             <div style={s.footer}>
               <div style={s.footerDivider} />
@@ -363,7 +397,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                   <span style={s.footerBrand}>TAPPED-IN</span>
                   <span style={s.footerSlogan}>A new standard of Networking.</span>
                 </span>
-                <a
+                
                   href="/"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -389,7 +423,6 @@ const MONO = `'SF Mono', 'Fira Code', ui-monospace, monospace`
 
 const s: Record<string, CSSProperties> = {
 
-  // ── Page shell
   page: {
     minHeight: '100vh',
     background: '#030303',
@@ -403,7 +436,6 @@ const s: Record<string, CSSProperties> = {
     overflow: 'hidden',
   },
 
-  // ── Background layers
   bgGrid: {
     position: 'fixed',
     inset: 0,
@@ -442,7 +474,6 @@ const s: Record<string, CSSProperties> = {
     zIndex: 0,
   },
 
-  // ── Card wrapper
   shell: {
     width: '100%',
     maxWidth: '440px',
@@ -468,7 +499,6 @@ const s: Record<string, CSSProperties> = {
     position: 'relative',
   },
 
-  // Card internal grain for depth
   cardGrain: {
     position: 'absolute',
     inset: 0,
@@ -480,7 +510,6 @@ const s: Record<string, CSSProperties> = {
     zIndex: 0,
   },
 
-  // ── Top bar
   topBar: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -541,7 +570,6 @@ const s: Record<string, CSSProperties> = {
     letterSpacing: '0.04em',
   },
 
-  // ── Avatar
   avatarSection: {
     display: 'flex',
     justifyContent: 'center',
@@ -589,7 +617,6 @@ const s: Record<string, CSSProperties> = {
     userSelect: 'none' as const,
   },
 
-  // ── Identity block
   identity: {
     display: 'flex',
     flexDirection: 'column',
@@ -641,7 +668,6 @@ const s: Record<string, CSSProperties> = {
     whiteSpace: 'pre-line' as const,
   },
 
-  // ── Website
   website: {
     display: 'flex',
     alignItems: 'center',
@@ -664,7 +690,6 @@ const s: Record<string, CSSProperties> = {
     zIndex: 1,
   },
 
-  // ── Divider
   divider: {
     height: '1px',
     background: 'rgba(255,255,255,0.055)',
@@ -673,7 +698,6 @@ const s: Record<string, CSSProperties> = {
     zIndex: 1,
   },
 
-  // ── Links
   linksGrid: {
     display: 'flex',
     flexDirection: 'column',
@@ -725,7 +749,6 @@ const s: Record<string, CSSProperties> = {
     justifyContent: 'flex-end',
   },
 
-  // ── Empty state
   emptyState: {
     padding: '2rem 1rem',
     display: 'flex',
@@ -743,7 +766,71 @@ const s: Record<string, CSSProperties> = {
     letterSpacing: '0.02em',
   },
 
-  // ── Footer brand mark
+  // ── Featured Work gallery ──────────────────────────────────────────────────
+
+  gallerySection: {
+    position: 'relative',
+    zIndex: 1,
+    marginBottom: '1.75rem',
+    animation: 'ti-fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.28s both',
+  },
+
+  galleryHeading: {
+    fontFamily: FF,
+    fontSize: '0.6rem',
+    fontWeight: 600,
+    letterSpacing: '0.2em',
+    textTransform: 'uppercase' as const,
+    color: 'rgba(255,255,255,0.22)',
+    marginBottom: '0.85rem',
+    textAlign: 'center' as const,
+  },
+
+  galleryItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.4rem',
+    animation: 'ti-fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both',
+  },
+
+  // 4:5 aspect ratio — padding-bottom trick
+  galleryFrame: {
+    position: 'relative' as const,
+    width: '100%',
+    paddingBottom: '125%',
+    borderRadius: '9px',
+    overflow: 'hidden' as const,
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    boxShadow: '0 4px 18px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.04) inset',
+  },
+
+  galleryImg: {
+    position: 'absolute' as const,
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover' as const,
+    display: 'block',
+  },
+
+  galleryCaption: {
+    fontFamily: FF,
+    fontSize: '0.7rem',
+    fontWeight: 400,
+    color: 'rgba(255,255,255,0.28)',
+    lineHeight: 1.45,
+    letterSpacing: '0.01em',
+    textAlign: 'center' as const,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical' as const,
+  },
+
+  // ── Footer brand mark ──────────────────────────────────────────────────────
+
   footer: {
     position: 'relative',
     zIndex: 1,

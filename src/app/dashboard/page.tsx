@@ -25,6 +25,7 @@ import {
   layout,
   statusBadgeStyle,
 } from '@/lib/design'
+
 function cleanUsername(value: string) {
   return value
     .trim()
@@ -34,6 +35,7 @@ function cleanUsername(value: string) {
 }
 
 const USERNAME_REGEX = /^[a-z0-9-_]{3,30}$/
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Profile = {
@@ -51,7 +53,7 @@ type Profile = {
 }
 
 type ProfileLink = {
-  id: string            // stable — never delete/recreate
+  id: string
   label: string
   url: string
   link_type: string | null
@@ -65,12 +67,31 @@ type CardRecord = {
   nfc_url: string | null
 }
 
+type GalleryItem = {
+  id: string
+  profile_id: string
+  image_url: string
+  caption: string | null
+  position: number
+}
+
+type LocalGallerySlot = {
+  dbId: string | null
+  imageUrl: string | null
+  preview: string | null
+  caption: string
+  uploading: boolean
+  uploadError: string | null
+}
+
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
-type ActiveTab = 'profile' | 'links' | 'style' | 'card'
+type ActiveTab = 'profile' | 'links' | 'style' | 'gallery' | 'card'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_LINKS = 8
+const MAX_GALLERY = 3
+const GALLERY_MAX_BYTES = 3 * 1024 * 1024
 
 const BUTTON_STYLES = [
   { value: 'default', label: 'Solid white' },
@@ -219,6 +240,21 @@ function normaliseUsername(raw: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+// ─── Gallery helpers ──────────────────────────────────────────────────────────
+
+function emptySlot(): LocalGallerySlot {
+  return { dbId: null, imageUrl: null, preview: null, caption: '', uploading: false, uploadError: null }
+}
+
+function slotsFromDb(items: GalleryItem[]): LocalGallerySlot[] {
+  const slots: LocalGallerySlot[] = [emptySlot(), emptySlot(), emptySlot()]
+  items.forEach((item) => {
+    const pos = Math.min(Math.max(item.position, 0), 2)
+    slots[pos] = { dbId: item.id, imageUrl: item.image_url, preview: null, caption: item.caption ?? '', uploading: false, uploadError: null }
+  })
+  return slots
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function FormInput({
@@ -320,30 +356,121 @@ function QRCanvas({ url, size = 240, dark = '#ffffff', light = '#0a0a0a', canvas
   )
 }
 
+// ─── Gallery slot component ───────────────────────────────────────────────────
+
+function GallerySlot({
+  slot, index, profileId, supabase, onChange, onRemove,
+}: {
+  slot: LocalGallerySlot
+  index: number
+  profileId: string
+  supabase: ReturnType<typeof createClient>
+  onChange: (patch: Partial<LocalGallerySlot>) => void
+  onRemove: () => void
+}) {
+  const fileRef = useRef<HTMLInputElement | null>(null)
+  const hasImage = !!(slot.imageUrl || slot.preview)
+
+  async function handleFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
+    if (!ALLOWED.includes(file.type)) { onChange({ uploadError: 'Please upload a JPG, PNG, or WebP image.' }); return }
+    if (file.size > GALLERY_MAX_BYTES) { onChange({ uploadError: 'Image must be smaller than 3 MB.' }); return }
+    const reader = new FileReader()
+    reader.onloadend = () => { if (typeof reader.result === 'string') onChange({ preview: reader.result, uploadError: null }) }
+    reader.readAsDataURL(file)
+    onChange({ uploading: true, uploadError: null })
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const filePath = `${profileId}/${Date.now()}_${index}.${ext}`
+      const { error: storageErr } = await supabase.storage.from('profile-gallery').upload(filePath, file, { upsert: true, cacheControl: '3600' })
+      if (storageErr) { onChange({ uploading: false, uploadError: 'Upload failed — please try again.', preview: null }); return }
+      const { data: urlData } = supabase.storage.from('profile-gallery').getPublicUrl(filePath)
+      onChange({ uploading: false, imageUrl: urlData.publicUrl, preview: null })
+    } catch { onChange({ uploading: false, uploadError: 'Something went wrong. Please try again.', preview: null }) }
+  }
+
+  const imgSrc = slot.preview ?? slot.imageUrl
+
+  return (
+    <div style={gs.slotWrap}>
+      <div style={gs.frame}>
+        {imgSrc ? (
+          <>
+            <img src={imgSrc} alt="" style={gs.frameImg} />
+            {slot.uploading && <div style={gs.frameOverlay}><div style={gs.uploadSpinner} /></div>}
+            {!slot.uploading && (
+              <div style={gs.frameControls}>
+                <button onClick={() => fileRef.current?.click()} style={gs.frameBtn} title="Replace image">
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M8 12V4M4 8l4-4 4 4"/><path d="M2 14h12"/></svg>
+                </button>
+                <button onClick={onRemove} style={{ ...gs.frameBtn, color: colors.accent.error, borderColor: colors.accent.errorBorder }} title="Remove image">
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M2 2l12 12M14 2L2 14"/></svg>
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <button onClick={() => fileRef.current?.click()} style={gs.frameEmpty} disabled={slot.uploading}>
+            {slot.uploading ? <div style={gs.uploadSpinner} /> : (
+              <>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.4" strokeLinecap="round">
+                  <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8M8 12h8"/>
+                </svg>
+                <span style={gs.frameEmptyLabel}>Add image</span>
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      <div style={gs.captionWrap}>
+        <input
+          type="text"
+          value={slot.caption}
+          placeholder="Caption (optional)"
+          maxLength={80}
+          onChange={(e) => onChange({ caption: e.target.value })}
+          style={{ ...inputs.base, ...gs.captionInput }}
+        />
+        <span style={gs.captionCount}>{slot.caption.length}/80</span>
+      </div>
+
+      {slot.uploadError && <p style={gs.slotError}>{slot.uploadError}</p>}
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={handleFile} />
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const supabase = useMemo(() => createClient(), [])
 
-  const [loading, setLoading]           = useState(true)
-  const [profile, setProfile]           = useState<Profile | null>(null)
-  const [links, setLinks]               = useState<ProfileLink[]>([])
-  const [card, setCard]                 = useState<CardRecord | null>(null)
-  const [tapCount, setTapCount]         = useState(0)
+  const [loading, setLoading]               = useState(true)
+  const [profile, setProfile]               = useState<Profile | null>(null)
+  const [links, setLinks]                   = useState<ProfileLink[]>([])
+  const [card, setCard]                     = useState<CardRecord | null>(null)
+  const [tapCount, setTapCount]             = useState(0)
   const [linkClickCount, setLinkClickCount] = useState(0)
-  const [lastTap, setLastTap]           = useState<string | null>(null)
-  const [todayTaps, setTodayTaps]       = useState(0)
-  const [profileSave, setProfileSave]   = useState<SaveState>('idle')
-  const [linksSave, setLinksSave]       = useState<SaveState>('idle')
-  const [saveError, setSaveError]        = useState<string | null>(null)
-  const [styleSave, setStyleSave]       = useState<SaveState>('idle')
-  const [linkErrors, setLinkErrors]     = useState<(string | null)[]>([])
-  const [activeTab, setActiveTab]       = useState<ActiveTab>('profile')
-  const [userId, setUserId]             = useState<string | null>(null)
-  const [uploading, setUploading]       = useState(false)
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [uploadError, setUploadError]     = useState<string | null>(null)
-  const [usernameError, setUsernameError]  = useState<string | null>(null)
+  const [lastTap, setLastTap]               = useState<string | null>(null)
+  const [todayTaps, setTodayTaps]           = useState(0)
+  const [profileSave, setProfileSave]       = useState<SaveState>('idle')
+  const [linksSave, setLinksSave]           = useState<SaveState>('idle')
+  const [saveError, setSaveError]           = useState<string | null>(null)
+  const [styleSave, setStyleSave]           = useState<SaveState>('idle')
+  const [gallerySave, setGallerySave]       = useState<SaveState>('idle')
+  const [gallerySaveError, setGallerySaveError] = useState<string | null>(null)
+  const [linkErrors, setLinkErrors]         = useState<(string | null)[]>([])
+  const [activeTab, setActiveTab]           = useState<ActiveTab>('profile')
+  const [userId, setUserId]                 = useState<string | null>(null)
+  const [uploading, setUploading]           = useState(false)
+  const [avatarPreview, setAvatarPreview]   = useState<string | null>(null)
+  const [uploadError, setUploadError]       = useState<string | null>(null)
+  const [usernameError, setUsernameError]   = useState<string | null>(null)
+  const [gallerySlots, setGallerySlots]     = useState<LocalGallerySlot[]>([emptySlot(), emptySlot(), emptySlot()])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const qrCanvasRef  = useRef<HTMLCanvasElement | null>(null)
 
@@ -411,6 +538,14 @@ export default function DashboardPage() {
         setTodayTaps(todays.length)
         if (taps[0]) setLastTap(new Date(taps[0].tapped_at).toLocaleString())
       }
+
+      const { data: galleryData } = await supabase
+        .from('profile_gallery')
+        .select('id, profile_id, image_url, caption, position')
+        .eq('profile_id', userId)
+        .order('position', { ascending: true })
+      if (galleryData) setGallerySlots(slotsFromDb(galleryData as GalleryItem[]))
+
     } catch (err) {
       console.error(err)
     } finally {
@@ -427,9 +562,9 @@ export default function DashboardPage() {
     const normUsername = cleanUsername(profile.username ?? '')
 
     if (normUsername && !USERNAME_REGEX.test(normUsername)) {
-  setUsernameError('Username must be 3–30 characters and can only use letters, numbers, hyphens, or underscores.')
-  return
-}
+      setUsernameError('Username must be 3–30 characters and can only use letters, numbers, hyphens, or underscores.')
+      return
+    }
 
     if (normUsername) {
       const { data: existing } = await supabase
@@ -600,6 +735,45 @@ export default function DashboardPage() {
     }
   }
 
+  // ─── Save gallery ──────────────────────────────────────────────────────────
+
+  async function saveGallery() {
+    if (!profile) return
+    setGallerySaveError(null)
+    setGallerySave('saving')
+    try {
+      for (let i = 0; i < MAX_GALLERY; i++) {
+        const slot = gallerySlots[i]
+        if (!slot.imageUrl) {
+          if (slot.dbId) {
+            await supabase.from('profile_gallery').delete().eq('id', slot.dbId)
+          }
+          continue
+        }
+        const payload = {
+          profile_id: profile.id,
+          image_url:  slot.imageUrl,
+          caption:    slot.caption.trim() || null,
+          position:   i,
+        }
+        if (slot.dbId) {
+          const { error } = await supabase.from('profile_gallery').update(payload).eq('id', slot.dbId)
+          if (error) { setGallerySaveError(`Save failed: ${error.message}`); setGallerySave('error'); return }
+        } else {
+          const { data, error } = await supabase.from('profile_gallery').insert(payload).select('id').single()
+          if (error) { setGallerySaveError(`Save failed: ${error.message}`); setGallerySave('error'); return }
+          if (data) setGallerySlots(prev => prev.map((s, idx) => idx === i ? { ...s, dbId: data.id } : s))
+        }
+      }
+      setGallerySave('saved')
+      setTimeout(() => setGallerySave('idle'), 2200)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setGallerySaveError(msg)
+      setGallerySave('error')
+    }
+  }
+
   // ─── Avatar upload ─────────────────────────────────────────────────────────
 
   async function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -687,6 +861,14 @@ export default function DashboardPage() {
     setLinkErrors(prev => [...prev, null])
   }
 
+  function patchGallerySlot(index: number, patch: Partial<LocalGallerySlot>) {
+    setGallerySlots(prev => prev.map((s, i) => i === index ? { ...s, ...patch } : s))
+  }
+
+  function removeGallerySlot(index: number) {
+    setGallerySlots(prev => prev.map((s, i) => i === index ? { ...emptySlot(), dbId: s.dbId } : s))
+  }
+
   const ctr = tapCount > 0 ? Math.round((linkClickCount / tapCount) * 100) : 0
   const cardStatusBadge = card?.status
     ? statusBadgeStyle(card.status as Parameters<typeof statusBadgeStyle>[0])
@@ -727,6 +909,7 @@ export default function DashboardPage() {
   }
 
   const activeLinks = links.filter(l => l.is_active && l.label && l.url)
+  const anySlotUploading = gallerySlots.some(sl => sl.uploading)
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -767,6 +950,7 @@ export default function DashboardPage() {
         select.ti-link-select:focus { border-color: ${colors.border.strong} !important; background-color: rgba(255,255,255,0.06) !important; outline: none; box-shadow: 0 0 0 3px rgba(255,255,255,0.04) !important; }
         .ti-mini-link:hover { color: ${colors.white[70]} !important; }
         .ti-stat-cell:last-child { border-right: none !important; }
+        .ti-gallery-frame-btn:hover { background: rgba(0,0,0,0.8) !important; }
 
         @media (max-width: 1024px) {
           .ti-layout          { grid-template-columns: 1fr !important; padding: 2rem 1.5rem !important; max-width: 680px !important; }
@@ -803,6 +987,7 @@ export default function DashboardPage() {
           .ti-avatar-row    { flex-direction: column !important; align-items: flex-start !important; gap: 1rem !important; }
           .ti-nfc-panel     { padding: 1rem !important; width: 100% !important; box-sizing: border-box !important; min-width: 0 !important; }
           .ti-link-inputs   { flex-direction: column !important; }
+          .ti-gallery-grid  { grid-template-columns: 1fr !important; }
         }
 
         @media (min-width: 1280px) {
@@ -1014,7 +1199,7 @@ export default function DashboardPage() {
               className="ti-tab-bar"
               style={isMobile ? { ...s.tabBar, padding: '0.875rem 0.75rem 0', overflowX: 'auto', width: '100%', boxSizing: 'border-box' } : s.tabBar}
             >
-              {(['profile', 'links', 'style', 'card'] as ActiveTab[]).map((tab) => {
+              {(['profile', 'links', 'style', 'gallery', 'card'] as ActiveTab[]).map((tab) => {
                 const isActive = activeTab === tab
                 return (
                   <button
@@ -1026,6 +1211,7 @@ export default function DashboardPage() {
                     {tab === 'profile' && 'Profile'}
                     {tab === 'links'   && `Links${links.filter(l => l.is_active && l.label).length > 0 ? ` (${links.filter(l => l.is_active && l.label).length})` : ''}`}
                     {tab === 'style'   && 'Style'}
+                    {tab === 'gallery' && 'Gallery'}
                     {tab === 'card'    && 'Card'}
                   </button>
                 )
@@ -1395,6 +1581,56 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* ────── GALLERY TAB ────── */}
+            {activeTab === 'gallery' && (
+              <div style={isMobile ? { ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.tabContent}>
+                <div style={s.linksHeader}>
+                  <p style={s.linksSubtitle}>
+                    Upload up to 3 images for your Featured Work section. Any aspect ratio — displayed in a 4:5 frame on your profile.
+                  </p>
+                </div>
+
+                <div
+                  className="ti-gallery-grid"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+                    gap: spacing[4],
+                    marginBottom: spacing[5],
+                  }}
+                >
+                  {gallerySlots.map((slot, i) => (
+                    <GallerySlot
+                      key={i}
+                      slot={slot}
+                      index={i}
+                      profileId={profile?.id ?? ''}
+                      supabase={supabase}
+                      onChange={(patch) => patchGallerySlot(i, patch)}
+                      onRemove={() => removeGallerySlot(i)}
+                    />
+                  ))}
+                </div>
+
+                <div style={s.tabFooter}>
+                  <p style={s.tabFooterHint}>
+                    JPG, PNG or WebP · max 3 MB each · captions optional, max 80 characters.
+                  </p>
+                  <button
+                    onClick={saveGallery}
+                    disabled={gallerySave === 'saving' || anySlotUploading}
+                    className="ti-save-btn"
+                    style={saveBtnCx(gallerySave)}
+                  >
+                    {anySlotUploading ? 'Uploading…' : saveBtnLabel(gallerySave, 'Save gallery')}
+                  </button>
+                  {gallerySave === 'error' && gallerySaveError && (
+                    <p style={s.saveErrorDetail}>{gallerySaveError}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* ────── CARD TAB ────── */}
             {activeTab === 'card' && (
               <div
@@ -1560,6 +1796,118 @@ export default function DashboardPage() {
       </div>
     </main>
   )
+}
+
+// ─── Gallery slot styles ──────────────────────────────────────────────────────
+
+const gs: Record<string, CSSProperties> = {
+  slotWrap: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing[2],
+  },
+  frame: {
+    position: 'relative' as const,
+    width: '100%',
+    paddingBottom: '125%',
+    borderRadius: radius.lg,
+    overflow: 'hidden' as const,
+    background: 'rgba(255,255,255,0.03)',
+    border: `1px solid ${colors.border.subtle}`,
+    boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
+  },
+  frameImg: {
+    position: 'absolute' as const,
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover' as const,
+    display: 'block',
+  },
+  frameOverlay: {
+    position: 'absolute' as const,
+    inset: 0,
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  frameControls: {
+    position: 'absolute' as const,
+    bottom: spacing[2],
+    right: spacing[2],
+    display: 'flex',
+    gap: spacing[1],
+    zIndex: 2,
+  },
+  frameBtn: {
+    width: '28px',
+    height: '28px',
+    borderRadius: radius.sm,
+    background: 'rgba(0,0,0,0.62)',
+    border: `1px solid rgba(255,255,255,0.12)`,
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'background 0.15s ease',
+  },
+  frameEmpty: {
+    position: 'absolute' as const,
+    inset: 0,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    cursor: 'pointer',
+    background: 'transparent',
+    border: 'none',
+    color: colors.text.ghost,
+    width: '100%',
+    height: '100%',
+  },
+  frameEmptyLabel: {
+    fontSize: font.size.xs,
+    fontWeight: font.weight.medium,
+    color: 'rgba(255,255,255,0.18)',
+    fontFamily: font.sans,
+    letterSpacing: '0.02em',
+  },
+  uploadSpinner: {
+    width: '22px',
+    height: '22px',
+    borderRadius: '50%',
+    border: '2px solid rgba(255,255,255,0.15)',
+    borderTop: '2px solid rgba(255,255,255,0.8)',
+    animation: 'spin 0.75s linear infinite',
+  },
+  captionWrap: {
+    position: 'relative' as const,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  captionInput: {
+    paddingRight: '2.5rem',
+    fontSize: font.size.xs,
+  } as CSSProperties,
+  captionCount: {
+    position: 'absolute' as const,
+    right: spacing[2],
+    fontSize: '0.62rem',
+    color: colors.text.ghost,
+    pointerEvents: 'none' as const,
+    fontFamily: font.mono,
+    userSelect: 'none' as const,
+  },
+  slotError: {
+    fontSize: font.size.xs,
+    color: colors.accent.error,
+    lineHeight: font.leading.normal,
+    fontWeight: font.weight.medium,
+  },
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
