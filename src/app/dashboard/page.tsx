@@ -353,13 +353,18 @@ function QRCanvas({ url, size = 240, dark = '#ffffff', light = '#0a0a0a', canvas
       height={size}
       style={{ display: 'block', borderRadius: '8px' }}
     />
-  )
+    )
 }
 
-// ─── Gallery slot component ───────────────────────────────────────────────────
+// — Gallery slot component —
 
 function GallerySlot({
-  slot, index, profileId, supabase, onChange, onRemove,
+  slot,
+  index,
+  profileId,
+  supabase,
+  onChange,
+  onRemove,
 }: {
   slot: LocalGallerySlot
   index: number
@@ -369,30 +374,75 @@ function GallerySlot({
   onRemove: () => void
 }) {
   const fileRef = useRef<HTMLInputElement | null>(null)
-  const hasImage = !!(slot.imageUrl || slot.preview)
+  const imgSrc = slot.preview ?? slot.imageUrl
 
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
+
     const ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
-    if (!ALLOWED.includes(file.type)) { onChange({ uploadError: 'Please upload a JPG, PNG, or WebP image.' }); return }
-    if (file.size > GALLERY_MAX_BYTES) { onChange({ uploadError: 'Image must be smaller than 10 MB.' }); return }
+
+    if (!ALLOWED.includes(file.type)) {
+      onChange({ uploadError: 'Please upload a JPG, PNG, or WebP image.' })
+      return
+    }
+
+    if (file.size > GALLERY_MAX_BYTES) {
+      onChange({ uploadError: 'Image must be smaller than 10 MB.' })
+      return
+    }
+
     const reader = new FileReader()
-    reader.onloadend = () => { if (typeof reader.result === 'string') onChange({ preview: reader.result, uploadError: null }) }
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        onChange({ preview: reader.result, uploadError: null })
+      }
+    }
     reader.readAsDataURL(file)
+
     onChange({ uploading: true, uploadError: null })
+
     try {
       const ext = file.name.split('.').pop() ?? 'jpg'
       const filePath = `${profileId}/${Date.now()}_${index}.${ext}`
-      const { error: storageErr } = await supabase.storage.from('profile-gallery').upload(filePath, file, { upsert: true, cacheControl: '3600' })
-      if (storageErr) { onChange({ uploading: false, uploadError: 'Upload failed — please try again.', preview: null }); return }
-      const { data: urlData } = supabase.storage.from('profile-gallery').getPublicUrl(filePath)
-      onChange({ uploading: false, imageUrl: urlData.publicUrl, preview: null })
-    } catch { onChange({ uploading: false, uploadError: 'Something went wrong. Please try again.', preview: null }) }
-  }
 
-  const imgSrc = slot.preview ?? slot.imageUrl
+      const { error: storageError } = await supabase.storage
+        .from('profile-gallery')
+        .upload(filePath, file, {
+          upsert: true,
+          cacheControl: '3600',
+        })
+
+      if (storageError) {
+        console.error('[Gallery upload]', storageError)
+
+        onChange({
+          uploading: false,
+          uploadError: storageError.message || 'Upload failed — please try again.',
+          preview: null,
+        })
+
+        return
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('profile-gallery')
+        .getPublicUrl(filePath)
+
+      onChange({
+        uploading: false,
+        imageUrl: urlData.publicUrl,
+        preview: null,
+      })
+    } catch {
+      onChange({
+        uploading: false,
+        uploadError: 'Something went wrong. Please try again.',
+        preview: null,
+      })
+    }
+  }
 
   return (
     <div style={gs.slotWrap}>
@@ -400,25 +450,31 @@ function GallerySlot({
         {imgSrc ? (
           <>
             <img src={imgSrc} alt="" style={gs.frameImg} />
-            {slot.uploading && <div style={gs.frameOverlay}><div style={gs.uploadSpinner} /></div>}
+
+            {slot.uploading && (
+              <div style={gs.frameOverlay}>
+                <div style={gs.uploadSpinner} />
+              </div>
+            )}
+
             {!slot.uploading && (
               <div style={gs.frameControls}>
                 <button onClick={() => fileRef.current?.click()} style={gs.frameBtn} title="Replace image">
-                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M8 12V4M4 8l4-4 4 4"/><path d="M2 14h12"/></svg>
+                  Replace
                 </button>
-                <button onClick={onRemove} style={{ ...gs.frameBtn, color: colors.accent.error, borderColor: colors.accent.errorBorder }} title="Remove image">
-                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M2 2l12 12M14 2L2 14"/></svg>
+
+                <button onClick={onRemove} style={{ ...gs.frameBtn, color: colors.accent.error }} title="Remove image">
+                  Remove
                 </button>
               </div>
             )}
           </>
         ) : (
           <button onClick={() => fileRef.current?.click()} style={gs.frameEmpty} disabled={slot.uploading}>
-            {slot.uploading ? <div style={gs.uploadSpinner} /> : (
+            {slot.uploading ? (
+              <div style={gs.uploadSpinner} />
+            ) : (
               <>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.4" strokeLinecap="round">
-                  <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8M8 12h8"/>
-                </svg>
                 <span style={gs.frameEmptyLabel}>Add image</span>
               </>
             )}
@@ -439,12 +495,18 @@ function GallerySlot({
       </div>
 
       {slot.uploadError && <p style={gs.slotError}>{slot.uploadError}</p>}
-      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={handleFile} />
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        style={{ display: 'none' }}
+        onChange={handleFile}
+      />
     </div>
   )
 }
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// — Page —
 
 export default function DashboardPage() {
   const supabase = useMemo(() => createClient(), [])
