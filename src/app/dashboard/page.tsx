@@ -91,7 +91,7 @@ type ActiveTab = 'profile' | 'links' | 'style' | 'gallery' | 'card'
 
 const MAX_LINKS = 8
 const MAX_GALLERY = 3
-const GALLERY_MAX_BYTES = 3 * 1024 * 1024
+const GALLERY_MAX_BYTES = 10 * 1024 * 1024
 
 const BUTTON_STYLES = [
   { value: 'default', label: 'Solid white' },
@@ -377,7 +377,7 @@ function GallerySlot({
     if (!file) return
     const ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
     if (!ALLOWED.includes(file.type)) { onChange({ uploadError: 'Please upload a JPG, PNG, or WebP image.' }); return }
-    if (file.size > GALLERY_MAX_BYTES) { onChange({ uploadError: 'Image must be smaller than 3 MB.' }); return }
+    if (file.size > GALLERY_MAX_BYTES) { onChange({ uploadError: 'Image must be smaller than 10 MB.' }); return }
     const reader = new FileReader()
     reader.onloadend = () => { if (typeof reader.result === 'string') onChange({ preview: reader.result, uploadError: null }) }
     reader.readAsDataURL(file)
