@@ -1614,7 +1614,7 @@ export default function DashboardPage() {
 
                 <div style={s.tabFooter}>
                   <p style={s.tabFooterHint}>
-                    JPG, PNG or WebP · max 3 MB each · captions optional, max 80 characters.
+                    JPG, PNG or WebP · max 10 MB each · captions optional, max 80 characters.
                   </p>
                   <button
                     onClick={saveGallery}
