@@ -1710,7 +1710,7 @@ export default function DashboardPage() {
                     <div style={s.qrCanvasWrap} className="ti-qr-canvas-wrap">
                       <div style={s.qrGlow} aria-hidden="true" />
                       <QRCanvas
-                        url={`https://tappedin.uk/u/${profile.username}`}
+                        url={`https://tappedin.uk/a/${card.card_id}`}
                         size={160}
                         dark="#ffffff"
                         light="#0d0d0d"
