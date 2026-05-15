@@ -106,20 +106,21 @@ const THEME_STYLES = [
 ]
 
 const PLATFORM_OPTIONS = [
-  { value: 'Instagram',    kind: 'url'       },
-  { value: 'TikTok',       kind: 'url'       },
-  { value: 'YouTube',      kind: 'url'       },
-  { value: 'Spotify',      kind: 'url'       },
-  { value: 'SoundCloud',   kind: 'url'       },
-  { value: 'Apple Music',  kind: 'url'       },
-  { value: 'Website',      kind: 'url'       },
-  { value: 'Portfolio',    kind: 'url'       },
-  { value: 'LinkedIn',     kind: 'url'       },
-  { value: 'X / Twitter',  kind: 'url'       },
-  { value: 'WhatsApp',     kind: 'whatsapp'  },
-  { value: 'Email',        kind: 'email'     },
-  { value: 'Booking',      kind: 'url'       },
-  { value: 'Other',        kind: 'url'       },
+  { value: 'Instagram',    kind: 'url'      },
+  { value: 'TikTok',       kind: 'url'      },
+  { value: 'YouTube',      kind: 'url'      },
+  { value: 'Spotify',      kind: 'url'      },
+  { value: 'SoundCloud',   kind: 'url'      },
+  { value: 'Apple Music',  kind: 'url'      },
+  { value: 'Website',      kind: 'url'      },
+  { value: 'Portfolio',    kind: 'url'      },
+  { value: 'LinkedIn',     kind: 'url'      },
+  { value: 'X / Twitter',  kind: 'url'      },
+  { value: 'WhatsApp',     kind: 'whatsapp' },
+  { value: 'Email',        kind: 'email'    },
+  { value: 'Booking',      kind: 'url'      },
+  { value: 'Reviews',      kind: 'url'      },
+  { value: 'Other',        kind: 'url'      },
 ] as const
 
 // ─── Link-type detection & normalisation ──────────────────────────────────────
@@ -353,10 +354,10 @@ function QRCanvas({ url, size = 240, dark = '#ffffff', light = '#0a0a0a', canvas
       height={size}
       style={{ display: 'block', borderRadius: '8px' }}
     />
-    )
+  )
 }
 
-// — Gallery slot component —
+// ─── Gallery slot component ───────────────────────────────────────────────────
 
 function GallerySlot({
   slot,
@@ -416,13 +417,11 @@ function GallerySlot({
 
       if (storageError) {
         console.error('[Gallery upload]', storageError)
-
         onChange({
           uploading: false,
           uploadError: storageError.message || 'Upload failed — please try again.',
           preview: null,
         })
-
         return
       }
 
@@ -450,19 +449,16 @@ function GallerySlot({
         {imgSrc ? (
           <>
             <img src={imgSrc} alt="" style={gs.frameImg} />
-
             {slot.uploading && (
               <div style={gs.frameOverlay}>
                 <div style={gs.uploadSpinner} />
               </div>
             )}
-
             {!slot.uploading && (
               <div style={gs.frameControls}>
                 <button onClick={() => fileRef.current?.click()} style={gs.frameBtn} title="Replace image">
                   Replace
                 </button>
-
                 <button onClick={onRemove} style={{ ...gs.frameBtn, color: colors.accent.error }} title="Remove image">
                   Remove
                 </button>
@@ -474,9 +470,7 @@ function GallerySlot({
             {slot.uploading ? (
               <div style={gs.uploadSpinner} />
             ) : (
-              <>
-                <span style={gs.frameEmptyLabel}>Add image</span>
-              </>
+              <span style={gs.frameEmptyLabel}>Add image</span>
             )}
           </button>
         )}
@@ -506,7 +500,8 @@ function GallerySlot({
     </div>
   )
 }
-// — Page —
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const supabase = useMemo(() => createClient(), [])
@@ -1377,7 +1372,6 @@ export default function DashboardPage() {
                     onChange={(v) => patchProfile({ display_name: v })}
                   />
 
-                  {/* ── Username ── */}
                   <div style={inputs.group}>
                     <label style={inputs.label}>Username</label>
                     <input
@@ -1904,8 +1898,9 @@ const gs: Record<string, CSSProperties> = {
     zIndex: 2,
   },
   frameBtn: {
-    width: '28px',
-    height: '28px',
+    height: '26px',
+    paddingLeft: '10px',
+    paddingRight: '10px',
     borderRadius: radius.sm,
     background: 'rgba(0,0,0,0.62)',
     border: `1px solid rgba(255,255,255,0.12)`,
@@ -1915,6 +1910,9 @@ const gs: Record<string, CSSProperties> = {
     justifyContent: 'center',
     cursor: 'pointer',
     transition: 'background 0.15s ease',
+    fontSize: font.size.xs,
+    fontFamily: font.sans,
+    fontWeight: font.weight.semibold,
   },
   frameEmpty: {
     position: 'absolute' as const,
