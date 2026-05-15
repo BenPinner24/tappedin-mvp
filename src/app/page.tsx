@@ -497,7 +497,7 @@ export default function HomePage() {
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) both',
               }}>
                 <div style={{ width:5, height:5, borderRadius:'50%', background:'#fff', animation:'dotBlink 2s ease-in-out infinite' }} />
-                <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.63rem' : '.7rem', fontWeight:500, color:'rgba(255,255,255,.5)', letterSpacing:'.22em', textTransform:'uppercase' }}>Founder Drop — Opening Soon</span>
+                <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.63rem' : '.7rem', fontWeight:500, color:'rgba(255,255,255,.5)', letterSpacing:'.22em', textTransform:'uppercase' }}>Pre-order Founders Edition</span>
               </div>
 
               {/* Headline */}
@@ -533,7 +533,7 @@ export default function HomePage() {
                 marginBottom: isMobile ? '1.4rem' : '2.75rem',
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) .26s both',
               }}>
-                <Link href="/signup" className="btn-primary">Founder Access Opening Soon</Link>
+                <Link href="/signup" className="btn-primary">Pre-order Founders Edition</Link>
                 <a href="#product" className="btn-ghost">View the card</a>
                 <a
   href="https://www.instagram.com/tappedinspace/"
@@ -733,7 +733,7 @@ export default function HomePage() {
                   ))}
                 </div>
                 <div className="reveal d4">
-                  <Link href="/signup" className="btn-primary" style={{ fontSize:'.84rem', padding:'13px 28px' }}>Founder Access Opening Soon</Link>
+                  <Link href="#founders" className="btn-primary" style={{ fontSize: '.84rem', padding: '13px 28px' }}>Pre-order Founders Edition</Link>
                 </div>
               </div>
 
