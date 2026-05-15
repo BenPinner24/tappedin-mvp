@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -20,9 +20,6 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// Both card_tap and link_click events share this shape.
-// Fields used by link_click only: link_id, link_label, destination_url
-// Fields used by card_tap only: card_code
 type TapEvent = {
   id: string
   event_type: 'card_tap' | 'link_click' | string
@@ -61,7 +58,6 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
-// 12-bar frequency chart — works for any array of events with tapped_at
 function buildBarData(events: TapEvent[]): number[] {
   const bars = Array(12).fill(0)
   const now  = Date.now()
@@ -72,7 +68,6 @@ function buildBarData(events: TapEvent[]): number[] {
   return bars
 }
 
-// Aggregate link clicks by label → sorted by frequency
 function buildTopLinks(linkEvents: TapEvent[]): TopLink[] {
   const map = new Map<string, TopLink>()
   linkEvents.forEach((e) => {
@@ -94,53 +89,55 @@ export default function AnalyticsPage() {
   const [linkClicks,  setLinkClicks]  = useState(0)
   const [topLinks,    setTopLinks]    = useState<TopLink[]>([])
   const [loading,     setLoading]     = useState(true)
+  const [refreshing,  setRefreshing]  = useState(false)
 
-  useEffect(() => {
-    async function loadAnalytics() {
-      try {
-        const supabase = createClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.user?.id) return
+  const loadAnalytics = useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) setRefreshing(true)
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.id) return
 
-        const { data } = await supabase
-          .from('tap_events')
-          .select('*')
-          .eq('profile_id', session.user.id)
-          .order('tapped_at', { ascending: false })
+      const { data } = await supabase
+        .from('tap_events')
+        .select('*')
+        .eq('profile_id', session.user.id)
+        .order('tapped_at', { ascending: false })
 
-        if (!data) return
+      if (!data) return
 
-        const taps  = data.filter((e) => e.event_type === 'card_tap')
-        const links = data.filter((e) => e.event_type === 'link_click')
+      const taps  = data.filter((e) => e.event_type === 'card_tap')
+      const links = data.filter((e) => e.event_type === 'link_click')
 
-        setAllEvents(data)
-        setCardTaps(taps.length)
-        setLinkClicks(links.length)
-        setTopLinks(buildTopLinks(links))
-      } finally {
-        setLoading(false)
-      }
+      setAllEvents(data)
+      setCardTaps(taps.length)
+      setLinkClicks(links.length)
+      setTopLinks(buildTopLinks(links))
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
     }
-    loadAnalytics()
   }, [])
 
+  useEffect(() => { loadAnalytics(false) }, [loadAnalytics])
+
   // Derived stats
-  const tapEvents     = allEvents.filter((e) => e.event_type === 'card_tap')
-  const linkEvents    = allEvents.filter((e) => e.event_type === 'link_click')
-  const recentAll     = [...allEvents].sort(
+  const tapEvents  = allEvents.filter((e) => e.event_type === 'card_tap')
+  const linkEvents = allEvents.filter((e) => e.event_type === 'link_click')
+  const recentAll  = [...allEvents].sort(
     (a, b) => new Date(b.tapped_at).getTime() - new Date(a.tapped_at).getTime()
   ).slice(0, 25)
 
-  const lastTap       = tapEvents[0]?.tapped_at ?? null
-  const todayTaps     = tapEvents.filter((e) => {
+  const lastTap    = tapEvents[0]?.tapped_at ?? null
+  const todayTaps  = tapEvents.filter((e) => {
     const d = new Date(e.tapped_at), now = new Date()
     return d.getDate() === now.getDate() && d.getMonth() === now.getMonth()
   }).length
 
-  const ctr           = cardTaps > 0 ? Math.round((linkClicks / cardTaps) * 100) : 0
-  const tapBarData    = buildBarData(tapEvents)
-  const tapBarMax     = Math.max(...tapBarData, 1)
-  const topLink       = topLinks[0]
+  const ctr        = cardTaps > 0 ? Math.round((linkClicks / cardTaps) * 100) : 0
+  const tapBarData = buildBarData(tapEvents)
+  const tapBarMax  = Math.max(...tapBarData, 1)
+  const topLink    = topLinks[0]
 
   return (
     <main style={s.page}>
@@ -154,9 +151,10 @@ export default function AnalyticsPage() {
         @keyframes spin   { to   { transform: rotate(360deg); } }
         @keyframes pulse  { 0%,100% { opacity:.35; } 50% { opacity:.7; } }
 
-        .ti-back-btn:hover  { background: #e4e4e4 !important; transform: translateY(-1px); }
-        .ti-stat-card:hover { border-color: ${colors.border.default} !important; transform: translateY(-2px); }
-        .ti-link-row:hover  { background: ${colors.white[5]} !important; }
+        .ti-back-btn:hover    { background: #e4e4e4 !important; transform: translateY(-1px); }
+        .ti-refresh-btn:hover { background: rgba(255,255,255,0.07) !important; border-color: ${colors.border.default} !important; }
+        .ti-stat-card:hover   { border-color: ${colors.border.default} !important; transform: translateY(-2px); }
+        .ti-link-row:hover    { background: ${colors.white[5]} !important; }
 
         @media (max-width: 900px) {
           .ti-header  { flex-direction: column !important; align-items: flex-start !important; }
@@ -164,11 +162,12 @@ export default function AnalyticsPage() {
           .ti-content { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 540px) {
-          .ti-wrap      { padding: 2rem 1rem !important; }
-          .ti-stats     { grid-template-columns: 1fr !important; }
-          .ti-title     { font-size: ${font.size['3xl']} !important; }
-          .ti-bar-label { display: none !important; }
+          .ti-wrap        { padding: 2rem 1rem !important; }
+          .ti-stats       { grid-template-columns: 1fr !important; }
+          .ti-title       { font-size: ${font.size['3xl']} !important; }
+          .ti-bar-label   { display: none !important; }
           .ti-event-right { display: none !important; }
+          .ti-header-btns { flex-direction: column !important; align-items: stretch !important; }
         }
       `}</style>
 
@@ -183,9 +182,36 @@ export default function AnalyticsPage() {
               NFC tap history, link clicks, and real engagement for your digital profile.
             </p>
           </div>
-          <Link href="/dashboard" className="ti-back-btn" style={s.backBtn}>
-            ← Back to dashboard
-          </Link>
+          <div style={s.headerBtns} className="ti-header-btns">
+            <button
+              onClick={() => loadAnalytics(true)}
+              disabled={refreshing || loading}
+              className="ti-refresh-btn"
+              style={{
+                ...s.refreshBtn,
+                opacity: refreshing || loading ? 0.55 : 1,
+                cursor:  refreshing || loading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {refreshing ? (
+                <>
+                  <span style={s.refreshSpinner} />
+                  Refreshing…
+                </>
+              ) : (
+                <>
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 8A6 6 0 1 1 8 2"/>
+                    <path d="M14 2v4h-4"/>
+                  </svg>
+                  Refresh insights
+                </>
+              )}
+            </button>
+            <Link href="/dashboard" className="ti-back-btn" style={s.backBtn}>
+              ← Back to dashboard
+            </Link>
+          </div>
         </div>
 
         {loading ? (
@@ -197,7 +223,6 @@ export default function AnalyticsPage() {
             {/* ── STAT CARDS ── */}
             <div style={s.statsGrid} className="ti-stats">
 
-              {/* Total NFC taps */}
               <div style={s.statCard} className="ti-stat-card">
                 <div style={s.statTop}>
                   <p style={s.statLabel}>Total NFC taps</p>
@@ -215,7 +240,6 @@ export default function AnalyticsPage() {
                 </p>
               </div>
 
-              {/* Total link clicks */}
               <div style={s.statCard} className="ti-stat-card">
                 <div style={s.statTop}>
                   <p style={s.statLabel}>Link clicks</p>
@@ -232,7 +256,6 @@ export default function AnalyticsPage() {
                 </p>
               </div>
 
-              {/* Taps today */}
               <div style={s.statCard} className="ti-stat-card">
                 <div style={s.statTop}>
                   <p style={s.statLabel}>Taps today</p>
@@ -247,7 +270,6 @@ export default function AnalyticsPage() {
                 <p style={s.statSub}>Today&apos;s NFC engagement</p>
               </div>
 
-              {/* CTR */}
               <div style={s.statCard} className="ti-stat-card">
                 <div style={s.statTop}>
                   <p style={s.statLabel}>Tap-to-click rate</p>
@@ -268,7 +290,6 @@ export default function AnalyticsPage() {
             {/* ── CONTENT GRID ── */}
             <div style={s.contentGrid} className="ti-content">
 
-              {/* Tap frequency chart */}
               <div style={s.panel}>
                 <div style={s.panelHeader}>
                   <div>
@@ -322,7 +343,6 @@ export default function AnalyticsPage() {
                 )}
               </div>
 
-              {/* Top links */}
               <div style={s.panel}>
                 <div style={s.panelHeader}>
                   <div>
@@ -396,8 +416,8 @@ export default function AnalyticsPage() {
               ) : (
                 <div style={s.eventsList}>
                   {recentAll.map((event, i) => {
-                    const isTap  = event.event_type === 'card_tap'
-                    const isLink = event.event_type === 'link_click'
+                    const isTap   = event.event_type === 'card_tap'
+                    const isLink  = event.event_type === 'link_click'
                     const isFirst = i === 0
 
                     return (
@@ -405,7 +425,6 @@ export default function AnalyticsPage() {
                         ...s.eventRow,
                         animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${i * 0.03}s both`,
                       }}>
-                        {/* Timeline dot + connector */}
                         <div style={s.timelineDotWrap}>
                           <div style={{
                             ...s.timelineDot,
@@ -419,7 +438,6 @@ export default function AnalyticsPage() {
                           {i < recentAll.length - 1 && <div style={s.timelineLine} />}
                         </div>
 
-                        {/* Event content */}
                         <div style={s.eventContent}>
                           <div style={s.eventLeft}>
                             <div style={{
@@ -558,6 +576,15 @@ const s: Record<string, CSSProperties> = {
     flex: 1,
   },
 
+  headerBtns: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    flexShrink: 0,
+    flexWrap: 'wrap',
+  },
+
   eyebrow: {
     ...text.eyebrow,
     fontSize: font.size.xs,
@@ -589,6 +616,35 @@ const s: Record<string, CSSProperties> = {
     transition: transitions.button,
     flexShrink: 0,
   },
+
+  refreshBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: `${spacing[3]} ${spacing[5]}`,
+    borderRadius: radius.full,
+    border: borders.subtle,
+    background: 'rgba(255,255,255,0.04)',
+    color: colors.text.muted,
+    fontFamily: font.sans,
+    fontSize: font.size.sm,
+    fontWeight: font.weight.semibold,
+    letterSpacing: '0.01em',
+    transition: transitions.button,
+    flexShrink: 0,
+    whiteSpace: 'nowrap',
+  },
+
+  refreshSpinner: {
+    display: 'inline-block',
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    border: '1.5px solid rgba(255,255,255,0.15)',
+    borderTop: `1.5px solid ${colors.text.muted}`,
+    animation: 'spin 0.75s linear infinite',
+    flexShrink: 0,
+  } as CSSProperties,
 
   // ── Stats
   statsGrid: {
