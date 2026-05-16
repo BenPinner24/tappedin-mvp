@@ -3,7 +3,9 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-// ─────────────────────────────────────────────────────────────────────────────
+const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
+
+// ─────────────────────────────
 // GLOBAL CSS
 // IMPORTANT: React inline style={{}} always wins over stylesheet rules.
 // Anything that varies per breakpoint is driven by the `isMobile` JS state flag
@@ -440,13 +442,20 @@ export default function HomePage() {
             {!isMobile && (
               <Link href="/login" className="btn-ghost" style={{ padding:'9px 18px', fontSize:'.82rem' }}>Sign in</Link>
             )}
-            <Link href="/signup" className="btn-primary" style={{
-              padding: isMobile ? '9px 16px' : '10px 22px',
-              fontSize: isMobile ? '.75rem' : '.82rem',
-              letterSpacing: isMobile ? '.08em' : '.12em',
-            }}>
-              {isMobile ? 'Coming Soon' : 'Coming Soon'}
-            </Link>
+            <Link
+href={FOUNDERS_STRIPE_URL}
+
+target="_blank"
+rel="noopener noreferrer"
+className="btn-primary"
+style={{
+padding: isMobile ? '9px 16px' : '10px 22px',
+fontSize: isMobile ? '.75rem' : '.82rem',
+letterSpacing: isMobile ? '.08em' : '.12em',
+}}
+>
+{isMobile ? 'Pre-order' : 'Pre-order'}
+</Link>
           </div>
         </div>
       </header>
@@ -533,7 +542,7 @@ export default function HomePage() {
                 marginBottom: isMobile ? '1.4rem' : '2.75rem',
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) .26s both',
               }}>
-                <Link href="/signup" className="btn-primary">Pre-order Founders Edition</Link>
+                <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">Pre-order Founders Edition</Link>
                 <a href="#product" className="btn-ghost">View the card</a>
                 <a
   href="https://www.instagram.com/tappedinspace/"
@@ -676,7 +685,7 @@ export default function HomePage() {
             </div>
 
             <div className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '3rem' }}>
-              <Link href="/signup" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Founder Drop Opens Soon</Link>
+              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Pre-order founders edition</Link>
             </div>
           </div>
         </section>
@@ -733,7 +742,8 @@ export default function HomePage() {
                   ))}
                 </div>
                 <div className="reveal d4">
-                  <Link href="#founders" className="btn-primary" style={{ fontSize: '.84rem', padding: '13px 28px' }}>Pre-order Founders Edition</Link>
+                  <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer"
+ className="btn-primary" style={{ fontSize: '.84rem', padding: '13px 28px' }}>Pre-order Founders Edition</Link>
                 </div>
               </div>
 
@@ -796,7 +806,8 @@ export default function HomePage() {
             </div>
 
             <div className="reveal d4">
-              <Link href="/signup" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Founder Drop Opens Soon</Link>
+              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer"
+ className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Pre-order Founders Edition</Link>
             </div>
           </div>
         </section>
@@ -807,7 +818,7 @@ export default function HomePage() {
         <section id="editions" style={{ padding: SP, background:'#030303' }}>
           <div style={{ maxWidth:1160, margin:'0 auto' }}>
             <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(1.75rem,5vw,2.5rem)' : 'clamp(3.5rem,7vw,5rem)' }}>
-              <div style={EB}>Coming soon</div>
+              <div style={EB}>Coming Soon</div>
               <h2 style={H2}>Future editions.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.32)' }}>After the Founder Drop sells out.</span></h2>
               <p style={SUB}>Standard editions will only become available once all 100 Founder cards have been claimed. They are not available now.</p>
             </div>
@@ -858,10 +869,10 @@ export default function HomePage() {
               <span style={{ fontWeight:300, color:'rgba(255,255,255,.38)', letterSpacing:'0.02em' }}>Never restocking.</span>
             </h2>
             <p className="reveal d2" style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.86rem' : '.98rem', fontWeight:300, color:'rgba(255,255,255,.32)', lineHeight:1.78, letterSpacing:'0.01em', marginBottom: isMobile ? '2rem' : '2.75rem' }}>
-              Limited to 100 individually numbered cards. Founder access launching shortly — be ready when the drop opens.
+              Limited to 100 individually numbered cards. Founder Editon pre-orders are live now.
             </p>
             <div className="reveal d3 final-cta-btns" style={{ display:'flex', gap:'.75rem', justifyContent:'center', flexWrap:'wrap' }}>
-              <Link href="/signup" className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Founder Drop Opens Soon</Link>
+              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Pre-orders are live</Link>
               <Link href="/u/benpinner" className="btn-ghost">View demo profile</Link>
             </div>
             <div className="reveal d3" style={{ marginTop:'1.25rem', display:'flex', justifyContent:'center' }}>
@@ -903,7 +914,7 @@ export default function HomePage() {
               <div className="footer-links" style={{ display:'flex', gap:'4rem', flexWrap:'wrap' }}>
                 {[
                   { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['#editions','Editions'],['/u/benpinner','Demo profile']] },
-                  { head:'Account', links:[['/signup','Coming Soon'],['/login','Sign in'],['/dashboard','Dashboard']] },
+                  { head:'Account', links:[['/signup','Pre-order'],['/login','Sign in'],['/dashboard','Dashboard']] },
                   { head:'Follow',  links:[['https://www.instagram.com/tappedinspace/','Instagram ↗']] },
                 ].map(col=>(
                   <div key={col.head} style={{ display:'flex', flexDirection:'column', gap:'.65rem' }}>
