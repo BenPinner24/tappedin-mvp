@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
+const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/aFa3cxghXbLj9N798HcfK01'
 
 // ─────────────────────────────
 // GLOBAL CSS
