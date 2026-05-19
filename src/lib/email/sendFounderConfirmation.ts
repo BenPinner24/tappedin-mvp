@@ -1,8 +1,6 @@
 import { Resend } from 'resend'
 import FounderConfirmationEmail from '@/emails/FounderConfirmation'
 
-// Lazy singleton — only instantiated when actually sending.
-// Avoids crashing the app at build time if the key isn't present yet.
 let _resend: Resend | null = null
 function getResend(): Resend {
   if (_resend) return _resend
@@ -19,6 +17,7 @@ export interface SendFounderConfirmationParams {
   customerName?: string
   orderNumber?: string
   editionNumber?: string | number
+  allocationTotal?: number
 }
 
 export interface SendFounderConfirmationResult {
@@ -34,11 +33,17 @@ const SUBJECT = 'Your TAPPED-IN Founders Edition is reserved'
 export async function sendFounderConfirmation(
   params: SendFounderConfirmationParams
 ): Promise<SendFounderConfirmationResult> {
-  const { to, customerName, orderNumber, editionNumber } = params
+  const { to, customerName, orderNumber, editionNumber, allocationTotal } = params
 
   if (!to || !to.includes('@')) {
     return { success: false, error: 'Invalid recipient email address.' }
   }
+
+  // Build the allocation string e.g. "4 of 100" if both values present
+  const editionDisplay =
+    editionNumber != null && allocationTotal != null
+      ? `${editionNumber} of ${allocationTotal}`
+      : editionNumber
 
   try {
     const resend = getResend()
@@ -51,7 +56,7 @@ export async function sendFounderConfirmation(
       react: FounderConfirmationEmail({
         customerName,
         orderNumber,
-        editionNumber,
+        editionNumber: editionDisplay,
       }),
       headers: {
         'X-Entity-Ref-ID': orderNumber ?? `founders-${Date.now()}`,
