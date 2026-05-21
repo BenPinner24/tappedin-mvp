@@ -148,7 +148,8 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     .maybeSingle<Profile>()
 
   if (error || !profile) notFound()
-  if (profile.is_public === false) notFound()
+  // Public NFC profiles should be viewable
+// if (profile.is_public === false) notFound()
 
   const { data: links } = await supabase
     .from('profile_links')
