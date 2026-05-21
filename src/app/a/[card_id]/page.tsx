@@ -10,7 +10,7 @@
 //   card claimed, no owner  → redirect /claim/[card_id]  (defensive)
 //   card claimed + owner + username → log tap, show cinematic splash, meta-refresh /u/[username]
 //   card claimed + owner, no username yet → <ProfileNotReady />
-
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { redirect }     from 'next/navigation'
 import { headers }      from 'next/headers'
@@ -36,7 +36,7 @@ type ProfileRecord = {
 
 export default async function ActivateCardPage({ params }: ActivateCardPageProps) {
 const { card_id } = await params
-const supabase = await createClient()
+const supabase = createAdminClient()
 
 const cleanCardId = decodeURIComponent(card_id)
 .trim()
