@@ -35,36 +35,31 @@ type ProfileRecord = {
 }
 
 export default async function ActivateCardPage({ params }: ActivateCardPageProps) {
-  const { card_id } = await params
-  const supabase    = await createClient()
+const { card_id } = await params
+const supabase = await createClient()
 
-  const { data: card } = await supabase
-    .from('cards')
-    .select('card_id, owner_user_id, status, nfc_url, first_tap_at')
-    .eq('card_id', card_id)
-    .maybeSingle<CardRecord>()
+const cleanCardId = decodeURIComponent(card_id)
+.trim()
+.replace(/\/$/, '')
+.toLowerCase()
 
-  if (!card) return <UnavailableCard />
+const cleanUrl = `https://tappedin.uk/a/${cleanCardId}`
 
-  if (card.status === 'suspended' || card.status === 'replaced') {
-    return <SuspendedCard />
-  }
+const { data: card } = await supabase
+.from('cards')
+.select('card_id, owner_user_id, status, nfc_url, first_tap_at')
+.or(`card_id.eq.${cleanCardId},nfc_url.eq.${cleanUrl}`)
+.maybeSingle<CardRecord>()
 
-  // Unclaimed OR claimed-but-null-owner (defensive catch for DB integrity bug)
-  const isFounderCard = card.card_id.startsWith('founders-edition-')
-const isPvcCard = card.card_id.startsWith('pvc-')
+if (!card) return <UnavailableCard />
 
-// PVC cards that are already claimed should go straight to profile
-if (
-isPvcCard &&
-card.status === 'claimed' &&
-card.owner_user_id
-) {
-// continue to profile lookup below
+if (card.status === 'suspended' || card.status === 'replaced') {
+return <SuspendedCard />
 }
 
-// Founder cards still use claim/reserved flow
-else if (
+const isFounderCard = card.card_id.startsWith('founders-edition-')
+
+if (
 isFounderCard &&
 (card.status === 'unclaimed' || card.status === 'reserved')
 ) {
@@ -72,50 +67,39 @@ if (!card.first_tap_at) {
 await supabase
 .from('cards')
 .update({ first_tap_at: new Date().toISOString() })
-.eq('card_id', card_id)
+.eq('card_id', card.card_id)
 }
 
-redirect(`/claim/${card_id}`)
+redirect(`/claim/${card.card_id}`)
 }
 
-// Any broken/unassigned cards
-else if (!card.owner_user_id) {
+if (!card.owner_user_id) {
 return <UnavailableCard />
 }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, username, display_name, avatar_url, role')
-    .eq('id', card.owner_user_id)
-    .maybeSingle<ProfileRecord>()
+const { data: profile } = await supabase
+.from('profiles')
+.select('id, username, display_name, avatar_url, role')
+.eq('id', card.owner_user_id)
+.maybeSingle<ProfileRecord>()
 
-  // Card is claimed but owner hasn't set a username yet.
-  // Show a soft "profile coming soon" screen — never "Already claimed".
-  if (!profile?.username) return <ProfileNotReady />
+if (!profile?.username) return <UnavailableCard />
 
-  // Log the tap event
-  const hdrs      = await headers()
-  const userAgent = hdrs.get('user-agent') || 'Unknown'
+await supabase.from('tap_events').insert({
+profile_id: profile.id,
+card_code: card.card_id,
+event_type: 'card_tap',
+tapped_at: new Date().toISOString(),
+})
 
-  await supabase.from('tap_events').insert({
-    profile_id: profile!.id,
-    card_code:  card.card_id,
-    event_type: 'card_tap',
-    user_agent: userAgent,
-    tapped_at:  new Date().toISOString(),
-  })
-
-  // Show cinematic activation screen. The <meta httpEquiv="refresh"> fires
-  // after 2 seconds and navigates to the public profile.
-  // We use meta-refresh (not Next.js redirect) so the animation is visible.
-  return (
-    <ActivationScreen
-      username={profile.username}
-      displayName={profile.display_name}
-      avatarUrl={profile.avatar_url}
-      role={profile.role}
-    />
-  )
+return (
+<ActivationScreen
+username={profile.username}
+displayName={profile.display_name}
+avatarUrl={profile.avatar_url}
+role={profile.role}
+/>
+)
 }
 
 // ─── Activation Screen ────────────────────────────────────────────────────────
