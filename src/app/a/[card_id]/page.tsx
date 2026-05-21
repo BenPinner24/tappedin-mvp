@@ -43,6 +43,10 @@ const cleanCardId = decodeURIComponent(card_id)
 .replace(/\/$/, '')
 .toLowerCase()
 
+if (cleanCardId === 'pvc-007') {
+redirect('/u/k9allegedly')
+}
+
 const cleanUrl = `https://tappedin.uk/a/${cleanCardId}`
 const emergencyPvcRedirects: Record<string, string> = {
 'pvc-003': 'yme',
