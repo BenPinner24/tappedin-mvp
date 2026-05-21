@@ -51,15 +51,37 @@ export default async function ActivateCardPage({ params }: ActivateCardPageProps
   }
 
   // Unclaimed OR claimed-but-null-owner (defensive catch for DB integrity bug)
-  if (card.status !== 'claimed' || !card.owner_user_id) {
-    if (!card.first_tap_at) {
-      await supabase
-        .from('cards')
-        .update({ first_tap_at: new Date().toISOString() })
-        .eq('card_id', card_id)
-    }
-    redirect(`/claim/${card_id}`)
-  }
+  const isFounderCard = card.card_id.startsWith('founders-edition-')
+const isPvcCard = card.card_id.startsWith('pvc-')
+
+// PVC cards that are already claimed should go straight to profile
+if (
+isPvcCard &&
+card.status === 'claimed' &&
+card.owner_user_id
+) {
+// continue to profile lookup below
+}
+
+// Founder cards still use claim/reserved flow
+else if (
+isFounderCard &&
+(card.status === 'unclaimed' || card.status === 'reserved')
+) {
+if (!card.first_tap_at) {
+await supabase
+.from('cards')
+.update({ first_tap_at: new Date().toISOString() })
+.eq('card_id', card_id)
+}
+
+redirect(`/claim/${card_id}`)
+}
+
+// Any broken/unassigned cards
+else if (!card.owner_user_id) {
+return <UnavailableCard />
+}
 
   const { data: profile } = await supabase
     .from('profiles')
