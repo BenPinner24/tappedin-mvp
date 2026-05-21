@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound }     from 'next/navigation'
 import type { CSSProperties } from 'react'
 
@@ -139,7 +139,7 @@ const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 
 export default async function PublicProfilePage({ params }: PublicProfilePageProps) {
   const { username } = await params
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: profile, error } = await supabase
     .from('profiles')
