@@ -49,7 +49,7 @@ const emergencyPvcRedirects: Record<string, string> = {
 'pvc-004': 'alfonso',
 'pvc-005': 'deswilliams',
 'pvc-006': 'chocblock',
-'pvc-007': 'k9allegedly',
+'pvc-007': 'k9alledgedly',
 'pvc-008': 'c4mclothing',
 }
 
