@@ -138,17 +138,25 @@ const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function PublicProfilePage({ params }: PublicProfilePageProps) {
-  const { username } = await params
-  const supabase = createAdminClient()
+const { username } = await params
+const supabase = createAdminClient()
 
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('id, username, display_name, bio, role, website, avatar_url, headline, theme_style, accent_color, button_style, background_style, is_public')
-    .eq('username', username)
-    .maybeSingle<Profile>()
+const cleanUsername = decodeURIComponent(username)
+.trim()
+.replace(/\/$/, '')
+.toLowerCase()
 
-  if (error || !profile) notFound()
-  // Public NFC profiles should be viewable
+const { data: profile, error } = await supabase
+.from('profiles')
+.select('id, username, display_name, bio, role, website, avatar_url, headline, theme_style, accent_color, button_style, background_style, is_public')
+.ilike('username', cleanUsername)
+.maybeSingle<Profile>()
+
+console.log('PUBLIC PROFILE LOOKUP:', { cleanUsername, profile, error })
+
+if (error || !profile) notFound()
+
+// Public NFC profiles should be viewable
 // if (profile.is_public === false) notFound()
 
   const { data: links } = await supabase
