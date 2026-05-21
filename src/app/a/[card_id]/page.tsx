@@ -44,7 +44,18 @@ const cleanCardId = decodeURIComponent(card_id)
 .toLowerCase()
 
 const cleanUrl = `https://tappedin.uk/a/${cleanCardId}`
+const emergencyPvcRedirects: Record<string, string> = {
+'pvc-003': 'yme',
+'pvc-004': 'alfonso',
+'pvc-005': 'deswilliams',
+'pvc-006': 'chocblock',
+'pvc-007': 'k9allegedly',
+'pvc-008': 'c4mclothing',
+}
 
+if (emergencyPvcRedirects[cleanCardId]) {
+redirect(`/u/${emergencyPvcRedirects[cleanCardId]}`)
+}
 let { data: card } = await supabase
 .from('cards')
 .select('card_id, owner_user_id, status, nfc_url, first_tap_at')
