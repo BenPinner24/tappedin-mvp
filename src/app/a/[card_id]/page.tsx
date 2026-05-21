@@ -45,11 +45,21 @@ const cleanCardId = decodeURIComponent(card_id)
 
 const cleanUrl = `https://tappedin.uk/a/${cleanCardId}`
 
-const { data: card } = await supabase
+let { data: card } = await supabase
 .from('cards')
 .select('card_id, owner_user_id, status, nfc_url, first_tap_at')
-.or(`card_id.eq.${cleanCardId},nfc_url.eq.${cleanUrl}`)
+.eq('card_id', cleanCardId)
 .maybeSingle<CardRecord>()
+
+if (!card) {
+const fallback = await supabase
+.from('cards')
+.select('card_id, owner_user_id, status, nfc_url, first_tap_at')
+.eq('nfc_url', cleanUrl)
+.maybeSingle<CardRecord>()
+
+card = fallback.data
+}
 
 if (!card) return <UnavailableCard />
 
@@ -73,9 +83,7 @@ await supabase
 redirect(`/claim/${card.card_id}`)
 }
 
-if (!card.owner_user_id) {
-return <UnavailableCard />
-}
+if (!card.owner_user_id) return <UnavailableCard />
 
 const { data: profile } = await supabase
 .from('profiles')
