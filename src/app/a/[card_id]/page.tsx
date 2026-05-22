@@ -43,40 +43,15 @@ const cleanCardId = decodeURIComponent(card_id)
 .replace(/\/$/, '')
 .toLowerCase()
 
-if (cleanCardId === 'pvc-007') {
-redirect('/u/k9allegedly')
-}
-
-const cleanUrl = `https://tappedin.uk/a/${cleanCardId}`
-const emergencyPvcRedirects: Record<string, string> = {
-'pvc-003': 'yme',
-'pvc-004': 'alfonso',
-'pvc-005': 'deswilliams',
-'pvc-006': 'chocblock',
-'pvc-007': 'k9alledgedly',
-'pvc-008': 'c4mclothing',
-}
-
-if (emergencyPvcRedirects[cleanCardId]) {
-redirect(`/u/${emergencyPvcRedirects[cleanCardId]}`)
-}
-let { data: card } = await supabase
+const { data: card, error: cardError } = await supabase
 .from('cards')
 .select('card_id, owner_user_id, status, nfc_url, first_tap_at')
 .eq('card_id', cleanCardId)
 .maybeSingle<CardRecord>()
 
-if (!card) {
-const fallback = await supabase
-.from('cards')
-.select('card_id, owner_user_id, status, nfc_url, first_tap_at')
-.eq('nfc_url', cleanUrl)
-.maybeSingle<CardRecord>()
-
-card = fallback.data
+if (cardError || !card) {
+return <UnavailableCard />
 }
-
-if (!card) return <UnavailableCard />
 
 if (card.status === 'suspended' || card.status === 'replaced') {
 return <SuspendedCard />
