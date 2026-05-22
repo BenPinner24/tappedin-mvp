@@ -41,7 +41,6 @@ const supabase = createAdminClient()
 const cleanCardId = decodeURIComponent(card_id)
 .trim()
 .replace(/\/$/, '')
-.toLowerCase()
 
 const { data: card, error: cardError } = await supabase
 .from('cards')
