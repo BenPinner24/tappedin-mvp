@@ -332,7 +332,200 @@ function HeroCardMobile() {
     </div>
   )
 }
+// ─────────────────────────────────────────────────────────────────────────────
+// iPHONE MOCKUP — used in the Install section. Matte, minimal, on-brand.
+// Renders a small device frame containing the "Add to Home Screen" sheet.
+// ─────────────────────────────────────────────────────────────────────────────
+function InstallPhoneMockup({ scale = 1 }: { scale?: number }) {
+  const W = Math.round(260 * scale)
+  const H = Math.round(534 * scale)
+  return (
+    <div style={{
+      position: 'relative',
+      width: W,
+      height: H,
+      borderRadius: Math.round(42 * scale),
+      background: 'linear-gradient(155deg, #1a1a1a 0%, #0d0d0d 50%, #141414 100%)',
+      boxShadow:
+        '0 0 0 1.5px rgba(255,255,255,0.07), 0 60px 120px rgba(0,0,0,0.92), 0 24px 48px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+      padding: Math.round(7 * scale),
+      flexShrink: 0,
+    }}>
+      {/* Grain */}
+      <div style={{
+        position: 'absolute', inset: 0, opacity: 0.06,
+        backgroundImage: GRAIN, backgroundSize: '180px 180px',
+        borderRadius: 'inherit', pointerEvents: 'none', zIndex: 2,
+      }} />
+      {/* Edge highlight */}
+      <div style={{
+        position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5, zIndex: 3,
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent)',
+        pointerEvents: 'none',
+      }} />
 
+      {/* Screen */}
+      <div style={{
+        position: 'relative',
+        width: '100%', height: '100%',
+        borderRadius: Math.round(36 * scale),
+        background: 'linear-gradient(180deg, #050505 0%, #0a0a0a 100%)',
+        overflow: 'hidden',
+        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.025)',
+      }}>
+        {/* Dynamic island */}
+        <div style={{
+          position: 'absolute', top: Math.round(11 * scale), left: '50%',
+          transform: 'translateX(-50%)',
+          width: Math.round(82 * scale), height: Math.round(24 * scale),
+          borderRadius: Math.round(14 * scale),
+          background: '#000',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+          zIndex: 5,
+        }} />
+
+        {/* Status bar */}
+        <div style={{
+          position: 'absolute', top: Math.round(16 * scale), left: 0, right: 0,
+          padding: `0 ${Math.round(22 * scale)}px`,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          fontFamily: 'Oswald, Arial, sans-serif',
+          fontSize: `${0.58 * scale}rem`, fontWeight: 500,
+          color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em',
+          zIndex: 4,
+        }}>
+          <span>9:41</span>
+          <span style={{ display: 'flex', gap: Math.round(4 * scale), alignItems: 'center' }}>
+            <span style={{ width: Math.round(14 * scale), height: Math.round(7 * scale), borderRadius: 1.5, border: '1px solid rgba(255,255,255,0.4)', position: 'relative' }}>
+              <span style={{ position: 'absolute', inset: 1, background: 'rgba(255,255,255,0.4)', borderRadius: 0.5 }} />
+            </span>
+          </span>
+        </div>
+
+        {/* Dashboard preview behind sheet (dimmed) */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          padding: `${Math.round(54 * scale)}px ${Math.round(20 * scale)}px ${Math.round(20 * scale)}px`,
+          opacity: 0.32,
+        }}>
+          <div style={{
+            fontFamily: 'Oswald, Arial, sans-serif',
+            fontSize: `${0.55 * scale}rem`, fontWeight: 500,
+            letterSpacing: '0.22em', color: 'rgba(255,255,255,0.45)',
+            textTransform: 'uppercase', marginBottom: Math.round(10 * scale),
+          }}>
+            TAPPED-IN
+          </div>
+          <div style={{
+            fontFamily: 'Oswald, Arial, sans-serif',
+            fontSize: `${1.1 * scale}rem`, fontWeight: 600,
+            color: '#fff', lineHeight: 1.15, marginBottom: Math.round(14 * scale),
+          }}>
+            Dashboard
+          </div>
+          {[0.7, 0.5, 0.6].map((w, i) => (
+            <div key={i} style={{
+              height: Math.round(36 * scale),
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.05)',
+              borderRadius: Math.round(8 * scale),
+              marginBottom: Math.round(8 * scale),
+              width: `${w * 100}%`,
+            }} />
+          ))}
+        </div>
+
+        {/* Share sheet — frosted */}
+        <div style={{
+          position: 'absolute', left: Math.round(8 * scale), right: Math.round(8 * scale),
+          bottom: Math.round(8 * scale),
+          borderRadius: Math.round(20 * scale),
+          background: 'rgba(22,22,22,0.92)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          padding: `${Math.round(14 * scale)}px ${Math.round(14 * scale)}px ${Math.round(16 * scale)}px`,
+          boxShadow: '0 -20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)',
+          zIndex: 6,
+        }}>
+          {/* Handle */}
+          <div style={{
+            width: Math.round(34 * scale), height: Math.round(4 * scale),
+            background: 'rgba(255,255,255,0.18)', borderRadius: 99,
+            margin: `0 auto ${Math.round(12 * scale)}px`,
+          }} />
+
+          {/* Profile row */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: Math.round(10 * scale),
+            padding: `${Math.round(8 * scale)}px ${Math.round(4 * scale)}px ${Math.round(12 * scale)}px`,
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            marginBottom: Math.round(10 * scale),
+          }}>
+            <div style={{
+              width: Math.round(34 * scale), height: Math.round(34 * scale),
+              borderRadius: Math.round(7 * scale),
+              background: 'linear-gradient(135deg, #1a1a1a, #0a0a0a)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'Oswald, Arial, sans-serif',
+              fontSize: `${0.5 * scale}rem`, fontWeight: 600,
+              color: 'rgba(255,255,255,0.7)', letterSpacing: '0.14em',
+            }}>TI</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontFamily: 'Oswald, Arial, sans-serif',
+                fontSize: `${0.62 * scale}rem`, fontWeight: 500,
+                color: '#fff', letterSpacing: '0.02em',
+                marginBottom: 2, whiteSpace: 'nowrap',
+                overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>tappedin.uk/dashboard</div>
+              <div style={{
+                fontFamily: 'Oswald, Arial, sans-serif',
+                fontSize: `${0.5 * scale}rem`, fontWeight: 400,
+                color: 'rgba(255,255,255,0.32)', letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+              }}>Options ›</div>
+            </div>
+          </div>
+
+          {/* Action rows */}
+          {[
+            { label: 'Copy', icon: '⧉', dim: true },
+            { label: 'Add Bookmark', icon: '☆', dim: true },
+            { label: 'Add to Home Screen', icon: '＋', highlight: true },
+          ].map((row) => (
+            <div key={row.label} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: `${Math.round(9 * scale)}px ${Math.round(4 * scale)}px`,
+              borderRadius: Math.round(8 * scale),
+              background: row.highlight ? 'rgba(255,255,255,0.05)' : 'transparent',
+              border: row.highlight ? '1px solid rgba(255,255,255,0.08)' : '1px solid transparent',
+              marginBottom: Math.round(2 * scale),
+            }}>
+              <span style={{
+                fontFamily: 'Oswald, Arial, sans-serif',
+                fontSize: `${0.65 * scale}rem`, fontWeight: row.highlight ? 500 : 400,
+                color: row.highlight ? '#fff' : 'rgba(255,255,255,0.55)',
+                letterSpacing: '0.01em',
+              }}>{row.label}</span>
+              <span style={{
+                width: Math.round(22 * scale), height: Math.round(22 * scale),
+                borderRadius: Math.round(5 * scale),
+                background: row.highlight ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: `${0.7 * scale}rem`,
+                color: row.highlight ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.4)',
+                fontWeight: 300,
+              }}>{row.icon}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED STYLE TOKENS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -857,7 +1050,213 @@ letterSpacing: isMobile ? '.08em' : '.12em',
             </p>
           </div>
         </section>
+{/* ════════════════════════════════════════════════════════════
+            6.5 INSTALL — Add to Home Screen
+            Cinematic, matte, mobile-first. Slots between Editions
+            and Final CTA. Uses existing tokens (EB, H2, SUB, SP, reveal).
+        ════════════════════════════════════════════════════════════ */}
+        <section id="install" style={{ padding: SP, position: 'relative', overflow: 'hidden' }}>
+          {/* Subtle grid backdrop — matches hero / final CTA treatment */}
+          <div style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none',
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
+            backgroundSize: '72px 72px',
+            WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 45%, black 12%, transparent 72%)',
+            maskImage: 'radial-gradient(ellipse 80% 70% at 50% 45%, black 12%, transparent 72%)',
+            opacity: isMobile ? 0.5 : 1,
+          }} />
+          {/* Soft glow */}
+          <div style={{
+            position: 'absolute', top: '38%', left: '50%',
+            transform: 'translate(-50%,-50%)',
+            width: 720, height: 460,
+            background: 'radial-gradient(ellipse, rgba(255,255,255,0.025) 0%, transparent 65%)',
+            filter: 'blur(8px)', pointerEvents: 'none',
+          }} />
 
+          <div style={{ maxWidth: 1160, margin: '0 auto', position: 'relative', zIndex: 2 }}>
+
+            {/* Header */}
+            <div className="reveal" style={{ textAlign: 'center', marginBottom: isMobile ? 'clamp(2rem,5vw,3rem)' : 'clamp(3.5rem,7vw,5.5rem)' }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '5px 14px 5px 7px',
+                background: 'rgba(255,255,255,0.032)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 2,
+                marginBottom: isMobile ? '1rem' : '1.5rem',
+              }}>
+                <div style={{
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: '#fff', animation: 'dotBlink 2s ease-in-out infinite',
+                }} />
+                <span style={{
+                  fontFamily: 'Oswald, Arial, sans-serif',
+                  fontSize: isMobile ? '.63rem' : '.7rem',
+                  fontWeight: 500, color: 'rgba(255,255,255,.5)',
+                  letterSpacing: '.22em', textTransform: 'uppercase',
+                }}>Install on iPhone</span>
+              </div>
+              <h2 style={H2}>
+                Your dashboard,<br />
+                <span style={{ fontWeight: 300, color: 'rgba(255,255,255,.42)' }}>on your home screen.</span>
+              </h2>
+              <p style={SUB}>
+                Add Tapped-In to your iPhone in four steps. No app store. No download. Just a tap.
+              </p>
+            </div>
+
+            {/* Split layout: phone left, steps right (stacks on mobile) */}
+            <div className="profile-cols reveal d1" style={{
+              display: 'flex',
+              gap: isMobile ? '2.5rem' : 'clamp(3rem,6vw,5.5rem)',
+              alignItems: 'center', justifyContent: 'center',
+              flexWrap: 'wrap',
+            }}>
+
+              {/* Phone column */}
+              <div style={{
+                flex: '0 1 auto',
+                display: 'flex', justifyContent: 'center',
+                position: 'relative',
+              }}>
+                <div style={{
+                  position: 'absolute', inset: isMobile ? -40 : -80,
+                  background: 'radial-gradient(ellipse, rgba(255,255,255,0.04) 0%, transparent 65%)',
+                  animation: 'glowPulse 5s ease-in-out infinite',
+                  borderRadius: '50%', filter: 'blur(20px)',
+                  pointerEvents: 'none',
+                }} />
+                <div style={{
+                  position: 'relative',
+                  animation: 'cardFloat 7s ease-in-out infinite',
+                  transformOrigin: 'center',
+                }}>
+                  <InstallPhoneMockup scale={isMobile ? 0.78 : 1} />
+                </div>
+              </div>
+
+              {/* Steps column */}
+              <div style={{
+                flex: '1 1 380px',
+                maxWidth: isMobile ? '100%' : 460,
+                display: 'flex', flexDirection: 'column',
+                gap: '.65rem',
+              }}>
+                {[
+                  { n: '01', title: 'Open in Safari',         body: 'Visit tappedin.uk/dashboard from your iPhone using Safari.' },
+                  { n: '02', title: 'Tap the Share button',   body: 'Located at the bottom of the screen — the square with an arrow pointing up.' },
+                  { n: '03', title: 'Add to Home Screen',     body: 'Scroll the share menu and select Add to Home Screen.' },
+                  { n: '04', title: 'Instant access',         body: 'Your Tapped-In dashboard now lives on your home screen. Open it like any app.' },
+                ].map((s, i) => (
+                  <div
+                    key={s.n}
+                    className={`reveal d${i + 2}`}
+                    style={{
+                      position: 'relative',
+                      background: 'linear-gradient(148deg, rgba(14,14,14,0.85) 0%, rgba(8,8,8,0.9) 100%)',
+                      backdropFilter: 'blur(12px) saturate(140%)',
+                      WebkitBackdropFilter: 'blur(12px) saturate(140%)',
+                      border: '1px solid rgba(255,255,255,0.055)',
+                      borderRadius: 3,
+                      padding: isMobile ? '1.1rem 1.1rem' : '1.25rem 1.5rem',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: isMobile ? '.9rem' : '1.25rem',
+                      transition: 'border-color .3s, transform .3s cubic-bezier(0.16,1,0.3,1), background .3s',
+                      overflow: 'hidden',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.055)'
+                      e.currentTarget.style.transform = 'translateY(0)'
+                    }}
+                  >
+                    {/* Top edge highlight */}
+                    <div style={{
+                      position: 'absolute', top: 0, left: '6%', right: '6%', height: 1,
+                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08) 50%, transparent)',
+                      pointerEvents: 'none',
+                    }} />
+
+                    {/* Number */}
+                    <div style={{
+                      flexShrink: 0,
+                      width: isMobile ? 36 : 42,
+                      height: isMobile ? 36 : 42,
+                      borderRadius: 2,
+                      background: 'rgba(255,255,255,0.025)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontFamily: 'Oswald, Arial, sans-serif',
+                      fontSize: isMobile ? '.72rem' : '.78rem',
+                      fontWeight: 500,
+                      letterSpacing: '.14em',
+                      color: 'rgba(255,255,255,0.55)',
+                    }}>
+                      {s.n}
+                    </div>
+
+                    {/* Copy */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h3 style={{
+                        fontFamily: 'Oswald, Arial, sans-serif',
+                        fontSize: isMobile ? '.98rem' : '1.08rem',
+                        fontWeight: 500,
+                        color: '#fff',
+                        letterSpacing: '0.02em',
+                        textTransform: 'uppercase',
+                        marginBottom: '.35rem',
+                        lineHeight: 1.2,
+                      }}>
+                        {s.title}
+                      </h3>
+                      <p style={{
+                        fontFamily: 'Oswald, Arial, sans-serif',
+                        fontSize: isMobile ? '.82rem' : '.86rem',
+                        fontWeight: 300,
+                        color: 'rgba(255,255,255,0.38)',
+                        lineHeight: 1.68,
+                        letterSpacing: '0.01em',
+                      }}>
+                        {s.body}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Footnote */}
+                <div className="reveal d6" style={{
+                  marginTop: '.65rem',
+                  padding: isMobile ? '.85rem 1rem' : '.9rem 1.25rem',
+                  display: 'flex', alignItems: 'center', gap: '.75rem',
+                  background: 'rgba(255,255,255,0.018)',
+                  border: '1px solid rgba(255,255,255,0.04)',
+                  borderRadius: 3,
+                }}>
+                  <div style={{
+                    width: 5, height: 5, borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.35)',
+                    flexShrink: 0,
+                  }} />
+                  <span style={{
+                    fontFamily: 'Oswald, Arial, sans-serif',
+                    fontSize: isMobile ? '.72rem' : '.76rem',
+                    fontWeight: 400,
+                    color: 'rgba(255,255,255,0.32)',
+                    letterSpacing: '.06em',
+                    lineHeight: 1.5,
+                  }}>
+                    iPhone only. Android users can pin via Chrome menu › Add to Home screen.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
         {/* ════════════════════════════════════════════════════════════
             7. FINAL CTA
         ════════════════════════════════════════════════════════════ */}
