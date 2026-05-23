@@ -443,6 +443,18 @@ export default function HomePage() {
               <Link href="/login" className="btn-ghost" style={{ padding:'9px 18px', fontSize:'.82rem' }}>Sign in</Link>
             )}
             <Link
+href="/dashboard"
+className="btn-ghost"
+style={{
+padding: isMobile ? "9px 16px" : "10px 22px",
+fontSize: isMobile ? ".75rem" : ".82rem",
+letterSpacing: isMobile ? ".08em" : ".12em",
+textDecoration: "none",
+}}
+>
+Dashboard
+</Link>
+            <Link
 href={FOUNDERS_STRIPE_URL}
 
 target="_blank"
