@@ -953,28 +953,236 @@ letterSpacing: isMobile ? '.08em' : '.12em',
               </div>
 
               {/* Mock profile card */}
-              <div className="reveal d2" style={{ flex:'1 1 300px', maxWidth:380 }}>
-                <div style={{ background:'#0a0a0a', border:'1px solid rgba(255,255,255,0.07)', borderRadius:18, overflow:'hidden', boxShadow:'0 40px 80px rgba(0,0,0,0.7)' }}>
-                  <div style={{ padding:'1.1rem 1.5rem', borderBottom:'1px solid rgba(255,255,255,0.05)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, letterSpacing:'.18em', color:'rgba(255,255,255,.2)', textTransform:'uppercase' }}>tappedin.uk/u/yourname</span>
-                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                      <div style={{ width:5, height:5, borderRadius:'50%', background:'#4ade80', boxShadow:'0 0 6px #4ade80' }} />
-                      <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:500, color:'#4ade80', letterSpacing:'0.08em', textTransform:'uppercase' }}>Live</span>
+              <div className="reveal d2" style={{
+                flex: isMobile ? '1 1 100%' : '1 1 320px',
+                maxWidth: isMobile ? 360 : 400,
+                width: '100%',
+                margin: isMobile ? '0 auto' : undefined,
+                position: 'relative',
+              }}>
+                {/* Soft ambient glow — contained, premium */}
+                <div style={{
+                  position: 'absolute',
+                  inset: isMobile ? -28 : -50,
+                  background: 'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.04) 0%, transparent 65%)',
+                  filter: 'blur(18px)',
+                  animation: 'glowPulse 6s ease-in-out infinite',
+                  pointerEvents: 'none',
+                  borderRadius: '50%',
+                }} />
+
+                <div
+                  style={{
+                    position: 'relative',
+                    background: 'linear-gradient(155deg, rgba(13,13,13,0.96) 0%, rgba(9,9,9,0.98) 50%, rgba(11,11,11,0.96) 100%)',
+                    backdropFilter: 'blur(20px) saturate(140%)',
+                    WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: isMobile ? 16 : 20,
+                    overflow: 'hidden',
+                    boxShadow: '0 50px 100px rgba(0,0,0,0.75), 0 20px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)',
+                    transition: 'transform .5s cubic-bezier(0.16,1,0.3,1), box-shadow .5s cubic-bezier(0.16,1,0.3,1), border-color .5s',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (isMobile) return
+                    e.currentTarget.style.transform = 'translateY(-4px)'
+                    e.currentTarget.style.boxShadow = '0 60px 120px rgba(0,0,0,0.85), 0 28px 56px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.11)'
+                  }}
+                  onMouseLeave={(e) => {
+                    if (isMobile) return
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = '0 50px 100px rgba(0,0,0,0.75), 0 20px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+                  }}
+                >
+                  {/* Top edge highlight */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: '8%', right: '8%', height: 1,
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent)',
+                    pointerEvents: 'none',
+                  }} />
+
+                  {/* Grain texture */}
+                  <div style={{
+                    position: 'absolute', inset: 0, opacity: 0.04,
+                    backgroundImage: GRAIN, backgroundSize: '180px 180px',
+                    pointerEvents: 'none', mixBlendMode: 'overlay',
+                  }} />
+
+                  {/* Header strip — URL + LIVE */}
+                  <div style={{
+                    position: 'relative',
+                    padding: isMobile ? '.95rem 1.15rem' : '1.1rem 1.5rem',
+                    borderBottom: '1px solid rgba(255,255,255,0.045)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    gap: '.75rem',
+                  }}>
+                    <span style={{
+                      fontFamily: 'Oswald, Arial, sans-serif',
+                      fontSize: isMobile ? '.56rem' : '.6rem',
+                      fontWeight: 400,
+                      letterSpacing: '.18em',
+                      color: 'rgba(255,255,255,.22)',
+                      textTransform: 'uppercase',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      minWidth: 0,
+                    }}>
+                      tappedin.uk/u/lucasgrey
+                    </span>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '3px 8px 3px 7px',
+                      background: 'rgba(74,222,128,0.06)',
+                      border: '1px solid rgba(74,222,128,0.14)',
+                      borderRadius: 2,
+                      flexShrink: 0,
+                    }}>
+                      <div style={{
+                        width: 5, height: 5, borderRadius: '50%',
+                        background: '#4ade80',
+                        boxShadow: '0 0 6px rgba(74,222,128,0.6)',
+                        animation: 'dotBlink 2s ease-in-out infinite',
+                      }} />
+                      <span style={{
+                        fontFamily: 'Oswald, Arial, sans-serif',
+                        fontSize: isMobile ? '.55rem' : '.58rem',
+                        fontWeight: 500,
+                        color: 'rgba(74,222,128,0.85)',
+                        letterSpacing: '.16em',
+                        textTransform: 'uppercase',
+                      }}>Live</span>
                     </div>
                   </div>
-                  <div style={{ padding:'2rem 1.5rem', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
-                    <div style={{ width:58, height:58, borderRadius:14, background:'rgba(255,255,255,0.055)', border:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'1rem', fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.1rem', fontWeight:600, color:'rgba(255,255,255,.45)', letterSpacing:'0.08em' }}>BP</div>
-                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.35rem', fontWeight:500, color:'#fff', marginBottom:'.25rem', letterSpacing:'0.02em' }}>Ben Pinner</div>
-                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.3)', marginBottom:'1.5rem', letterSpacing:'0.04em' }}>Founder, TAPPED-IN</div>
-                    <div style={{ display:'flex', flexDirection:'column', gap:'.45rem', width:'100%' }}>
-                      {['Portfolio','Instagram','Contact me'].map(l=>(
-                        <div key={l} style={{ padding:'.6rem', borderRadius:9, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.05)', fontFamily:'Oswald, Arial, sans-serif', fontSize:'.82rem', fontWeight:400, color:'rgba(255,255,255,.55)', letterSpacing:'0.04em', textTransform:'uppercase' }}>{l}</div>
+
+                  {/* Body */}
+                  <div style={{
+                    padding: isMobile ? '1.65rem 1.15rem 1.5rem' : '2.25rem 1.75rem 1.85rem',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    textAlign: 'center',
+                  }}>
+                    {/* Avatar */}
+                    <div style={{
+                      position: 'relative',
+                      marginBottom: isMobile ? '.85rem' : '1.1rem',
+                    }}>
+                      {/* Avatar glow ring */}
+                      <div style={{
+                        position: 'absolute', inset: -6,
+                        borderRadius: isMobile ? 16 : 20,
+                        background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)',
+                        filter: 'blur(8px)',
+                        pointerEvents: 'none',
+                      }} />
+                      <div style={{
+                        position: 'relative',
+                        width: isMobile ? 58 : 68,
+                        height: isMobile ? 58 : 68,
+                        borderRadius: isMobile ? 14 : 16,
+                        background: 'linear-gradient(145deg, #1c1c1c 0%, #0e0e0e 50%, #161616 100%)',
+                        border: '1px solid rgba(255,255,255,0.09)',
+                        boxShadow: '0 10px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.07)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontFamily: 'Oswald, Arial, sans-serif',
+                        fontSize: isMobile ? '1.05rem' : '1.2rem',
+                        fontWeight: 600,
+                        color: 'rgba(255,255,255,.7)',
+                        letterSpacing: '0.1em',
+                      }}>LG</div>
+                    </div>
+
+                    {/* Name */}
+                    <div style={{
+                      fontFamily: 'Oswald, Arial, sans-serif',
+                      fontSize: isMobile ? '1.18rem' : '1.4rem',
+                      fontWeight: 500,
+                      color: '#fff',
+                      marginBottom: '.25rem',
+                      letterSpacing: '0.02em',
+                      lineHeight: 1.15,
+                    }}>Lucas Grey</div>
+
+                    {/* Role */}
+                    <div style={{
+                      fontFamily: 'Oswald, Arial, sans-serif',
+                      fontSize: isMobile ? '.72rem' : '.78rem',
+                      fontWeight: 400,
+                      color: 'rgba(255,255,255,.34)',
+                      marginBottom: isMobile ? '1.35rem' : '1.65rem',
+                      letterSpacing: '.14em',
+                      textTransform: 'uppercase',
+                    }}>Director · Visual Storyteller</div>
+
+                    {/* Action buttons */}
+                    <div style={{
+                      display: 'flex', flexDirection: 'column',
+                      gap: isMobile ? '.4rem' : '.5rem',
+                      width: '100%',
+                    }}>
+                      {[
+                        { label: 'Showreel',    primary: false },
+                        { label: 'Instagram',   primary: false },
+                        { label: 'Book a shoot', primary: true  },
+                      ].map((btn, i) => (
+                        <div
+                          key={btn.label}
+                          style={{
+                            position: 'relative',
+                            padding: isMobile ? '.7rem .85rem' : '.78rem 1rem',
+                            borderRadius: isMobile ? 9 : 10,
+                            background: btn.primary
+                              ? 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.055) 100%)'
+                              : 'rgba(255,255,255,0.028)',
+                            border: btn.primary
+                              ? '1px solid rgba(255,255,255,0.14)'
+                              : '1px solid rgba(255,255,255,0.05)',
+                            fontFamily: 'Oswald, Arial, sans-serif',
+                            fontSize: isMobile ? '.74rem' : '.8rem',
+                            fontWeight: btn.primary ? 500 : 400,
+                            color: btn.primary ? 'rgba(255,255,255,.92)' : 'rgba(255,255,255,.58)',
+                            letterSpacing: '.14em',
+                            textTransform: 'uppercase',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            transition: 'background .3s, border-color .3s, color .3s',
+                            boxShadow: btn.primary ? 'inset 0 1px 0 rgba(255,255,255,0.05)' : 'none',
+                          }}
+                        >
+                          <span>{btn.label}</span>
+                          <span style={{
+                            fontSize: isMobile ? '.65rem' : '.7rem',
+                            color: btn.primary ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.22)',
+                            fontWeight: 300,
+                            letterSpacing: 0,
+                          }}>→</span>
+                        </div>
                       ))}
                     </div>
                   </div>
-                  <div style={{ padding:'.8rem 1.5rem', borderTop:'1px solid rgba(255,255,255,0.05)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, color:'rgba(255,255,255,.18)', letterSpacing:'0.08em', textTransform:'uppercase' }}>TAPPED-IN · Founder</span>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, color:'rgba(255,255,255,.16)', letterSpacing:'0.06em' }}>312 taps</span>
+
+                  {/* Footer strip */}
+                  <div style={{
+                    padding: isMobile ? '.75rem 1.15rem' : '.85rem 1.5rem',
+                    borderTop: '1px solid rgba(255,255,255,0.045)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    gap: '.5rem',
+                  }}>
+                    <span style={{
+                      fontFamily: 'Oswald, Arial, sans-serif',
+                      fontSize: isMobile ? '.55rem' : '.6rem',
+                      fontWeight: 500,
+                      color: 'rgba(255,255,255,.22)',
+                      letterSpacing: '.18em',
+                      textTransform: 'uppercase',
+                    }}>TAPPED-IN · Creative</span>
+                    <span style={{
+                      fontFamily: 'Oswald, Arial, sans-serif',
+                      fontSize: isMobile ? '.55rem' : '.6rem',
+                      fontWeight: 400,
+                      color: 'rgba(255,255,255,.2)',
+                      letterSpacing: '.08em',
+                    }}>428 taps</span>
                   </div>
                 </div>
               </div>
