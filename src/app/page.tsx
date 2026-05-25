@@ -1238,8 +1238,8 @@ letterSpacing: isMobile ? '.08em' : '.12em',
 
             <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', maxWidth:720, margin:'0 auto' }}>
               {[
-                { label:'Standard PVC',   price:'£24.99' },
-                { label:'Standard Metal', price:'£34.99' },
+                { label:'Standard PVC',   price:'£34.99' },
+                { label:'Standard Metal', price:'£49.99' },
               ].map((ed,i)=>(
                 <div key={i} style={{ background:'#070707', border:'1px solid rgba(255,255,255,0.04)', borderRadius:3, padding: isMobile ? '1.1rem .9rem' : 'clamp(1.5rem,3vw,2rem)', opacity:.4, position:'relative', overflow:'hidden' }}>
                   <div style={{ position:'absolute', top:12, right:12, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:2, padding:'3px 9px', fontFamily:'Oswald, Arial, sans-serif', fontSize:'.58rem', fontWeight:500, letterSpacing:'.2em', color:'rgba(255,255,255,.38)', textTransform:'uppercase' }}>Locked</div>
