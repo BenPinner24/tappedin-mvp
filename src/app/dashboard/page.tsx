@@ -53,12 +53,13 @@ type Profile = {
 }
 
 type ProfileLink = {
-  id: string
-  label: string
-  url: string
-  link_type: string | null
-  position: number
-  is_active: boolean
+id: string
+label: string
+url: string
+link_type: string | null
+custom_label?: string | null
+position: number
+is_active: boolean
 }
 
 type CardRecord = {
@@ -120,7 +121,7 @@ const PLATFORM_OPTIONS = [
   { value: 'Email',        kind: 'email'    },
   { value: 'Booking',      kind: 'url'      },
   { value: 'Reviews',      kind: 'url'      },
-  { value: 'Other',        kind: 'url'      },
+  { value: 'Custom', kind: 'custom' },
 ] as const
 
 // ─── Link-type detection & normalisation ──────────────────────────────────────
@@ -142,16 +143,27 @@ function urlPlaceholder(label: string): string {
 }
 
 function urlInputMode(label: string): 'tel' | 'email' | 'url' | 'text' {
-  const kind = detectLinkKind(label)
-  if (kind === 'whatsapp') return 'tel'
-  if (kind === 'email')    return 'email'
-  return 'url'
+const kind = detectLinkKind(label)
+if (kind === 'whatsapp') return 'tel'
+if (kind === 'email') return 'email'
+return 'url'
 }
 
 function normaliseUrl(label: string, raw: string): string {
   const v = raw.trim()
   if (!v) return v
   const kind = detectLinkKind(label)
+  if (label === 'Custom') {
+const cleaned = v.replace(/\s+/g, '')
+
+if (/^(\+?\d{7,15})$/.test(cleaned) || /^(0\d{9,14})$/.test(cleaned)) {
+return `tel:${cleaned}`
+}
+
+if (cleaned.includes('@') && !cleaned.startsWith('mailto:')) {
+return `mailto:${cleaned}`
+}
+}
 
   if (kind === 'whatsapp') {
     if (v.startsWith('https://wa.me/') || v.startsWith('http://wa.me/')) return v
@@ -223,12 +235,24 @@ function validateLinkRow(label: string, url: string): string | null {
     }
     return null
   }
-  try {
-    new URL(normalised)
-    return null
-  } catch {
-    return 'Enter a valid URL (e.g. https://example.com or instagram.com/yourname)'
-  }
+  if (rawLabel === 'Custom') {
+const cleaned = rawUrl.replace(/\s+/g, '')
+
+const isPhone =
+/^(\+?\d{7,15})$/.test(cleaned) ||
+/^(0\d{9,14})$/.test(cleaned)
+
+if (isPhone) {
+return null
+}
+}
+
+try {
+new URL(normalised)
+return null
+} catch {
+return 'Enter a valid URL, phone number, or email'
+}
 }
 
 // ─── Username normalisation ───────────────────────────────────────────────────
@@ -675,29 +699,41 @@ export default function DashboardPage() {
     setLinksSave('saving')
 
     const existingRows: {
-      id: string; user_id: string; profile_id: string
-      label: string; url: string; link_type: string
-      position: number; is_active: boolean
-    }[] = []
+id: string
+user_id: string
+profile_id: string
+label: string
+url: string
+link_type: string
+custom_label: string | null
+position: number
+is_active: boolean
+}[] = []
     const newRows: {
-      user_id: string; profile_id: string
-      label: string; url: string; link_type: string
-      position: number; is_active: boolean
-    }[] = []
+user_id: string
+profile_id: string
+label: string
+url: string
+link_type: string
+custom_label: string | null
+position: number
+is_active: boolean
+}[] = []
 
     links.forEach((l, i) => {
       const isNew   = !l.id || l.id.startsWith('__new__')
       const active  = !!(l.label.trim() && l.url.trim()) && l.is_active
       const normUrl = normaliseUrl(l.label, l.url)
-      const shared  = {
-        user_id:    uid,
-        profile_id: profile.id,
-        label:      l.label.trim(),
-        url:        normUrl,
-        link_type:  detectLinkKind(l.label),
-        position:   i,
-        is_active:  active,
-      }
+      const shared = {
+user_id: uid,
+profile_id: profile.id,
+label: l.label.trim(),
+url: normUrl,
+link_type: detectLinkKind(l.label),
+custom_label: l.custom_label ?? null,
+position: i,
+is_active: active,
+}
       if (isNew) newRows.push(shared)
       else       existingRows.push({ id: l.id, ...shared })
     })
@@ -715,12 +751,13 @@ export default function DashboardPage() {
         const { error } = await supabase
           .from('profile_links')
           .update({
-            label:     row.label,
-            url:       row.url,
-            link_type: row.link_type,
-            position:  row.position,
-            is_active: row.is_active,
-          })
+label: row.label,
+url: row.url,
+link_type: row.link_type,
+custom_label: row.custom_label,
+position: row.position,
+is_active: row.is_active,
+})
           .eq('id',      row.id)
           .eq('user_id', uid)
         if (error) {
@@ -733,6 +770,7 @@ export default function DashboardPage() {
       }
       if (newRows.length > 0) {
         const { error } = await supabase.from('profile_links').insert(newRows)
+console.log('Inserted rows:', newRows)
         if (error) {
           const msg = `Update failed: ${error.message} (code ${error.code})`
           console.error('[saveLinks] insert error', error, 'rows:', newRows)
@@ -758,17 +796,18 @@ export default function DashboardPage() {
     if (!pid) return
     const { data } = await supabase
       .from('profile_links')
-      .select('id, label, url, link_type, position, is_active')
+      .select('id, label, url, link_type, custom_label, position, is_active')
       .eq('profile_id', pid)
       .order('position', { ascending: true })
     if (data) {
-      const mapped = (data as ProfileLink[]).map(l => ({
-        ...l,
-        label:     l.label     ?? '',
-        url:       l.url       ?? '',
-        link_type: l.link_type ?? null,
-        is_active: l.is_active ?? true,
-      }))
+      const mapped = (data as ProfileLink[]).map((l) => ({
+...l,
+label: l.label ?? '',
+url: l.url ?? '',
+link_type: l.link_type ?? null,
+custom_label: l.custom_label ?? null,
+is_active: l.is_active ?? true,
+}))
       setLinks(mapped)
       setLinkErrors(mapped.map(() => null))
     }
@@ -1089,7 +1128,7 @@ export default function DashboardPage() {
               <div style={s.previewLinks}>
                 {activeLinks.length > 0
                   ? activeLinks.slice(0, 4).map((l) => (
-                      <div key={l.id} style={s.previewLinkPill}>{l.label}</div>
+                      <div key={l.id} style={s.previewLinkPill}>{l.custom_label || l.label}</div>
                     ))
                   : ['Instagram', 'Portfolio', 'Contact'].map((l) => (
                       <div key={l} style={s.previewLinkPillDim}>{l}</div>
@@ -1491,7 +1530,26 @@ export default function DashboardPage() {
                                   <option key={opt.value} value={opt.value}>{opt.value}</option>
                                 ))}
                               </select>
-                              {link.label && (
+
+{link.label === 'Custom' && (
+<input
+value={link.custom_label ?? ''}
+placeholder="Button text (e.g. John, Call Mike)"
+onChange={(e) =>
+patchLink(i, {
+custom_label: e.target.value,
+})
+}
+style={{
+...inputs.base,
+marginTop: '0.75rem',
+marginBottom: '0.75rem',
+fontFamily: font.sans,
+}}
+/>
+)}
+
+{link.label && (
                                 <div style={{
                                   ...s.linkKindBadge,
                                   ...(kind === 'whatsapp' ? s.linkKindWa : kind === 'email' ? s.linkKindEmail : s.linkKindUrl),
@@ -1502,7 +1560,13 @@ export default function DashboardPage() {
                             </div>
 
                             <input
-                              value={link.url}
+                              value={
+link.url.startsWith('tel:')
+? link.url.replace('tel:', '')
+: link.url.startsWith('mailto:')
+? link.url.replace('mailto:', '')
+: link.url
+}
                               placeholder={urlPlaceholder(link.label)}
                               inputMode={urlInputMode(link.label) as 'tel' | 'email' | 'url' | 'text'}
                               autoComplete={kind === 'email' ? 'email' : kind === 'whatsapp' ? 'tel' : 'url'}

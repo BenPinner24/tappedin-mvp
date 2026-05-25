@@ -25,12 +25,13 @@ type Profile = {
 }
 
 type ProfileLink = {
-  id:        string
-  label:     string | null
-  url:       string | null
-  link_type: string | null
-  position:  number | null
-  is_active: boolean | null
+id: string
+label: string
+url: string
+link_type: string | null
+custom_label?: string | null
+position: number
+is_active: boolean
 }
 
 type GalleryItem = {
@@ -360,7 +361,7 @@ if (error || !profile) notFound()
       {kind === 'email' && <IconEmail />}
       {kind === 'url' && <span style={{ width: 15, display: 'inline-block' }} />}
     </span>
-    <span style={s.linkLabel}>{link.label}</span>
+    <span style={s.linkLabel}>{link.custom_label || link.label}</span>
     <span style={{ ...s.linkArrow, color: iconColor }}>
       <IconArrow />
     </span>
