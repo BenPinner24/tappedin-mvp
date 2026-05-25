@@ -56,10 +56,13 @@ if (card.status === 'suspended' || card.status === 'replaced') {
 return <SuspendedCard />
 }
 
-const isFounderCard = card.card_id.startsWith('founders-edition-')
+const isClaimableCard =
+card.card_id.startsWith('founders-edition-') ||
+card.card_id.startsWith('pvc-') ||
+card.card_id.startsWith('BUSINESS-')
 
 if (
-isFounderCard &&
+isClaimableCard &&
 (card.status === 'unclaimed' || card.status === 'reserved')
 ) {
 if (!card.first_tap_at) {
