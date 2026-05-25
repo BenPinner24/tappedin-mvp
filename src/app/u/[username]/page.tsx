@@ -162,7 +162,7 @@ if (error || !profile) notFound()
 
   const { data: links } = await supabase
     .from('profile_links')
-    .select('id, label, url, link_type, position, is_active')
+    .select('id, label, url, link_type, custom_label, position, is_active')
     .eq('profile_id', profile.id)
     .eq('is_active', true)
     .order('position', { ascending: true })
