@@ -14,12 +14,13 @@ function SignupContent() {
   const router       = useRouter()
   const cardId       = searchParams.get('card_id') ?? ''
 
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [name,     setName]     = useState('')
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState<string | null>(null)
-  const [sent,     setSent]     = useState(false)
+  const [email,        setEmail]        = useState('')
+  const [password,     setPassword]     = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [name,         setName]         = useState('')
+  const [loading,      setLoading]      = useState(false)
+  const [error,        setError]        = useState<string | null>(null)
+  const [sent,         setSent]         = useState(false)
 
   const supabase = createClient()
 
@@ -158,17 +159,29 @@ function SignupContent() {
               </div>
               <div style={s.field}>
                 <label style={s.label}>Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="Min 8 characters"
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                  style={s.input}
-                  className="ti-input"
-                />
+                <div style={s.passwordWrap}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="Min 8 characters"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    style={{ ...s.input, paddingRight: '4rem' }}
+                    className="ti-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="ti-eye"
+                    style={s.eyeBtn}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -209,6 +222,8 @@ const CSS = `
   .ti-btn-primary{transition:background .18s,transform .18s cubic-bezier(.16,1,.3,1),box-shadow .18s;cursor:pointer}
   .ti-btn-primary:hover:not(:disabled){background:#e4e4e4 !important;transform:translateY(-1px);box-shadow:0 8px 24px rgba(255,255,255,0.12) !important}
   .ti-btn-primary:active{transform:translateY(0)}
+  .ti-eye{transition:color .18s}
+  .ti-eye:hover{color:rgba(255,255,255,0.75) !important}
 `
 
 const s: Record<string, CSSProperties> = {
@@ -232,6 +247,8 @@ const s: Record<string, CSSProperties> = {
   field:{display:'flex',flexDirection:'column',gap:'0.4rem'},
   label:{fontSize:'0.72rem',fontWeight:600,color:'rgba(255,255,255,0.45)',letterSpacing:'0.04em'},
   input:{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'0.75rem 1rem',color:'#fff',fontFamily:FONT,fontSize:'0.88rem',fontWeight:400,width:'100%'},
+  passwordWrap:{position:'relative',display:'flex',alignItems:'center'},
+  eyeBtn:{position:'absolute',right:'10px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'rgba(255,255,255,0.4)',fontFamily:FONT,fontSize:'0.72rem',fontWeight:600,letterSpacing:'0.02em',cursor:'pointer',padding:'4px 6px'},
   primaryBtn:{width:'100%',padding:'0.88rem 1.5rem',borderRadius:'100px',border:'none',background:'#fff',color:'#000',fontFamily:FONT,fontSize:'0.88rem',fontWeight:700,letterSpacing:'0.01em',boxShadow:'0 4px 20px rgba(0,0,0,0.3)',marginTop:'0.25rem'},
   divider:{height:'1px',background:'rgba(255,255,255,0.06)',margin:'1.5rem 0'},
   switchText:{fontSize:'0.78rem',color:'rgba(255,255,255,0.3)',textAlign:'center' as const,marginBottom:'1.5rem'},

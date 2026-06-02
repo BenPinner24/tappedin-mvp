@@ -1,0 +1,65 @@
+[33m50adb61[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Fix founders checkout button POST
+[33m4f585f2[m Add protected founders checkout
+[33m96b1701[m Load custom labels on public profile
+[33m53b6b63[m Add custom link labels for profile buttons
+[33mc9699f3[m Update coming soon card prices
+[33m4f75e6c[m Allow unclaimed PVC cards to enter claim flow
+[33m7f03530[m Added Vercel Analytics
+[33m46079dc[m Refined premium demo profile card
+[33m5405560[m Added mobile install section and dashboard header CTA
+[33m76b03fc[m Add mobile dashboard CTA
+[33m3951dca[m Add mobile dashboard CTA
+[33me2c60fb[m Fix business card case sensitivity
+[33m1943314[m Restore database card lookup
+[33m0eb2da4[m Hard fix pvc 007 redirect
+[33m98b3f0a[m Fix broken admin client
+[33m0ac6e29[m Fix public username lookup
+[33mda58649[m Allow public NFC profiles to load
+[33me37bba1[m Fix public profile RLS issue
+[33m1cc48bd[m Fix K9 PVC redirect username
+[33mdac61f5[m Emergency restore PVC card redirects
+[33ma124318[m Fix card lookup without Supabase or filter
+[33mb2798f7[m Use admin client for card activation lookup
+[33m11904a5[m Fix PVC activation lookup
+[33m41d4a89[m Fix PVC claimed card routing
+[33m4fdaae7[m Deploy final founder allocation webhook
+[33mfaed671[m Add automated founder allocation system
+[33m1f097d0[m Restore founders checkout link
+[33m9b0b519[m Temporarily switch checkout to £1 live test
+[33md2fc03d[m Allow production deploy with email webhook
+[33m03e4c6e[m Install React Email packages
+[33m5454cf5[m Add founder confirmation email webhook
+[33m9198cf2[m Add premium founders success page
+[33m740c22e[m Link founders preorder CTAs to Stripe
+[33mbab387b[m Update homepage preorder CTA
+[33m7fddb50[m Restore working homepage and analytics
+[33m61a9370[m Show gallery upload storage errors
+[33m2b9049a[m Show gallery upload storage errors
+[33mb292cde[m Show gallery upload storage errors
+[33mc14ee95[m Show gallery upload storage errors
+[33m772957b[m Increase gallery upload limit to 10MB
+[33mbc8a1bd[m Increase gallery upload limit to 10MB
+[33m8cdf710[m Add profile gallery feature
+[33m517f729[m Add profile gallery feature
+[33m093cc25[m Add username validation to dashboard
+[33m2996a72[m Add editable username field to dashboard
+[33m49c54e9[m Fix automatic server-side NFC card claiming
+[33md930b87[m Fix auth redirect card_id persistence
+[33me4a8638[m Fix automatic card claiming flow
+[33mc089950[m Fix signup email confirmation flow
+[33m6528812[m Fix Instagram CTA JSX
+[33m6f41764[m Improve Instagram CTA design
+[33m2baae2b[m Fix Instagram CTA and activation animation
+[33ma49ed00[m Fix activation redirect animation and Instagram CTA
+[33m3464eac[m Fix production build and dashboard link dropdown
+[33mf29f1eb[m Fix dashboard link dropdown and display name
+[33mfed6122[m Fix NFC card claiming flow
+[33m7845c11[m Update card pricing
+[33m66eb5f1[m Update founder drop CTAs
+[33md273051[m Improve mobile card details layout
+[33m900dc8d[m Fix mobile dashboard overflow
+[33m5fe6c9c[m Add avatar upload support
+[33md064133[m Fix mobile landing layout
+[33m5b5c723[m Fix dashboard link handling and email compose
+[33m50bab24[m Add noindex for prelaunch
+[33m7d6f3f5[m Initial Tapped-In MVP commit

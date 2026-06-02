@@ -1,44 +1,53 @@
-// src/app/login/page.tsx
+// src/app/reset-password/page.tsx
 'use client'
 
-import { Suspense, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { CSSProperties } from 'react'
 
 const FONT = `'DM Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif`
 
-function LoginContent() {
-  const searchParams = useSearchParams()
-  const router       = useRouter()
-  const cardId       = searchParams.get('card_id') ?? ''
+export default function ResetPasswordPage() {
+  const router = useRouter()
 
-  const [email,        setEmail]        = useState('')
-  const [password,     setPassword]     = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading,      setLoading]      = useState(false)
-  const [error,        setError]        = useState<string | null>(null)
+  const [password,        setPassword]        = useState('')
+  const [confirm,         setConfirm]         = useState('')
+  const [showPassword,    setShowPassword]    = useState(false)
+  const [showConfirm,     setShowConfirm]     = useState(false)
+  const [loading,         setLoading]         = useState(false)
+  const [error,           setError]           = useState<string | null>(null)
+  const [done,            setDone]            = useState(false)
 
   const supabase = createClient()
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleUpdate(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+    if (password !== confirm) {
+      setError('Passwords do not match.')
+      return
+    }
+
     setLoading(true)
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      const { error: updateError } = await supabase.auth.updateUser({ password })
 
-      if (signInError) {
-        setError(signInError.message)
+      if (updateError) {
+        setError(updateError.message)
         return
       }
 
-      // router.refresh() flushes the server-side session cache so the claim
-      // page's server component sees the authenticated user when it loads.
-      router.refresh()
-      router.push(cardId ? `/claim/${cardId}` : '/dashboard')
+      setDone(true)
+      // Redirect back to login shortly after success.
+      setTimeout(() => router.push('/login'), 2000)
     } catch (err) {
       setError('Something went wrong. Please try again.')
       console.error(err)
@@ -56,86 +65,94 @@ function LoginContent() {
           <div style={s.card}>
             <div style={s.brandRow}><span style={s.brandMark}>TAPPED-IN</span></div>
 
-            {cardId && (
-              <div style={s.cardHint}>
-                <span style={s.cardHintLabel}>Activating card</span>
-                <span style={s.cardHintId}>{cardId}</span>
-              </div>
-            )}
+            {done ? (
+              <>
+                <h1 style={s.title}>Password updated.</h1>
+                <p style={s.body}>
+                  Your password has been changed. Redirecting you to sign in…
+                </p>
+                <Link href="/login" style={s.switchLink}>
+                  <span style={s.backRow}>Go to sign in</span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <h1 style={s.title}>Set a new password.</h1>
+                <p style={s.body}>Choose a new password for your account.</p>
 
-            <h1 style={s.title}>{cardId ? 'Sign in to activate.' : 'Welcome back.'}</h1>
-            <p style={s.body}>
-              {cardId
-                ? 'Sign in to your account to claim this card.'
-                : 'Sign in to your Tapped-In account.'}
-            </p>
+                {error && <div style={s.errorBox}>{error}</div>}
 
-            {error && <div style={s.errorBox}>{error}</div>}
+                <form onSubmit={handleUpdate} style={s.form}>
+                  <div style={s.field}>
+                    <label style={s.label}>New password</label>
+                    <div style={s.passwordWrap}>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="Min 8 characters"
+                        required
+                        minLength={8}
+                        autoComplete="new-password"
+                        style={{ ...s.input, paddingRight: '4rem' }}
+                        className="ti-input"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(v => !v)}
+                        className="ti-eye"
+                        style={s.eyeBtn}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        tabIndex={-1}
+                      >
+                        {showPassword ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                  </div>
 
-            <form onSubmit={handleLogin} style={s.form}>
-              <div style={s.field}>
-                <label style={s.label}>Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="ben@example.com"
-                  required
-                  autoComplete="email"
-                  style={s.input}
-                  className="ti-input"
-                />
-              </div>
-              <div style={s.field}>
-                <label style={s.label}>Password</label>
-                <div style={s.passwordWrap}>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Your password"
-                    required
-                    autoComplete="current-password"
-                    style={{ ...s.input, paddingRight: '4rem' }}
-                    className="ti-input"
-                  />
+                  <div style={s.field}>
+                    <label style={s.label}>Confirm new password</label>
+                    <div style={s.passwordWrap}>
+                      <input
+                        type={showConfirm ? 'text' : 'password'}
+                        value={confirm}
+                        onChange={e => setConfirm(e.target.value)}
+                        placeholder="Re-enter password"
+                        required
+                        minLength={8}
+                        autoComplete="new-password"
+                        style={{ ...s.input, paddingRight: '4rem' }}
+                        className="ti-input"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm(v => !v)}
+                        className="ti-eye"
+                        style={s.eyeBtn}
+                        aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                        tabIndex={-1}
+                      >
+                        {showConfirm ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                  </div>
+
                   <button
-                    type="button"
-                    onClick={() => setShowPassword(v => !v)}
-                    className="ti-eye"
-                    style={s.eyeBtn}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    tabIndex={-1}
+                    type="submit"
+                    disabled={loading}
+                    className="ti-btn-primary"
+                    style={{ ...s.primaryBtn, opacity: loading ? 0.6 : 1 }}
                   >
-                    {showPassword ? 'Hide' : 'Show'}
+                    {loading ? 'Updating…' : 'Update password'}
                   </button>
-                </div>
-              </div>
+                </form>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="ti-btn-primary"
-                style={{ ...s.primaryBtn, opacity: loading ? 0.6 : 1 }}
-              >
-                {loading ? 'Signing in…' : cardId ? 'Sign in & activate' : 'Sign in'}
-              </button>
-            </form>
-
-            <div style={s.forgotRow}>
-              <Link href="/forgot-password" style={s.switchLink}>Forgot password?</Link>
-            </div>
-
-            <div style={s.divider}/>
-            <p style={s.switchText}>
-              Don&apos;t have an account?{' '}
-              <Link
-                href={cardId ? `/signup?card_id=${encodeURIComponent(cardId)}` : '/signup'}
-                style={s.switchLink}
-              >
-                Create account
-              </Link>
-            </p>
+                <div style={s.divider}/>
+                <p style={s.switchText}>
+                  <Link href="/login" style={s.switchLink}>Back to sign in</Link>
+                </p>
+              </>
+            )}
 
             <p style={s.footer}>A new standard of Networking.</p>
           </div>
@@ -166,9 +183,6 @@ const s: Record<string, CSSProperties> = {
   card:{background:'#0a0a0a',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'24px',padding:'2.25rem 2rem',boxShadow:'0 40px 100px rgba(0,0,0,0.6),0 1px 0 rgba(255,255,255,0.04) inset'},
   brandRow:{marginBottom:'1.75rem',textAlign:'center' as const},
   brandMark:{fontFamily:'monospace',fontSize:'0.56rem',fontWeight:700,letterSpacing:'0.26em',color:'rgba(255,255,255,0.2)'},
-  cardHint:{display:'flex',alignItems:'center',gap:'8px',padding:'7px 12px',borderRadius:'100px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',marginBottom:'1.25rem',width:'fit-content',margin:'0 auto 1.25rem'},
-  cardHintLabel:{fontSize:'0.62rem',fontWeight:600,letterSpacing:'0.12em',color:'rgba(255,255,255,0.35)',textTransform:'uppercase' as const,fontFamily:'monospace'},
-  cardHintId:{fontSize:'0.72rem',fontWeight:600,color:'rgba(255,255,255,0.65)',fontFamily:'monospace',letterSpacing:'0.04em'},
   title:{fontSize:'1.65rem',fontWeight:700,letterSpacing:'-0.04em',color:'#fff',lineHeight:1.1,marginBottom:'0.6rem',textAlign:'center' as const},
   body:{fontSize:'0.82rem',fontWeight:300,color:'rgba(255,255,255,0.35)',lineHeight:1.65,marginBottom:'1.75rem',textAlign:'center' as const},
   errorBox:{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'10px',padding:'0.75rem 1rem',marginBottom:'1.25rem',fontSize:'0.82rem',color:'rgba(239,68,68,0.9)',lineHeight:1.5},
@@ -179,17 +193,9 @@ const s: Record<string, CSSProperties> = {
   passwordWrap:{position:'relative',display:'flex',alignItems:'center'},
   eyeBtn:{position:'absolute',right:'10px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'rgba(255,255,255,0.4)',fontFamily:FONT,fontSize:'0.72rem',fontWeight:600,letterSpacing:'0.02em',cursor:'pointer',padding:'4px 6px'},
   primaryBtn:{width:'100%',padding:'0.88rem 1.5rem',borderRadius:'100px',border:'none',background:'#fff',color:'#000',fontFamily:FONT,fontSize:'0.88rem',fontWeight:700,letterSpacing:'0.01em',boxShadow:'0 4px 20px rgba(0,0,0,0.3)',marginTop:'0.25rem'},
-  forgotRow:{textAlign:'center' as const,marginTop:'-0.5rem',marginBottom:'0.5rem',fontSize:'0.78rem'},
   divider:{height:'1px',background:'rgba(255,255,255,0.06)',margin:'1.5rem 0'},
   switchText:{fontSize:'0.78rem',color:'rgba(255,255,255,0.3)',textAlign:'center' as const,marginBottom:'1.5rem'},
   switchLink:{color:'rgba(255,255,255,0.65)',textDecoration:'none',fontWeight:500},
+  backRow:{display:'block',textAlign:'center' as const,fontSize:'0.82rem',marginBottom:'1.5rem'},
   footer:{fontSize:'0.58rem',color:'rgba(255,255,255,0.12)',letterSpacing:'0.04em',fontStyle:'italic' as const,textAlign:'center' as const,marginTop:'0.5rem'},
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={null}>
-      <LoginContent />
-    </Suspense>
-  )
 }
