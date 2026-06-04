@@ -1,5 +1,6 @@
 'use client'
 
+import BrandStudio from '@/components/BrandStudio'
 import Link from 'next/link'
 import {
   useCallback,
@@ -1631,75 +1632,17 @@ link.url.startsWith('tel:')
               </div>
             )}
 
-            {/* ────── STYLE TAB ────── */}
-            {activeTab === 'style' && (
-              <div style={isMobile ? { ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.tabContent}>
-                <div style={s.styleSection}>
-                  <p style={s.styleSectionLabel}>Button style</p>
-                  <p style={s.styleSectionHint}>Controls how your profile links appear to visitors.</p>
-                  <div style={s.styleGrid}>
-                    {BUTTON_STYLES.map((opt) => {
-                      const sel = profile?.button_style === opt.value
-                      return (
-                        <button
-                          key={opt.value}
-                          onClick={() => patchProfile({ button_style: opt.value })}
-                          className="ti-style-opt"
-                          style={{
-                            ...s.styleOpt,
-                            borderColor: sel ? colors.border.focus  : colors.border.subtle,
-                            background:  sel ? colors.white[10]     : colors.white[3],
-                            color:       sel ? colors.text.primary  : colors.text.muted,
-                            boxShadow:   sel ? `0 0 0 1px ${colors.border.focus}, 0 2px 10px rgba(0,0,0,0.3)` : 'none',
-                          }}
-                        >
-                          {sel && <span style={{ marginRight: 4, opacity: 0.7 }}>✓</span>}
-                          {opt.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div style={{ ...s.styleSection, marginBottom: 0 }}>
-                  <p style={s.styleSectionLabel}>Theme</p>
-                  <p style={s.styleSectionHint}>Background colour used on your public profile.</p>
-                  <div style={s.styleGrid}>
-                    {THEME_STYLES.map((opt) => {
-                      const sel = profile?.theme_style === opt.value
-                      return (
-                        <button
-                          key={opt.value}
-                          onClick={() => patchProfile({ theme_style: opt.value })}
-                          className="ti-style-opt"
-                          style={{
-                            ...s.styleOpt,
-                            borderColor: sel ? colors.border.focus  : colors.border.subtle,
-                            background:  sel ? colors.white[10]     : colors.white[3],
-                            color:       sel ? colors.text.primary  : colors.text.muted,
-                            boxShadow:   sel ? `0 0 0 1px ${colors.border.focus}, 0 2px 10px rgba(0,0,0,0.3)` : 'none',
-                          }}
-                        >
-                          {sel && <span style={{ marginRight: 4, opacity: 0.7 }}>✓</span>}
-                          {opt.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div style={s.tabFooter}>
-                  <button
-                    onClick={saveStyle}
-                    disabled={styleSave === 'saving'}
-                    className="ti-save-btn"
-                    style={saveBtnCx(styleSave)}
-                  >
-                    {saveBtnLabel(styleSave, 'Save style')}
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* -------- STYLE TAB -------- */}
+{activeTab === 'style' && (
+<BrandStudio
+profile={profile}
+patch={patchProfile}
+onSave={saveStyle}
+saveState={styleSave}
+isMobile={isMobile}
+previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
+/>
+)}
 
             {/* ────── GALLERY TAB ────── */}
             {activeTab === 'gallery' && (
