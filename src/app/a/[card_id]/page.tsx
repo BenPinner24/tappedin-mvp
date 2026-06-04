@@ -10,6 +10,7 @@
 //   card claimed, no owner  → redirect /claim/[card_id]  (defensive)
 //   card claimed + owner + username → log tap, show cinematic splash, meta-refresh /u/[username]
 //   card claimed + owner, no username yet → <ProfileNotReady />
+import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { redirect }     from 'next/navigation'
@@ -247,7 +248,9 @@ function ProfileNotReady() {
             <p style={s.unavailDesc}>
               This card has been activated. The owner is setting up their digital profile — check back shortly.
             </p>
-            <a href="/" style={s.unavailCta}>Learn about Tapped-In →</a>
+            <Link href="/" style={s.unavailCta}>
+Learn about Tapped-In →
+</Link>
             <p style={s.unavailFooter}>A new standard of Networking.</p>
           </div>
         </div>
@@ -277,7 +280,9 @@ function UnavailableCard() {
             <p style={s.unavailEyebrow}>NFC CARD</p>
             <h1 style={s.unavailTitle}>Card unavailable</h1>
             <p style={s.unavailDesc}>This card does not exist in our system. If you believe this is an error, please contact support.</p>
-            <a href="/" style={s.unavailCta}>Learn about Tapped-In →</a>
+            <Link href="/" style={s.unavailCta}>
+Learn about Tapped-In →
+</Link>
             <p style={s.unavailFooter}>A new standard of Networking.</p>
           </div>
         </div>
@@ -307,8 +312,19 @@ function SuspendedCard() {
             <p style={s.unavailEyebrow}>NFC CARD</p>
             <h1 style={s.unavailTitle}>Card unavailable</h1>
             <p style={s.unavailDesc}>This card is currently unavailable. Please contact <a href="mailto:support@tappedin.uk" style={{color:'rgba(255,255,255,0.5)'}}>support@tappedin.uk</a> for assistance.</p>
-            <a href="/" style={s.unavailCta}>Learn about Tapped-In →</a>
-            <p style={s.unavailFooter}>A new standard of Networking.</p>
+            <Link href="/" style={s.unavailCta}>
+Learn about Tapped-In →
+</Link>
+            <p style={s.unavailDesc}>
+This card is currently unavailable. Please contact{" "}
+<a
+href="mailto:support@tappedin.uk"
+style={{ color: "#fff", textDecoration: "underline" }}
+>
+support@tappedin.uk
+</a>
+.
+</p>
           </div>
         </div>
       </main>

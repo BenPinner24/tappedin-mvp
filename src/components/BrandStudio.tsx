@@ -38,7 +38,6 @@ export default function BrandStudio({
   isMobile: boolean
   previewLinks?: PreviewLink[]
 }) {
-  if (!profile) return null
 
   const glass = parseGlass(profile.background_style)
   const selectedTheme = normalizeThemeId(profile.theme_style)
@@ -47,7 +46,9 @@ export default function BrandStudio({
 
   const theme = useMemo(() => resolveTheme(profile), [profile])
 
-  function setGlass(level: GlassLevel) {
+if (!profile) return null
+
+function setGlass(level: GlassLevel) {
     patch({ background_style: level === 'none' ? null : level })
   }
 

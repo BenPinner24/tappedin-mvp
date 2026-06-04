@@ -556,7 +556,6 @@ export default function DashboardPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const qrCanvasRef  = useRef<HTMLCanvasElement | null>(null)
 
-  useEffect(() => { loadDashboard() }, [])
 
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -634,6 +633,14 @@ export default function DashboardPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+const timer = window.setTimeout(() => {
+loadDashboard()
+}, 0)
+
+return () => window.clearTimeout(timer)
+}, [])
 
   // ─── Save profile ──────────────────────────────────────────────────────────
 
