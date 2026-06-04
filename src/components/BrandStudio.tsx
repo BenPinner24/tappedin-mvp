@@ -24,6 +24,7 @@ type ProfileLike = ThemeInput & {
 type PreviewLink = { id: string; label: string; url?: string; custom_label?: string | null }
 
 export default function BrandStudio({
+profile,
 patch,
 onSave,
 saveState,
@@ -49,10 +50,10 @@ const accent =
 profile.accent_color &&
 isHexColor(profile.accent_color)
 ? profile.accent_color
-: ''
+: ""
 
 const buttonStyle =
-profile.button_style || 'default'
+profile.button_style || "default"
 
 const theme = resolveTheme(profile)
 
