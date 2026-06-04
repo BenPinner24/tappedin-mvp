@@ -39,12 +39,17 @@ export default function BrandStudio({
   previewLinks?: PreviewLink[]
 }) {
 
-  const glass = parseGlass(profile.background_style)
-  const selectedTheme = normalizeThemeId(profile.theme_style)
-  const accent = profile.accent_color && isHexColor(profile.accent_color) ? profile.accent_color : ''
-  const buttonStyle = profile.button_style || 'default'
 
-  const theme = useMemo(() => resolveTheme(profile), [profile])
+const glass = parseGlass(profile.background_style)
+const selectedTheme = normalizeThemeId(profile.theme_style)
+const accent =
+profile.accent_color && isHexColor(profile.accent_color)
+? profile.accent_color
+: ''
+
+const buttonStyle = profile.button_style || 'default'
+
+const theme = useMemo(() => resolveTheme(profile ?? {}), [profile])
 
 if (!profile) return null
 
