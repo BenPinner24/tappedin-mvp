@@ -24,34 +24,38 @@ type ProfileLike = ThemeInput & {
 type PreviewLink = { id: string; label: string; url?: string; custom_label?: string | null }
 
 export default function BrandStudio({
-  profile,
-  patch,
-  onSave,
-  saveState,
-  isMobile,
-  previewLinks = [],
+patch,
+onSave,
+saveState,
+isMobile,
+previewLinks = [],
 }: {
-  profile: ProfileLike | null
-  patch: (fields: Partial<ProfileLike>) => void
-  onSave: () => void
-  saveState: SaveState
-  isMobile: boolean
-  previewLinks?: PreviewLink[]
+profile: ProfileLike | null
+patch: (fields: Partial<ProfileLike>) => void
+onSave: () => void
+saveState: SaveState
+isMobile: boolean
+previewLinks?: PreviewLink[]
 }) {
 
+if (!profile) return null
 
 const glass = parseGlass(profile.background_style)
-const selectedTheme = normalizeThemeId(profile.theme_style)
+
+const selectedTheme =
+normalizeThemeId(profile.theme_style)
+
 const accent =
-profile.accent_color && isHexColor(profile.accent_color)
+profile.accent_color &&
+isHexColor(profile.accent_color)
 ? profile.accent_color
 : ''
 
-const buttonStyle = profile.button_style || 'default'
+const buttonStyle =
+profile.button_style || 'default'
 
-const theme = useMemo(() => resolveTheme(profile ?? {}), [profile])
+const theme = resolveTheme(profile)
 
-if (!profile) return null
 
 function setGlass(level: GlassLevel) {
     patch({ background_style: level === 'none' ? null : level })
