@@ -62,38 +62,72 @@ function detectKind(label: string, url: string): 'whatsapp' | 'email' | 'url' {
   return 'url'
 }
 
-function getLinkButtonStyle(buttonStyle: string | null): CSSProperties {
-  if (buttonStyle === 'sharp') {
-    return {
-      background: 'rgba(255,255,255,0.96)',
-      color: '#000',
-      border: '1px solid rgba(255,255,255,0.14)',
-      borderRadius: '6px',
-    }
-  }
-  if (buttonStyle === 'outline') {
-    return {
-      background: 'transparent',
-      color: '#fff',
-      border: '1px solid rgba(255,255,255,0.22)',
-      borderRadius: '14px',
-    }
-  }
-  if (buttonStyle === 'glass') {
-    return {
-      background: 'rgba(255,255,255,0.06)',
-      color: '#fff',
-      border: '1px solid rgba(255,255,255,0.09)',
-      borderRadius: '14px',
-    }
-  }
-  return {
-    background: 'rgba(255,255,255,0.95)',
-    color: '#000',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: '14px',
-  }
+function getLinkButtonStyle(
+buttonStyle: string | null,
+accent = '#52d6fc'
+): CSSProperties {
+const border = `1px solid ${accent}`
+const glow = `0 0 14px ${accent}33`
+
+if (buttonStyle === 'sharp') {
+return {
+background: 'rgba(255,255,255,0.96)',
+color: '#000',
+border,
+borderRadius: '6px',
+boxShadow: glow,
 }
+}
+
+if (buttonStyle === 'outline') {
+return {
+background: 'transparent',
+color: '#fff',
+border,
+borderRadius: '14px',
+boxShadow: glow,
+}
+}
+
+if (buttonStyle === 'glass') {
+return {
+background: `${accent}22`,
+color: '#fff',
+border,
+borderRadius: '14px',
+boxShadow: glow,
+}
+}
+
+if (buttonStyle === 'soft_glow') {
+return {
+background: `${accent}18`,
+color: '#fff',
+border,
+borderRadius: '14px',
+boxShadow: `0 0 24px ${accent}55`,
+}
+}
+
+if (buttonStyle === 'minimal') {
+return {
+background: 'transparent',
+color: '#fff',
+borderBottom: `1px solid ${accent}`,
+borderRadius: '0px',
+}
+}
+
+return {
+background: `${accent}18`,
+color: '#fff',
+border,
+borderRadius: '14px',
+boxShadow: glow,
+}
+}
+
+
 
 // ─── SVG icons (inline, no external deps) ─────────────────────────────────────
 
@@ -149,7 +183,7 @@ const cleanUsername = decodeURIComponent(username)
 
 const { data: profile, error } = await supabase
 .from('profiles')
-.select('id, username, display_name, bio, role, website, avatar_url, headline, theme_style, accent_color, button_style, background_style, is_public')
+.select('id, username, display_name, bio, role, website, avatar_url, headline, theme_style, accent_color, button_style, background_style')
 .ilike('username', cleanUsername)
 .maybeSingle<Profile>()
 
@@ -181,10 +215,34 @@ if (error || !profile) notFound()
   const galleryItems = ((galleryData || []) as GalleryItem[]).filter(g => g.image_url)
 
   const displayName = profile.display_name || profile.username || 'Creator'
-  const role        = profile.role || profile.headline || ''
-  const handle      = profile.username ? `@${profile.username}` : ''
-  const initials    = getInitials(displayName)
-  const btnStyle    = getLinkButtonStyle(profile.button_style)
+const role = profile.role || profile.headline || ''
+const handle = profile.username ? `@${profile.username}` : ''
+const initials = getInitials(displayName)
+
+const publicAccent = profile.accent_color || '#52d6fc'
+const accentShadow = `0 0 22px ${publicAccent}55`
+
+const btnStyle = getLinkButtonStyle(
+profile.button_style,
+publicAccent
+)
+
+const publicTheme = profile.theme_style || 'dark'
+const publicBackground = profile.background_style || 'solid_black'
+const styleKey = `${publicTheme} ${publicBackground}`
+  const pageBackground =
+styleKey.includes('burgundy') ? '#120207' :
+styleKey.includes('navy') || styleKey.includes('midnight') ? '#020817' :
+styleKey.includes('emerald') || styleKey.includes('forest') ? '#020d08' :
+styleKey.includes('graphite') || styleKey.includes('carbon') ? '#101418' :
+'#030303'
+
+const cardBackground =
+publicBackground === 'frosted' || publicTheme.includes('glass')
+? 'rgba(255,255,255,0.08)'
+: publicTheme === 'minimal'
+? '#111'
+: '#0a0a0a'
 
   return (
     <>
@@ -247,7 +305,7 @@ if (error || !profile) notFound()
         }
       `}</style>
 
-      <main style={s.page}>
+      <main style={{ ...s.page, background: pageBackground }}>
         {/* ── Background layer ── */}
         <div aria-hidden="true" style={s.bgGrid} />
         <div aria-hidden="true" style={s.bgGlow} />
@@ -255,7 +313,10 @@ if (error || !profile) notFound()
 
         {/* ── Card shell ── */}
         <div style={s.shell}>
-          <div className="ti-card" style={s.card}>
+          <div
+className="ti-card"
+style={{ ...s.card, background: cardBackground }}
+>
 
             {/* Card inner grain for depth */}
             <div aria-hidden="true" style={s.cardGrain} />
@@ -266,15 +327,40 @@ if (error || !profile) notFound()
                 <span style={s.brandMark}>TAPPED-IN</span>
                 {handle && <span style={s.handle}>{handle}</span>}
               </div>
-              <div style={s.livePill}>
-                <span style={s.liveDot} />
-                <span style={s.liveLabel}>Active</span>
+              <div
+style={{
+...s.livePill,
+background: `${publicAccent}15`,
+border: `1px solid ${publicAccent}`,
+boxShadow: `0 0 12px ${publicAccent}33`,
+}}
+>
+                <span
+style={{
+...s.liveDot,
+background: publicAccent,
+}}
+/>
+                <span
+style={{
+...s.liveLabel,
+color: publicAccent,
+}}
+>
+Active
+</span>
               </div>
             </div>
 
             {/* ── Avatar ── */}
             <div style={s.avatarSection}>
-              <div style={s.avatarRing}>
+              <div
+style={{
+...s.avatarRing,
+border: `1px solid ${publicAccent}`,
+boxShadow: `0 0 18px ${publicAccent}55`,
+}}
+>
                 <div style={s.avatarInner}>
                   {profile.avatar_url ? (
                     <img
@@ -568,31 +654,32 @@ const s: Record<string, CSSProperties> = {
     letterSpacing: '0.01em',
   },
 
-  livePill: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px',
-    padding: '4px 10px',
-    borderRadius: '9999px',
-    background: 'rgba(74,222,128,0.08)',
-    border: '1px solid rgba(74,222,128,0.2)',
-  },
+livePill: {
+display: 'flex',
+alignItems: 'center',
+gap: '5px',
+padding: '4px 10px',
+borderRadius: '9999px',
+background: 'rgba(74,222,128,0.08)',
+border: '1px solid rgba(74,222,128,0.2)',
+},
 
-  liveDot: {
-    width: '5px',
-    height: '5px',
-    borderRadius: '50%',
-    background: '#4ade80',
-    animation: 'ti-liveDot 2.5s ease-in-out infinite',
-  },
+liveDot: {
+width: '5px',
+height: '5px',
+borderRadius: '50%',
+background: '#4ade80',
+animation: 'ti-liveDot 2.5s ease-in-out infinite',
+},
 
-  liveLabel: {
-    fontFamily: FF,
-    fontSize: '0.68rem',
-    fontWeight: 600,
-    color: '#4ade80',
-    letterSpacing: '0.04em',
-  },
+
+ liveLabel: {
+fontFamily: FF,
+fontSize: '0.68rem',
+fontWeight: 600,
+color: '#4ade80',
+letterSpacing: '0.04em',
+},
 
   avatarSection: {
     display: 'flex',
@@ -604,14 +691,14 @@ const s: Record<string, CSSProperties> = {
   },
 
   avatarRing: {
-    width: '96px',
-    height: '96px',
-    borderRadius: '26px',
-    padding: '2px',
-    background: 'linear-gradient(145deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 100%)',
-    boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.5)',
-    flexShrink: 0,
-  },
+width: '96px',
+height: '96px',
+borderRadius: '26px',
+padding: '2px',
+background: 'linear-gradient(145deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 100%)',
+boxShadow: '0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.5)',
+flexShrink: 0,
+},
 
   avatarInner: {
     width: '100%',

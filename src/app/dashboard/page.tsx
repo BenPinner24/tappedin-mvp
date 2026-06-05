@@ -827,11 +827,15 @@ is_active: l.is_active ?? true,
     if (!profile) return
     try {
       setStyleSave('saving')
-      const { error } = await supabase.from('profiles').update({
-        button_style:     profile.button_style,
-        background_style: profile.background_style,
-        theme_style:      profile.theme_style,
-      }).eq('id', profile.id)
+      const { error } = await supabase
+.from('profiles')
+.update({
+button_style: profile.button_style,
+background_style: profile.background_style,
+theme_style: profile.theme_style,
+accent_color: profile.accent_color,
+})
+.eq('id', profile.id)
       setStyleSave(error ? 'error' : 'saved')
       if (!error) setTimeout(() => setStyleSave('idle'), 2200)
     } catch {
