@@ -146,15 +146,8 @@ function ActivationScreen({ username, displayName, avatarUrl, role }: {
       `}</style>
 
       {/* Delayed redirect after cinematic animation */}
-<script
-  dangerouslySetInnerHTML={{
-    __html: `
-      setTimeout(function () {
-        window.location.replace('/u/${username}');
-      }, 1600);
-    `,
-  }}
-/>
+<meta httpEquiv="refresh" content={`1.6;url=/u/${username}`} />
+
 
       <main className="ti-bg" style={s.page}>
         <div style={s.bgGrid} />
