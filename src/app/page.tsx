@@ -5,6 +5,15 @@ import { useEffect, useState } from 'react'
 
 const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
 
+// ── EDIT ME ───────────────────────────────────────────────────────────────────
+// Real number of Founder cards already claimed (0–100). Drives the
+// "X / 100 claimed" counter + progress bar in the Founding section below.
+const FOUNDERS_CLAIMED = 16
+// Optional: real founder @handles to show a "Founding members" chip row.
+// Leave as [] to hide the row entirely. e.g. ['@benpinner', '@studio.xyz']
+const FOUNDING_MEMBERS: string[] = []
+// ──────────────────────────────────────────────────────────────────────────────
+
 // ─────────────────────────────
 // GLOBAL CSS
 // IMPORTANT: React inline style={{}} always wins over stylesheet rules.
@@ -102,6 +111,12 @@ const G = `
   }
   .footer-link:hover { color:rgba(255,255,255,.6); }
   .ti-ig-link:hover { color:rgba(255,255,255,.65) !important; }
+
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; }
+    .reveal { opacity:1 !important; transform:none !important; transition:none !important; }
+  }
 
   /* ── Tablet (≤ 960px) ── */
   @media (max-width: 960px) {
@@ -553,6 +568,246 @@ const DIVIDER: React.CSSProperties = {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HOW-IT-WORKS MOCKUPS
+// A reusable matte iPhone shell + three "screens": the tap moment, the live
+// profile, and the analytics view. Same materials as the card + install mockup
+// (gradient body, grain, edge highlight, dynamic island) so it reads as one
+// product family. All sizing flows from `scale`.
+// ─────────────────────────────────────────────────────────────────────────────
+function PhoneShell({ scale = 1, children }: { scale?: number; children?: React.ReactNode }) {
+  const W = Math.round(258 * scale)
+  const H = Math.round(540 * scale)
+  return (
+    <div style={{
+      position:'relative', width:W, height:H,
+      borderRadius: Math.round(42 * scale),
+      background:'linear-gradient(155deg, #1a1a1a 0%, #0d0d0d 50%, #141414 100%)',
+      boxShadow:'0 0 0 1.5px rgba(255,255,255,0.07), 0 60px 120px rgba(0,0,0,0.92), 0 24px 48px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+      padding: Math.round(7 * scale), flexShrink:0, isolation:'isolate',
+    }}>
+      <div style={{ position:'absolute', inset:0, opacity:0.06, backgroundImage:GRAIN, backgroundSize:'180px 180px', borderRadius:'inherit', pointerEvents:'none', zIndex:2 }} />
+      <div style={{ position:'absolute', top:0, left:'8%', right:'8%', height:1.5, zIndex:3, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent)', pointerEvents:'none' }} />
+      <div style={{
+        position:'relative', width:'100%', height:'100%',
+        borderRadius: Math.round(36 * scale),
+        background:'linear-gradient(180deg, #050505 0%, #0a0a0a 100%)',
+        overflow:'hidden', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.025)',
+      }}>
+        {/* Dynamic island */}
+        <div style={{ position:'absolute', top:Math.round(11 * scale), left:'50%', transform:'translateX(-50%)', width:Math.round(82 * scale), height:Math.round(24 * scale), borderRadius:Math.round(14 * scale), background:'#000', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04)', zIndex:8 }} />
+        {/* Status bar */}
+        <div style={{ position:'absolute', top:Math.round(16 * scale), left:0, right:0, padding:`0 ${Math.round(22 * scale)}px`, display:'flex', justifyContent:'space-between', alignItems:'center', fontFamily:'Oswald, Arial, sans-serif', fontSize:`${0.58 * scale}rem`, fontWeight:500, color:'rgba(255,255,255,0.55)', letterSpacing:'0.04em', zIndex:7 }}>
+          <span>9:41</span>
+          <span style={{ display:'flex', gap:Math.round(4 * scale), alignItems:'center' }}>
+            <span style={{ width:Math.round(14 * scale), height:Math.round(7 * scale), borderRadius:1.5, border:'1px solid rgba(255,255,255,0.4)', position:'relative' }}>
+              <span style={{ position:'absolute', inset:1, background:'rgba(255,255,255,0.4)', borderRadius:0.5 }} />
+            </span>
+          </span>
+        </div>
+        {/* Screen content */}
+        <div style={{ position:'absolute', inset:0, paddingTop:Math.round(44 * scale), display:'flex', flexDirection:'column' }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MockProfile({ scale = 1 }: { scale?: number }) {
+  const r = (n: number) => Math.round(n * scale)
+  const f = (n: number) => `${n * scale}rem`
+  const links = [
+    { l: 'Instagram', icon: <svg width={r(13)} height={r(13)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="18" cy="6" r="1" fill="currentColor" stroke="none" /></svg> },
+    { l: 'TikTok', icon: <svg width={r(13)} height={r(13)} viewBox="0 0 24 24" fill="currentColor"><path d="M16 3c.3 2.1 1.7 3.6 3.8 3.9v2.4c-1.3 0-2.5-.4-3.6-1.1v5.7c0 3-2.2 5.2-5.1 5.2S6 18.8 6 16.1c0-2.6 2-4.8 4.7-4.9v2.5c-1.3.1-2.2 1.1-2.2 2.4 0 1.4 1 2.4 2.3 2.4 1.4 0 2.4-1 2.4-2.7V3h2.8z" /></svg> },
+    { l: 'Showreel', icon: <svg width={r(12)} height={r(12)} viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg> },
+    { l: 'WhatsApp', icon: <svg width={r(13)} height={r(13)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 21l1.6-4.2A8 8 0 1 1 8 19.5L3 21z" /></svg> },
+  ]
+  return (
+    <PhoneShell scale={scale}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: `0 ${r(15)}px ${r(12)}px` }}>
+        {/* Header: handle + Active */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: r(9) }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.42), letterSpacing: '.24em', color: 'rgba(255,255,255,.3)', textTransform: 'uppercase' }}>TAPPED-IN</div>
+            <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.5), letterSpacing: '.04em', color: 'rgba(255,255,255,.42)' }}>@lucasgrey</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: r(4), padding: `${r(2)}px ${r(7)}px`, border: '1px solid rgba(255,255,255,0.18)', borderRadius: 99, flexShrink: 0 }}>
+            <div style={{ width: r(4), height: r(4), borderRadius: '50%', background: 'rgba(255,255,255,0.85)' }} />
+            <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.44), fontWeight: 500, color: 'rgba(255,255,255,.7)', letterSpacing: '.08em' }}>Active</span>
+          </div>
+        </div>
+
+        {/* Identity */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          <div style={{ width: r(46), height: r(46), borderRadius: r(13), background: 'linear-gradient(145deg, #242424 0%, #0e0e0e 55%, #181818 100%)', border: '1px solid rgba(255,255,255,0.16)', boxShadow: '0 10px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.85), fontWeight: 600, color: 'rgba(255,255,255,.8)', letterSpacing: '0.06em', marginBottom: r(8) }}>LG</div>
+          <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.42), letterSpacing: '.28em', color: 'rgba(255,255,255,.28)', textTransform: 'uppercase', marginBottom: r(3) }}>Digital Profile</div>
+          <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(1.1), fontWeight: 600, color: '#fff', letterSpacing: '0.01em', lineHeight: 1.05 }}>Lucas Grey</div>
+          <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.54), fontWeight: 400, color: 'rgba(255,255,255,.4)', letterSpacing: '.04em', marginTop: r(2) }}>Director · Filmmaker</div>
+
+          {/* Founder Edition badge */}
+          <div style={{ display: 'inline-flex', alignItems: 'stretch', border: '1px solid rgba(255,255,255,0.16)', borderRadius: r(6), overflow: 'hidden', marginTop: r(9) }}>
+            <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.44), fontWeight: 500, color: 'rgba(255,255,255,.6)', letterSpacing: '.16em', textTransform: 'uppercase', padding: `${r(4)}px ${r(8)}px` }}>Founder Edition</span>
+            <span style={{ width: 1, background: 'rgba(255,255,255,0.16)' }} />
+            <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.46), fontWeight: 600, color: '#fff', letterSpacing: '.08em', padding: `${r(4)}px ${r(8)}px`, background: 'rgba(255,255,255,0.05)' }}>014 / 100</span>
+          </div>
+
+          {/* Bio */}
+          <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.52), fontWeight: 300, color: 'rgba(255,255,255,.38)', lineHeight: 1.55, letterSpacing: '.01em', marginTop: r(9), maxWidth: '96%' }}>Film &amp; brand work for artists and labels.<br />London-based · Enquiries via DM.</div>
+        </div>
+
+        {/* Save contact (white, primary) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: r(6), marginTop: r(11), padding: `${r(10)}px`, borderRadius: r(9), background: '#fff', color: '#000' }}>
+          <svg width={r(13)} height={r(13)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12" /><path d="M7 11l5 5 5-5" /><path d="M5 21h14" /></svg>
+          <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.6), fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase' }}>Save contact</span>
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: `${r(10)}px 0` }} />
+
+        {/* Link rows */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: r(6) }}>
+          {links.map((b) => (
+            <div key={b.l} style={{ display: 'flex', alignItems: 'center', padding: `${r(8)}px ${r(11)}px`, borderRadius: r(9), border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.022)' }}>
+              <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', width: r(16) }}>{b.icon}</span>
+              <span style={{ flex: 1, textAlign: 'center', fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.58), fontWeight: 500, color: 'rgba(255,255,255,.82)', letterSpacing: '.06em' }}>{b.l}</span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: f(0.58), width: r(16), textAlign: 'right' }}>↗</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{ marginTop: 'auto', paddingTop: r(10), display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.4), letterSpacing: '.22em', color: 'rgba(255,255,255,.26)', textTransform: 'uppercase' }}>TAPPED-IN</div>
+            <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.42), fontWeight: 300, fontStyle: 'italic', color: 'rgba(255,255,255,.2)' }}>A new standard of Networking.</div>
+          </div>
+          <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.44), color: 'rgba(255,255,255,.4)', letterSpacing: '.04em', whiteSpace: 'nowrap' }}>Get your card →</span>
+        </div>
+      </div>
+    </PhoneShell>
+  )
+}
+
+function MockAnalytics({ scale = 1 }: { scale?: number }) {
+  const r = (n: number) => Math.round(n * scale)
+  const f = (n: number) => `${n * scale}rem`
+  const bars = [0.42, 0.6, 0.5, 0.82, 0.7, 1, 0.56]
+  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+  const stats = [
+    { v: '1,204', l: 'Clicks' },
+    { v: '86', l: 'Saved' },
+    { v: '45', l: 'Avg / day' },
+  ]
+  const top = [
+    { l: 'Instagram', c: 256, v: 0.82 },
+    { l: 'Showreel', c: 168, v: 0.54 },
+    { l: 'Book a shoot', c: 103, v: 0.33 },
+  ]
+  return (
+    <PhoneShell scale={scale}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: `0 ${r(15)}px ${r(15)}px` }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.5), letterSpacing: '.2em', color: 'rgba(255,255,255,.3)', textTransform: 'uppercase' }}>Analytics</span>
+          <div style={{ width: r(22), height: r(22), borderRadius: r(7), background: 'linear-gradient(145deg, #1c1c1c, #0e0e0e)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.42), fontWeight: 600, color: 'rgba(255,255,255,.6)', letterSpacing: '.06em' }}>LG</div>
+        </div>
+
+        {/* Hero stat */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: r(7) }}>
+            <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(2.1), fontWeight: 600, color: '#fff', lineHeight: 1 }}>312</span>
+            <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.52), color: 'rgba(255,255,255,.32)', letterSpacing: '.12em', textTransform: 'uppercase' }}>taps</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: r(2), marginLeft: 'auto', fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.52), fontWeight: 500, color: '#4ade80', letterSpacing: '.04em' }}>▲ 18%</span>
+          </div>
+          <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.46), color: 'rgba(255,255,255,.26)', letterSpacing: '.14em', textTransform: 'uppercase', marginTop: r(3) }}>This week · vs 264 last</div>
+        </div>
+
+        {/* Bar chart */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: r(6), height: r(74) }}>
+            {bars.map((b, i) => (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
+                <div style={{ height: `${b * 100}%`, background: i === 5 ? 'linear-gradient(180deg,#fff,rgba(255,255,255,0.72))' : 'rgba(255,255,255,0.14)', borderRadius: r(2), boxShadow: i === 5 ? '0 0 12px rgba(255,255,255,0.3)' : 'none' }} />
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: r(6), marginTop: r(5) }}>
+            {days.map((d, i) => (
+              <span key={i} style={{ flex: 1, textAlign: 'center', fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.42), color: i === 5 ? 'rgba(255,255,255,.72)' : 'rgba(255,255,255,.22)', letterSpacing: '.04em' }}>{d}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Mini stat row */}
+        <div style={{ display: 'flex', borderTop: '1px solid rgba(255,255,255,0.07)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          {stats.map((s, i) => (
+            <div key={s.l} style={{ flex: 1, padding: `${r(9)}px 0`, textAlign: 'center', borderLeft: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.84), fontWeight: 600, color: '#fff', lineHeight: 1 }}>{s.v}</div>
+              <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.4), color: 'rgba(255,255,255,.28)', letterSpacing: '.1em', textTransform: 'uppercase', marginTop: r(3) }}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Top links */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: r(8) }}>
+          <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.46), letterSpacing: '.2em', color: 'rgba(255,255,255,.28)', textTransform: 'uppercase' }}>Top links</div>
+          {top.map((t) => (
+            <div key={t.l}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: r(4) }}>
+                <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.54), color: 'rgba(255,255,255,.62)', letterSpacing: '.03em' }}>{t.l}</span>
+                <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.5), color: 'rgba(255,255,255,.34)' }}>{t.c} · {Math.round(t.v * 100)}%</span>
+              </div>
+              <div style={{ height: r(4), borderRadius: 99, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                <div style={{ width: `${t.v * 100}%`, height: '100%', background: 'linear-gradient(90deg, rgba(255,255,255,0.4), rgba(255,255,255,0.7))', borderRadius: 99 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: r(6) }}>
+          <div style={{ width: r(5), height: r(5), borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 6px rgba(74,222,128,0.6)', animation: 'dotBlink 2s ease-in-out infinite' }} />
+          <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.46), color: 'rgba(255,255,255,.3)', letterSpacing: '.1em', textTransform: 'uppercase' }}>Updated just now</span>
+        </div>
+      </div>
+    </PhoneShell>
+  )
+}
+
+function MockTap({ scale = 1 }: { scale?: number }) {
+  const r = (n: number) => Math.round(n * scale)
+  const f = (n: number) => `${n * scale}rem`
+  return (
+    <div style={{ position: 'relative', display: 'inline-block', paddingTop: r(60) }}>
+      <PhoneShell scale={scale}>
+        <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: r(12) }}>
+          {/* Concentric ripples */}
+          <div style={{ position: 'absolute', top: '47%', left: '50%', transform: 'translate(-50%,-50%)', width: r(190), height: r(190), pointerEvents: 'none' }}>
+            {[1, 0.66, 0.36].map((s2, i) => (
+              <div key={i} style={{ position: 'absolute', inset: `${(1 - s2) * 50}%`, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.1)', animation: `glowPulse ${3 + i * 0.6}s ease-in-out infinite` }} />
+            ))}
+          </div>
+          {/* NFC mark */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: r(4), zIndex: 2 }}>
+            {[0.3, 0.55, 0.85].map((op, i) => (
+              <div key={i} style={{ width: r(34) - i * r(8), height: r(3), borderRadius: r(3), background: `rgba(255,255,255,${op})` }} />
+            ))}
+          </div>
+          <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.78), fontWeight: 600, letterSpacing: '.3em', color: '#fff', textTransform: 'uppercase', zIndex: 2 }}>TAPPED-IN</div>
+          <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.5), letterSpacing: '.24em', color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', zIndex: 2 }}>Connecting…</div>
+        </div>
+      </PhoneShell>
+      {/* NFC contact glow where the card meets the phone */}
+      <div style={{ position: 'absolute', top: r(42), left: '50%', width: r(150), height: r(150), transform: 'translateX(-50%)', background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 62%)', filter: 'blur(10px)', animation: 'glowPulse 3s ease-in-out infinite', pointerEvents: 'none', zIndex: 4, borderRadius: '50%' }} />
+      {/* Card tapping the top edge — mostly above the phone, fully visible, clears the logo */}
+      <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%) rotate(-7deg)', filter: 'drop-shadow(0 24px 50px rgba(0,0,0,0.75))', zIndex: 20 }}>
+        <CardFront size="sm" scale={0.82 * scale} />
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 export default function HomePage() {
@@ -906,19 +1161,111 @@ letterSpacing: isMobile ? '.08em' : '.12em',
               <p style={SUB}>No app. No friction. Your physical card does the work.</p>
             </div>
 
-            <div className="steps-grid reveal" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:2, background:'rgba(255,255,255,0.055)', borderRadius:3, overflow:'hidden' }}>
+            <div style={{ display:'flex', flexDirection:'column', gap: isMobile ? 'clamp(2.5rem,8vw,3.5rem)' : 'clamp(4rem,9vw,7rem)' }}>
               {[
-                { n:'01', title:'Tap your card',     body:'Hold the Founder Edition to any phone. Opens your digital profile instantly — works on any device, no app required.' },
-                { n:'02', title:'Share your profile', body:'Every card connects to your live digital profile — links, contact, portfolio, bio. Update anytime from your dashboard.' },
-                { n:'03', title:'Track engagement',  body:'See every tap and link click in real time. Know exactly when and how people interact with your card.' },
+                { n:'01', title:'Tap your card',     body:'Hold the Founder Edition to any phone. Your digital profile opens instantly — any device, no app required.', detail:'Works on iPhone & Android', mock:<MockTap scale={isMobile ? 0.7 : 0.92} /> },
+                { n:'02', title:'Share your profile', body:'Every card links to your live profile — links, contact, portfolio, bio. Update it any time from your dashboard.', detail:'Always up to date', mock:<MockProfile scale={isMobile ? 0.7 : 0.92} /> },
+                { n:'03', title:'Track engagement',  body:'See every tap and link click in real time. Know exactly when and how people engage with your card.', detail:'Real-time analytics', mock:<MockAnalytics scale={isMobile ? 0.7 : 0.92} /> },
               ].map((s,i)=>(
-                <div key={i} style={{ background:'#060606', padding: isMobile ? '1.4rem 1.1rem' : 'clamp(1.75rem,3vw,2.5rem) clamp(1.25rem,2.5vw,2rem)', display:'flex', flexDirection:'column', gap:'.75rem' }}>
-                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.65rem', fontWeight:400, letterSpacing:'.28em', color:'rgba(255,255,255,.18)', textTransform:'uppercase' }}>{s.n}</div>
-                  <h3 style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '1.15rem' : 'clamp(1.3rem,2.5vw,1.65rem)', fontWeight:500, color:'#fff', marginTop:'.5rem', letterSpacing:'0.02em', textTransform:'uppercase' }}>{s.title}</h3>
-                  <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.9rem', fontWeight:300, color:'rgba(255,255,255,.36)', lineHeight:1.72, letterSpacing:'0.01em' }}>{s.body}</p>
+                <div key={s.n} className="reveal" style={{
+                  display:'flex',
+                  flexDirection: isMobile ? 'column' : (i % 2 === 1 ? 'row-reverse' : 'row'),
+                  alignItems:'center',
+                  gap: isMobile ? '2rem' : 'clamp(3rem,7vw,6rem)',
+                }}>
+                  {/* Mockup column */}
+                  <div style={{ flex: isMobile ? '0 0 auto' : '1 1 320px', display:'flex', justifyContent:'center', width: isMobile ? '100%' : undefined }}>
+                    <div style={{ position:'relative', display:'inline-block' }}>
+                      <div style={{ position:'absolute', inset: isMobile ? -28 : -56, background:'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.05) 0%, transparent 65%)', filter:'blur(20px)', animation:'glowPulse 6s ease-in-out infinite', pointerEvents:'none', borderRadius:'50%' }} />
+                      <div style={{ position:'relative' }}>{s.mock}</div>
+                    </div>
+                  </div>
+
+                  {/* Text column */}
+                  <div style={{ flex: isMobile ? '0 0 auto' : '1 1 380px', maxWidth: isMobile ? '100%' : 440, textAlign: isMobile ? 'center' : 'left' }}>
+                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '2.6rem' : 'clamp(3rem,5vw,4.25rem)', fontWeight:600, color:'rgba(255,255,255,.09)', lineHeight:1, letterSpacing:'0.02em', marginBottom: isMobile ? '.4rem' : '.75rem' }}>{s.n}</div>
+                    <h3 style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '1.4rem' : 'clamp(1.6rem,3vw,2.25rem)', fontWeight:500, color:'#fff', letterSpacing:'0.02em', textTransform:'uppercase', lineHeight:1.1, marginBottom:'1rem' }}>{s.title}</h3>
+                    <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.92rem' : '1.02rem', fontWeight:300, color:'rgba(255,255,255,.42)', lineHeight:1.75, letterSpacing:'0.01em', marginBottom:'1.25rem', maxWidth: isMobile ? '100%' : 380, marginLeft: isMobile ? 'auto' : undefined, marginRight: isMobile ? 'auto' : undefined }}>{s.body}</p>
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:9 }}>
+                      <div style={{ width:5, height:5, borderRadius:'50%', background:'rgba(255,255,255,.35)', flexShrink:0 }} />
+                      <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.72rem', fontWeight:400, color:'rgba(255,255,255,.4)', letterSpacing:'.14em', textTransform:'uppercase' }}>{s.detail}</span>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════
+            3.5 FOUNDING — social proof via scarcity
+        ════════════════════════════════════════════════════════════ */}
+        <section id="founding" style={{ padding: SP, background:'#030303', position:'relative', overflow:'hidden' }}>
+          {/* Soft glow */}
+          <div style={{ position:'absolute', top:'30%', left:'50%', transform:'translate(-50%,-50%)', width:720, height:440, background:'radial-gradient(ellipse, rgba(255,255,255,0.022) 0%, transparent 65%)', filter:'blur(8px)', pointerEvents:'none' }} />
+
+          <div style={{ maxWidth:760, margin:'0 auto', position:'relative', zIndex:2 }}>
+            <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? '2rem' : '3rem' }}>
+              <div style={EB}>Founding 100</div>
+              <h2 style={H2}>Once it&apos;s claimed,<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>it&apos;s gone for good.</span></h2>
+              <p style={SUB}>Every Founder card is numbered 1–100 and tied to one person. No reprints. No second batch. And no monthly fee — unlike every other card out there.</p>
+            </div>
+
+            {/* Scarcity counter */}
+            <div className="reveal d2" style={{
+              maxWidth:560, margin:'0 auto', background:'#070707',
+              border:'1px solid rgba(255,255,255,0.07)', borderRadius:4,
+              padding: isMobile ? '1.5rem 1.25rem' : '2.25rem 2.5rem',
+            }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:'1.1rem', flexWrap:'wrap', gap:'.5rem' }}>
+                <div style={{ display:'flex', alignItems:'baseline', gap:'.55rem' }}>
+                  <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '2.4rem' : '3rem', fontWeight:600, color:'#fff', lineHeight:1, letterSpacing:'0.02em' }}>{FOUNDERS_CLAIMED}</span>
+                  <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.95rem' : '1.1rem', fontWeight:300, color:'rgba(255,255,255,.35)', letterSpacing:'.06em', textTransform:'uppercase' }}>/ 100 claimed</span>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                  <div style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', boxShadow:'0 0 6px rgba(74,222,128,0.6)', animation:'dotBlink 2s ease-in-out infinite' }} />
+                  <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.62rem', fontWeight:500, color:'rgba(74,222,128,0.8)', letterSpacing:'.18em', textTransform:'uppercase' }}>Live</span>
+                </div>
+              </div>
+              <div style={{ height:6, borderRadius:99, background:'rgba(255,255,255,0.06)', overflow:'hidden' }}>
+                <div style={{ width:`${Math.min(Math.max(FOUNDERS_CLAIMED, 0), 100)}%`, height:'100%', background:'linear-gradient(90deg, rgba(255,255,255,.45), #fff)', borderRadius:99 }} />
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', marginTop:'.8rem' }}>
+                <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.72rem', fontWeight:400, color:'rgba(255,255,255,.3)', letterSpacing:'.1em', textTransform:'uppercase' }}>{Math.max(100 - FOUNDERS_CLAIMED, 0)} remaining</span>
+                <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.72rem', fontWeight:400, color:'rgba(255,255,255,.3)', letterSpacing:'.1em', textTransform:'uppercase' }}>Never restocking</span>
+              </div>
+            </div>
+
+            <div className="reveal d3" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '2.25rem' }}>
+              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '13px 28px' : '16px 42px' }}>Claim your number →</Link>
+            </div>
+
+            {/* Differentiators — what the others can't say */}
+            <div className="reveal d3" style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap:2, background:'rgba(255,255,255,0.05)', borderRadius:3, overflow:'hidden', marginTop: isMobile ? '2rem' : '3rem' }}>
+              {[
+                { h:'No subscription', s:'One payment. Keep it for good.' },
+                { h:'Numbered 1–100', s:'Your serial is yours alone.' },
+                { h:'Never restocking', s:'This batch is the only batch.' },
+                { h:'Yours for life', s:'Profile stays live. Updates free.' },
+              ].map((d,i)=>(
+                <div key={i} style={{ background:'#070707', padding: isMobile ? '1.1rem .9rem' : 'clamp(1.25rem,2.5vw,1.6rem)', display:'flex', flexDirection:'column', gap:8, minWidth:0 }}>
+                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.92rem' : '1.02rem', fontWeight:500, color:'#fff', letterSpacing:'0.02em', textTransform:'uppercase', lineHeight:1.2 }}>{d.h}</div>
+                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.3)', lineHeight:1.55, letterSpacing:'0.01em' }}>{d.s}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Founding members — only renders if you add real handles above */}
+            {FOUNDING_MEMBERS.length > 0 && (
+              <div className="reveal d4" style={{ textAlign:'center', marginTop: isMobile ? '2rem' : '3rem' }}>
+                <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.62rem', fontWeight:400, letterSpacing:'.28em', textTransform:'uppercase', color:'rgba(255,255,255,.25)', marginBottom:'1rem' }}>Founding members</div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:'.5rem', justifyContent:'center' }}>
+                  {FOUNDING_MEMBERS.map((h)=>(
+                    <span key={h} style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:400, color:'rgba(255,255,255,.55)', letterSpacing:'.04em', padding:'7px 14px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:99 }}>{h}</span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -1488,7 +1835,7 @@ letterSpacing: isMobile ? '.08em' : '.12em',
               <span style={{ fontWeight:300, color:'rgba(255,255,255,.38)', letterSpacing:'0.02em' }}>Never restocking.</span>
             </h2>
             <p className="reveal d2" style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.86rem' : '.98rem', fontWeight:300, color:'rgba(255,255,255,.32)', lineHeight:1.78, letterSpacing:'0.01em', marginBottom: isMobile ? '2rem' : '2.75rem' }}>
-              Limited to 100 individually numbered cards. Founder Editon pre-orders are live now.
+              Limited to 100 individually numbered cards. Founder Edition pre-orders are live now.
             </p>
             <div className="reveal d3 final-cta-btns" style={{ display:'flex', gap:'.75rem', justifyContent:'center', flexWrap:'wrap' }}>
               <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Pre-orders are live</Link>
@@ -1548,7 +1895,7 @@ letterSpacing: isMobile ? '.08em' : '.12em',
               </div>
             </div>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'1px solid rgba(255,255,255,0.04)', paddingTop:'1.5rem', flexWrap:'wrap', gap:'.5rem' }}>
-              <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.72rem', fontWeight:400, color:'rgba(255,255,255,.14)', letterSpacing:'0.04em' }}>© 2025 Tapped-In. All rights reserved.</span>
+              <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.72rem', fontWeight:400, color:'rgba(255,255,255,.14)', letterSpacing:'0.04em' }}>© 2026 Tapped-In. All rights reserved.</span>
               <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.72rem', fontWeight:400, color:'rgba(255,255,255,.1)', letterSpacing:'0.06em', textTransform:'uppercase' }}>tappedin.uk</span>
             </div>
           </div>
