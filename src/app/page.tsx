@@ -807,6 +807,95 @@ function MockTap({ scale = 1 }: { scale?: number }) {
   )
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROFILE QR — distinct "scan to open" access card for the Digital Identity section.
+// Decorative (non-scannable) QR built deterministically; light float + scan beam.
+// ─────────────────────────────────────────────────────────────────────────────
+function ProfileQR({ isMobile }: { isMobile: boolean }) {
+  const N = 21
+  const inFinder = (r: number, c: number) =>
+    (r < 7 && c < 7) || (r < 7 && c >= N - 7) || (r >= N - 7 && c < 7)
+  const finderOn = (r: number, c: number) => {
+    const ring = (br: number, bc: number) => {
+      const rr = r - br, cc = c - bc
+      if (rr === 0 || rr === 6 || cc === 0 || cc === 6) return true
+      if (rr >= 2 && rr <= 4 && cc >= 2 && cc <= 4) return true
+      return false
+    }
+    if (r < 7 && c < 7) return ring(0, 0)
+    if (r < 7 && c >= N - 7) return ring(0, N - 7)
+    return ring(N - 7, 0)
+  }
+  const inLogo = (r: number, c: number) => r >= 8 && r <= 12 && c >= 8 && c <= 12
+  let seed = 718
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff }
+  const mods: [number, number][] = []
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    let on = false
+    if (inFinder(r, c)) on = finderOn(r, c)
+    else if (inLogo(r, c)) on = false
+    else on = rnd() > 0.52
+    if (on) mods.push([r, c])
+  }
+  const qrSize = isMobile ? 188 : 224
+
+  return (
+    <div style={{ position: 'relative', maxWidth: isMobile ? 320 : 380, margin: '0 auto' }}>
+      <div style={{ position: 'absolute', inset: isMobile ? -28 : -60, background: 'radial-gradient(ellipse at 50% 42%, rgba(255,255,255,0.05) 0%, transparent 62%)', filter: 'blur(20px)', animation: 'glowPulse 6s ease-in-out infinite', pointerEvents: 'none', borderRadius: '50%' }} />
+
+      <div style={{
+        position: 'relative',
+        background: 'linear-gradient(155deg, rgba(14,14,14,0.96) 0%, rgba(9,9,9,0.98) 55%, rgba(12,12,12,0.96) 100%)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: isMobile ? 18 : 22,
+        overflow: 'hidden',
+        boxShadow: '0 50px 100px rgba(0,0,0,0.75), 0 20px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)',
+        animation: 'cardFloat 7s ease-in-out infinite',
+      }}>
+        <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: GRAIN, backgroundSize: '180px 180px', pointerEvents: 'none', mixBlendMode: 'overlay' }} />
+
+        {/* header */}
+        <div style={{ padding: isMobile ? '.95rem 1.15rem' : '1.1rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.045)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '.75rem' }}>
+          <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: isMobile ? '.56rem' : '.6rem', fontWeight: 400, letterSpacing: '.18em', color: 'rgba(255,255,255,.22)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>tappedin.uk/u/lucasgrey</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px 3px 7px', background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.14)', borderRadius: 2, flexShrink: 0 }}>
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 6px rgba(74,222,128,0.6)', animation: 'dotBlink 2s ease-in-out infinite' }} />
+            <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: isMobile ? '.55rem' : '.58rem', fontWeight: 500, color: 'rgba(74,222,128,0.85)', letterSpacing: '.16em', textTransform: 'uppercase' }}>Live</span>
+          </div>
+        </div>
+
+        {/* QR */}
+        <div style={{ padding: isMobile ? '1.5rem 1.15rem 1.25rem' : '2rem 1.75rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ position: 'relative', width: qrSize, height: qrSize }}>
+            <div style={{ position: 'absolute', left: '4%', right: '4%', top: 0, height: 2, zIndex: 3, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5) 50%, transparent)', boxShadow: '0 0 12px rgba(255,255,255,0.4)', animation: 'scanBeam 3.4s ease-in-out infinite', pointerEvents: 'none' }} />
+            <svg width={qrSize} height={qrSize} viewBox={`0 0 ${N} ${N}`} style={{ display: 'block' }}>
+              {mods.map(([r, c], i) => (
+                <rect key={i} x={c + 0.09} y={r + 0.09} width={0.82} height={0.82} rx={0.26} fill="rgba(255,255,255,0.92)" />
+              ))}
+            </svg>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '24%', height: '24%', borderRadius: 6, background: '#0c0c0c', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                {[1, 0.6, 0.32].map((op, i) => (<div key={i} style={{ width: (isMobile ? 13 : 15) - i * 3, height: 2, borderRadius: 2, background: `rgba(255,255,255,${op})` }} />))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: isMobile ? '1.1rem' : '1.4rem', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: isMobile ? '.92rem' : '1.02rem', fontWeight: 500, color: '#fff', letterSpacing: '.02em' }}>Scan to open the profile</div>
+            <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: isMobile ? '.66rem' : '.7rem', fontWeight: 300, color: 'rgba(255,255,255,.34)', letterSpacing: '.04em', marginTop: 4 }}>No app needed · works on any phone</div>
+          </div>
+        </div>
+
+        {/* footer strip */}
+        <div style={{ padding: isMobile ? '.75rem 1.15rem' : '.85rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.045)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: isMobile ? '.55rem' : '.6rem', fontWeight: 500, color: 'rgba(255,255,255,.22)', letterSpacing: '.18em', textTransform: 'uppercase' }}>QR · Custom URL</span>
+          <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: isMobile ? '.55rem' : '.6rem', fontWeight: 400, color: 'rgba(255,255,255,.2)', letterSpacing: '.08em' }}>Google-indexed</span>
+        </div>
+      </div>
+    </div>
+  )
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1299,239 +1388,14 @@ letterSpacing: isMobile ? '.08em' : '.12em',
                 </div>
               </div>
 
-              {/* Mock profile card */}
+              {/* Profile QR access card */}
               <div className="reveal d2" style={{
                 flex: isMobile ? '1 1 100%' : '1 1 320px',
-                maxWidth: isMobile ? 360 : 400,
+                maxWidth: isMobile ? 320 : 380,
                 width: '100%',
                 margin: isMobile ? '0 auto' : undefined,
-                position: 'relative',
               }}>
-                {/* Soft ambient glow — contained, premium */}
-                <div style={{
-                  position: 'absolute',
-                  inset: isMobile ? -28 : -50,
-                  background: 'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.04) 0%, transparent 65%)',
-                  filter: 'blur(18px)',
-                  animation: 'glowPulse 6s ease-in-out infinite',
-                  pointerEvents: 'none',
-                  borderRadius: '50%',
-                }} />
-
-                <div
-                  style={{
-                    position: 'relative',
-                    background: 'linear-gradient(155deg, rgba(13,13,13,0.96) 0%, rgba(9,9,9,0.98) 50%, rgba(11,11,11,0.96) 100%)',
-                    backdropFilter: 'blur(20px) saturate(140%)',
-                    WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                    borderRadius: isMobile ? 16 : 20,
-                    overflow: 'hidden',
-                    boxShadow: '0 50px 100px rgba(0,0,0,0.75), 0 20px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)',
-                    transition: 'transform .5s cubic-bezier(0.16,1,0.3,1), box-shadow .5s cubic-bezier(0.16,1,0.3,1), border-color .5s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (isMobile) return
-                    e.currentTarget.style.transform = 'translateY(-4px)'
-                    e.currentTarget.style.boxShadow = '0 60px 120px rgba(0,0,0,0.85), 0 28px 56px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07)'
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.11)'
-                  }}
-                  onMouseLeave={(e) => {
-                    if (isMobile) return
-                    e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = '0 50px 100px rgba(0,0,0,0.75), 0 20px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)'
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
-                  }}
-                >
-                  {/* Top edge highlight */}
-                  <div style={{
-                    position: 'absolute', top: 0, left: '8%', right: '8%', height: 1,
-                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent)',
-                    pointerEvents: 'none',
-                  }} />
-
-                  {/* Grain texture */}
-                  <div style={{
-                    position: 'absolute', inset: 0, opacity: 0.04,
-                    backgroundImage: GRAIN, backgroundSize: '180px 180px',
-                    pointerEvents: 'none', mixBlendMode: 'overlay',
-                  }} />
-
-                  {/* Header strip — URL + LIVE */}
-                  <div style={{
-                    position: 'relative',
-                    padding: isMobile ? '.95rem 1.15rem' : '1.1rem 1.5rem',
-                    borderBottom: '1px solid rgba(255,255,255,0.045)',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    gap: '.75rem',
-                  }}>
-                    <span style={{
-                      fontFamily: 'Oswald, Arial, sans-serif',
-                      fontSize: isMobile ? '.56rem' : '.6rem',
-                      fontWeight: 400,
-                      letterSpacing: '.18em',
-                      color: 'rgba(255,255,255,.22)',
-                      textTransform: 'uppercase',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      minWidth: 0,
-                    }}>
-                      tappedin.uk/u/lucasgrey
-                    </span>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      padding: '3px 8px 3px 7px',
-                      background: 'rgba(74,222,128,0.06)',
-                      border: '1px solid rgba(74,222,128,0.14)',
-                      borderRadius: 2,
-                      flexShrink: 0,
-                    }}>
-                      <div style={{
-                        width: 5, height: 5, borderRadius: '50%',
-                        background: '#4ade80',
-                        boxShadow: '0 0 6px rgba(74,222,128,0.6)',
-                        animation: 'dotBlink 2s ease-in-out infinite',
-                      }} />
-                      <span style={{
-                        fontFamily: 'Oswald, Arial, sans-serif',
-                        fontSize: isMobile ? '.55rem' : '.58rem',
-                        fontWeight: 500,
-                        color: 'rgba(74,222,128,0.85)',
-                        letterSpacing: '.16em',
-                        textTransform: 'uppercase',
-                      }}>Live</span>
-                    </div>
-                  </div>
-
-                  {/* Body */}
-                  <div style={{
-                    padding: isMobile ? '1.65rem 1.15rem 1.5rem' : '2.25rem 1.75rem 1.85rem',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    textAlign: 'center',
-                  }}>
-                    {/* Avatar */}
-                    <div style={{
-                      position: 'relative',
-                      marginBottom: isMobile ? '.85rem' : '1.1rem',
-                    }}>
-                      {/* Avatar glow ring */}
-                      <div style={{
-                        position: 'absolute', inset: -6,
-                        borderRadius: isMobile ? 16 : 20,
-                        background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)',
-                        filter: 'blur(8px)',
-                        pointerEvents: 'none',
-                      }} />
-                      <div style={{
-                        position: 'relative',
-                        width: isMobile ? 58 : 68,
-                        height: isMobile ? 58 : 68,
-                        borderRadius: isMobile ? 14 : 16,
-                        background: 'linear-gradient(145deg, #1c1c1c 0%, #0e0e0e 50%, #161616 100%)',
-                        border: '1px solid rgba(255,255,255,0.09)',
-                        boxShadow: '0 10px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.07)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontFamily: 'Oswald, Arial, sans-serif',
-                        fontSize: isMobile ? '1.05rem' : '1.2rem',
-                        fontWeight: 600,
-                        color: 'rgba(255,255,255,.7)',
-                        letterSpacing: '0.1em',
-                      }}>LG</div>
-                    </div>
-
-                    {/* Name */}
-                    <div style={{
-                      fontFamily: 'Oswald, Arial, sans-serif',
-                      fontSize: isMobile ? '1.18rem' : '1.4rem',
-                      fontWeight: 500,
-                      color: '#fff',
-                      marginBottom: '.25rem',
-                      letterSpacing: '0.02em',
-                      lineHeight: 1.15,
-                    }}>Lucas Grey</div>
-
-                    {/* Role */}
-                    <div style={{
-                      fontFamily: 'Oswald, Arial, sans-serif',
-                      fontSize: isMobile ? '.72rem' : '.78rem',
-                      fontWeight: 400,
-                      color: 'rgba(255,255,255,.34)',
-                      marginBottom: isMobile ? '1.35rem' : '1.65rem',
-                      letterSpacing: '.14em',
-                      textTransform: 'uppercase',
-                    }}>Director · Visual Storyteller</div>
-
-                    {/* Action buttons */}
-                    <div style={{
-                      display: 'flex', flexDirection: 'column',
-                      gap: isMobile ? '.4rem' : '.5rem',
-                      width: '100%',
-                    }}>
-                      {[
-                        { label: 'Showreel',    primary: false },
-                        { label: 'Instagram',   primary: false },
-                        { label: 'Book a shoot', primary: true  },
-                      ].map((btn, i) => (
-                        <div
-                          key={btn.label}
-                          style={{
-                            position: 'relative',
-                            padding: isMobile ? '.7rem .85rem' : '.78rem 1rem',
-                            borderRadius: isMobile ? 9 : 10,
-                            background: btn.primary
-                              ? 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.055) 100%)'
-                              : 'rgba(255,255,255,0.028)',
-                            border: btn.primary
-                              ? '1px solid rgba(255,255,255,0.14)'
-                              : '1px solid rgba(255,255,255,0.05)',
-                            fontFamily: 'Oswald, Arial, sans-serif',
-                            fontSize: isMobile ? '.74rem' : '.8rem',
-                            fontWeight: btn.primary ? 500 : 400,
-                            color: btn.primary ? 'rgba(255,255,255,.92)' : 'rgba(255,255,255,.58)',
-                            letterSpacing: '.14em',
-                            textTransform: 'uppercase',
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            transition: 'background .3s, border-color .3s, color .3s',
-                            boxShadow: btn.primary ? 'inset 0 1px 0 rgba(255,255,255,0.05)' : 'none',
-                          }}
-                        >
-                          <span>{btn.label}</span>
-                          <span style={{
-                            fontSize: isMobile ? '.65rem' : '.7rem',
-                            color: btn.primary ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.22)',
-                            fontWeight: 300,
-                            letterSpacing: 0,
-                          }}>→</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Footer strip */}
-                  <div style={{
-                    padding: isMobile ? '.75rem 1.15rem' : '.85rem 1.5rem',
-                    borderTop: '1px solid rgba(255,255,255,0.045)',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    gap: '.5rem',
-                  }}>
-                    <span style={{
-                      fontFamily: 'Oswald, Arial, sans-serif',
-                      fontSize: isMobile ? '.55rem' : '.6rem',
-                      fontWeight: 500,
-                      color: 'rgba(255,255,255,.22)',
-                      letterSpacing: '.18em',
-                      textTransform: 'uppercase',
-                    }}>TAPPED-IN · Creative</span>
-                    <span style={{
-                      fontFamily: 'Oswald, Arial, sans-serif',
-                      fontSize: isMobile ? '.55rem' : '.6rem',
-                      fontWeight: 400,
-                      color: 'rgba(255,255,255,.2)',
-                      letterSpacing: '.08em',
-                    }}>428 taps</span>
-                  </div>
-                </div>
+                <ProfileQR isMobile={isMobile} />
               </div>
             </div>
           </div>
@@ -1839,7 +1703,7 @@ letterSpacing: isMobile ? '.08em' : '.12em',
             </p>
             <div className="reveal d3 final-cta-btns" style={{ display:'flex', gap:'.75rem', justifyContent:'center', flexWrap:'wrap' }}>
               <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Pre-orders are live</Link>
-              <Link href="/u/benpinner" className="btn-ghost">View demo profile</Link>
+              <Link href="/demo" className="btn-ghost">View demo profile</Link>
             </div>
             <div className="reveal d3" style={{ marginTop:'1.25rem', display:'flex', justifyContent:'center' }}>
               <a
@@ -1879,15 +1743,15 @@ letterSpacing: isMobile ? '.08em' : '.12em',
               </div>
               <div className="footer-links" style={{ display:'flex', gap:'4rem', flexWrap:'wrap' }}>
                 {[
-                  { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['#editions','Editions'],['/u/benpinner','Demo profile']] },
+                  { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['#editions','Editions'],['/demo','Demo profile']] },
                   { head:'Account', links:[['/signup','Pre-order'],['/login','Sign in'],['/dashboard','Dashboard']] },
-                  { head:'Follow',  links:[['https://www.instagram.com/tappedinspace/','Instagram ↗']] },
+                  { head:'Connect', links:[['https://www.instagram.com/tappedinspace/','Instagram ↗'],['mailto:contact@tappedin.uk','Contact us']] },
                 ].map(col=>(
                   <div key={col.head} style={{ display:'flex', flexDirection:'column', gap:'.65rem' }}>
                     <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:500, letterSpacing:'.26em', textTransform:'uppercase', color:'rgba(255,255,255,.2)', marginBottom:'.2rem' }}>{col.head}</div>
                     {col.links.map(([href,label])=>
-                      href.startsWith('#')
-                        ? <a key={href} href={href} className="footer-link">{label}</a>
+                      (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('http'))
+                        ? <a key={href} href={href} className="footer-link" {...(href.startsWith('http') ? { target:'_blank', rel:'noopener noreferrer' } : {})}>{label}</a>
                         : <Link key={href} href={href} className="footer-link">{label}</Link>
                     )}
                   </div>
