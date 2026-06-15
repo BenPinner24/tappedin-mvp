@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { sendFounderConfirmation } from '@/lib/email/sendFounderConfirmation'
+import { sendStandardConfirmation } from '@/lib/email/sendStandardConfirmation'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+// ── Standard PVC card product ID ─────────────────────────────────────────────
+// This is the Stripe Product ID for the Standard PVC card (Stripe → Products →
+// Standard PVC → "prod_..."). Matching on product ID means a price change won't
+// break this. If it's empty/wrong, PVC orders fall through to the Founders flow.
+const PVC_PRODUCT_ID = 'prod_UhzE8eaEZgXQiR'
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -66,6 +73,38 @@ export async function POST(req: NextRequest) {
 
   const orderNumber = session.id ? session.id.slice(-8).toUpperCase() : undefined
 
+  // ── Determine which product was purchased ──────────────────────────────────
+  // checkout.session.completed doesn't include line items, so fetch them.
+  const stripeClient = getStripe()
+  let purchasedProductId: string | undefined
+  try {
+    const lineItems = await stripeClient.checkout.sessions.listLineItems(session.id, { limit: 1 })
+    const priceProduct = lineItems.data[0]?.price?.product
+    purchasedProductId = typeof priceProduct === 'string' ? priceProduct : priceProduct?.id
+  } catch (err) {
+    console.error('[stripe/webhook] Could not fetch line items:', err)
+  }
+
+  // ── STANDARD PVC ORDER ──────────────────────────────────────────────────────
+  // A plain one-off purchase: send the Standard confirmation email and stop.
+  // No Founders card is allocated.
+  if (purchasedProductId && purchasedProductId === PVC_PRODUCT_ID) {
+    const standardResult = await sendStandardConfirmation({
+      to: recipient,
+      customerName,
+      orderNumber,
+      cardName: 'Standard PVC',
+    })
+
+    if (!standardResult.success) {
+      console.error('[stripe/webhook] Standard email send failed:', standardResult.error)
+      return NextResponse.json({ received: true, emailed: false, error: standardResult.error })
+    }
+
+    return NextResponse.json({ received: true, emailed: true, id: standardResult.id, type: 'standard' })
+  }
+
+  // ── FOUNDERS ORDER (default — unchanged) ────────────────────────────────────
   const supabase = createAdminClient()
 
   // 2. Prevent duplicate processing

@@ -8,7 +8,7 @@ const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
 // ── EDIT ME ───────────────────────────────────────────────────────────────────
 // Real number of Founder cards already claimed (0–100). Drives the
 // "X / 100 claimed" counter + progress bar in the Founding section below.
-const FOUNDERS_CLAIMED = 16
+const FOUNDERS_CLAIMED = 12
 // Optional: real founder @handles to show a "Founding members" chip row.
 // Leave as [] to hide the row entirely. e.g. ['@benpinner', '@studio.xyz']
 const FOUNDING_MEMBERS: string[] = []
@@ -970,6 +970,7 @@ export default function HomePage() {
               {[['#product','The Card'],['#how-it-works','How it works'],['#profile','Profile'],['#editions','Editions']].map(([h,l])=>(
                 <a key={h} href={h} className="nav-link">{l}</a>
               ))}
+              <Link href="/pricing" className="nav-link">Pricing</Link>
             </nav>
           )}
 
@@ -992,10 +993,7 @@ export default function HomePage() {
   Dashboard
 </Link>
             <Link
-href={FOUNDERS_STRIPE_URL}
-
-target="_blank"
-rel="noopener noreferrer"
+href="/pricing"
 className="btn-primary"
 style={{
 padding: isMobile ? '9px 16px' : '10px 22px',
@@ -1003,7 +1001,7 @@ fontSize: isMobile ? '.75rem' : '.82rem',
 letterSpacing: isMobile ? '.08em' : '.12em',
 }}
 >
-{isMobile ? 'Pre-order' : 'Pre-order'}
+Pre-order
 </Link>
           </div>
         </div>
@@ -1092,6 +1090,7 @@ letterSpacing: isMobile ? '.08em' : '.12em',
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) .26s both',
               }}>
                 <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">Pre-order Founders Edition</Link>
+                <Link href="/pricing" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Standard PVC · £34.99</Link>
                 <a href="#product" className="btn-ghost">View the card</a>
                 <a
   href="https://www.instagram.com/tappedinspace/"
@@ -1442,30 +1441,35 @@ letterSpacing: isMobile ? '.08em' : '.12em',
         <section id="editions" style={{ padding: SP, background:'#030303' }}>
           <div style={{ maxWidth:1160, margin:'0 auto' }}>
             <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(1.75rem,5vw,2.5rem)' : 'clamp(3.5rem,7vw,5rem)' }}>
-              <div style={EB}>Coming Soon</div>
-              <h2 style={H2}>Future editions.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.32)' }}>After the Founder Drop sells out.</span></h2>
-              <p style={SUB}>Standard editions will only become available once all 100 Founder cards have been claimed. They are not available now.</p>
+              <div style={EB}>Choose your card</div>
+              <h2 style={H2}>Three editions.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.32)' }}>One platform.</span></h2>
+              <p style={SUB}>Buy the card once with 3 months of full access included, then just £1/month keeps it live. <Link href="/pricing" style={{ color:'#fff', textDecoration:'underline', textUnderlineOffset:'3px' }}>See all plans &amp; tiers →</Link></p>
             </div>
 
             <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', maxWidth:720, margin:'0 auto' }}>
               {[
-                { label:'Standard PVC',   price:'£34.99' },
-                { label:'Standard Metal', price:'£49.99' },
-              ].map((ed,i)=>(
-                <div key={i} style={{ background:'#070707', border:'1px solid rgba(255,255,255,0.04)', borderRadius:3, padding: isMobile ? '1.1rem .9rem' : 'clamp(1.5rem,3vw,2rem)', opacity:.4, position:'relative', overflow:'hidden' }}>
-                  <div style={{ position:'absolute', top:12, right:12, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:2, padding:'3px 9px', fontFamily:'Oswald, Arial, sans-serif', fontSize:'.58rem', fontWeight:500, letterSpacing:'.2em', color:'rgba(255,255,255,.38)', textTransform:'uppercase' }}>Locked</div>
-                  <div style={{ marginBottom:'1rem', pointerEvents:'none' }}>
-                    <CardFront size="sm" scale={isMobile ? 0.78 : 1} />
+                { label:'Standard PVC',   price:'£34.99', available:true,  note:'The everyday tap card. Premium matte finish — available now.' },
+                { label:'Standard Metal', price:'£49.99', available:false, note:'Heavier premium metal finish. Coming soon.' },
+              ].map((ed,i)=>{
+                const inner = (
+                  <div style={{ background:'#070707', border:`1px solid rgba(255,255,255,${ed.available ? 0.08 : 0.04})`, borderRadius:3, padding: isMobile ? '1.1rem .9rem' : 'clamp(1.5rem,3vw,2rem)', opacity: ed.available ? 1 : .4, position:'relative', overflow:'hidden', height:'100%' }}>
+                    <div style={{ position:'absolute', top:12, right:12, background: ed.available ? '#fff' : 'rgba(255,255,255,0.06)', border:`1px solid ${ed.available ? '#fff' : 'rgba(255,255,255,0.07)'}`, borderRadius:2, padding:'3px 9px', fontFamily:'Oswald, Arial, sans-serif', fontSize:'.58rem', fontWeight:600, letterSpacing:'.2em', color: ed.available ? '#000' : 'rgba(255,255,255,.38)', textTransform:'uppercase' }}>{ed.available ? 'Available' : 'Locked'}</div>
+                    <div style={{ marginBottom:'1rem', pointerEvents:'none' }}>
+                      <CardFront size="sm" scale={isMobile ? 0.78 : 1} />
+                    </div>
+                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.62rem', fontWeight:400, color:'rgba(255,255,255,.4)', letterSpacing:'.22em', textTransform:'uppercase', marginBottom:'.5rem' }}>{ed.label}</div>
+                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight:600, color:'#fff', marginBottom:'.3rem', letterSpacing:'0.02em' }}>{ed.price}</div>
+                    <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.84rem', fontWeight:300, color:'rgba(255,255,255,.35)', lineHeight:1.65, letterSpacing:'0.01em' }}>{ed.note}</p>
                   </div>
-                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.62rem', fontWeight:400, color:'rgba(255,255,255,.2)', letterSpacing:'.22em', textTransform:'uppercase', marginBottom:'.5rem' }}>{ed.label}</div>
-                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight:600, color:'#fff', marginBottom:'.3rem', letterSpacing:'0.02em' }}>{ed.price}</div>
-                  <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.84rem', fontWeight:300, color:'rgba(255,255,255,.22)', lineHeight:1.65, letterSpacing:'0.01em' }}>Coming soon. Not available until Founder Edition sells out.</p>
-                </div>
-              ))}
+                )
+                return ed.available
+                  ? <Link key={i} href="/pricing" style={{ textDecoration:'none', display:'block' }}>{inner}</Link>
+                  : <div key={i}>{inner}</div>
+              })}
             </div>
 
-            <p className="reveal" style={{ textAlign:'center', fontFamily:'Oswald, Arial, sans-serif', fontSize:'.75rem', fontWeight:400, color:'rgba(255,255,255,.18)', marginTop:'1.5rem', letterSpacing:'.1em', textTransform:'uppercase' }}>
-              These editions will be announced when the Founder Drop is sold out.
+            <p className="reveal" style={{ textAlign:'center', marginTop:'1.5rem' }}>
+              <Link href="/pricing" style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.75rem', fontWeight:400, color:'rgba(255,255,255,.45)', letterSpacing:'.1em', textTransform:'uppercase', textDecoration:'none' }}>View all editions &amp; pricing →</Link>
             </p>
           </div>
         </section>
