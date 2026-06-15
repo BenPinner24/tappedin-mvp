@@ -41,7 +41,7 @@ type Tier = {
 const TIERS: Tier[] = [
   { name: 'Bronze', price: '£1', forWho: 'Keep your card live', features: ['Live profile & unlimited links', 'Save Contact + QR code', 'Basic taps & clicks count', '3 profile images'] },
   { name: 'Silver', price: '£3.99', forWho: 'Creators & freelancers', features: ['Everything in Bronze', 'Full analytics dashboard', 'Profile themes & customisation', 'Portfolio page (~12 images, 1 GB)', 'Remove TAPPED-IN branding'] },
-  { name: 'Gold', price: '£7.99', forWho: 'Professionals & brands', highlight: true, features: ['Everything in Silver', 'Custom domain', 'Lead capture — see who taps', 'Booking / scheduling link', 'Video uploads', '30 GB storage', 'Priority support'] },
+  { name: 'Gold', price: '£7.99', forWho: 'Professionals & brands', features: ['Everything in Silver', 'Custom domain', 'Lead capture — see who taps', 'Video uploads', '30 GB storage', 'Priority support'] },
   { name: 'Platinum', price: '£16.99', forWho: 'Teams & agencies', features: ['Everything in Gold', 'Multiple cards on one account', 'Team management', 'Pooled team analytics', '80 GB storage', 'Dedicated support'] },
 ]
 
@@ -125,13 +125,13 @@ export default function PricingPage() {
 
           {/* tiers */}
           <section style={s.section}>
-            <p style={s.eyebrowCenter}>After your 3 months</p>
-            <h2 style={s.h2}>Pick a plan that fits</h2>
-            <p style={s.subCenter}>Your card always works at £1/month — the higher tiers just unlock more. Change or cancel anytime.</p>
+            <p style={s.eyebrowCenter}>What&apos;s next</p>
+            <h2 style={s.h2}>Monthly plans are coming</h2>
+            <p style={s.subCenter}>Right now, every card includes full access to everything we&apos;ve built — your profile, unlimited links, QR, Save Contact, analytics and gallery. These monthly plans are what&apos;s coming next.</p>
             <div style={s.tiersGrid} className="tiers">
               {TIERS.map((t, i) => (
                 <div key={t.name} style={{ ...s.tier, ...(t.highlight ? s.tierHighlight : {}), transitionDelay: `${i * 0.06}s` }} className={reveal ? 'r show' : 'r'}>
-                  {t.highlight && <span style={s.tierBadge}>Popular</span>}
+                  <span style={s.tierBadge}>Soon</span>
                   <h3 style={s.tierName}>{t.name}</h3>
                   <p style={s.tierFor}>{t.forWho}</p>
                   <p style={s.tierPrice}>{t.price}<span style={s.tierPer}>/mo</span></p>
@@ -146,7 +146,7 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <p style={s.cardsNote}>Annual billing (about 2 months free) coming soon on every tier.</p>
+            <p style={s.cardsNote}>Plans, prices and features shown here are planned and may change before launch.</p>
           </section>
 
           {/* terms */}
