@@ -46,16 +46,16 @@ const TIERS: Tier[] = [
 ]
 
 const STEPS = [
-  { n: '01', h: 'Choose your card', b: 'A one-time payment. The card is yours to keep — no contract.' },
-  { n: '02', h: '3 months, everything free', b: 'Full access to every feature, starting the day you activate your card.' },
-  { n: '03', h: 'Then £1/month', b: 'Bronze keeps your card live and your data safe. Cancel anytime. Upgrade whenever you need more.' },
+  { n: '01', h: 'Buy your card', b: 'A one-time payment. The card is yours to keep — no contract.' },
+  { n: '02', h: 'Full access, included', b: 'Everything we\u2019ve built is unlocked the moment you activate your card.' },
+  { n: '03', h: '£1/month — coming soon', b: 'A simple monthly plan to keep your card live long-term is on the way. Founders Edition stays free for life.' },
 ]
 
 const FAQS = [
-  { q: 'What happens after the 3 free months?', a: 'Your card moves to Bronze at £1/month, which keeps it active. If you choose not to continue, your profile simply pauses — visitors see a "reactivate" screen, and none of your data is deleted.' },
-  { q: 'When do the 3 months start?', a: 'From the day you activate your card, not the day you buy it — so pre-orders never lose free time waiting for delivery.' },
-  { q: 'Do Founders pay the monthly fee?', a: 'No. Founders Edition owners get Bronze free for life — the card stays active forever at no recurring cost. Upgrades to higher tiers are still optional.' },
-  { q: 'Can I cancel?', a: 'Yes, anytime. There is no contract. Cancelling pauses your profile; your data is kept so you can reactivate later.' },
+  { q: 'Is there a monthly fee right now?', a: 'No. Every card today includes full access to everything we\u2019ve built. We\u2019re introducing a simple £1/month plan (Bronze) to keep cards live long-term, and we\u2019ll share full details before any billing begins.' },
+  { q: 'What will the monthly plan cost?', a: '£1/month (Bronze) is planned to keep your card live, with optional Silver, Gold and Platinum tiers for more. Prices and features may change before launch.' },
+  { q: 'Do Founders pay the monthly fee?', a: 'No. Founders Edition owners keep Bronze free for life — the card stays active forever at no recurring cost, with optional upgrades available.' },
+  { q: 'Will I be able to cancel?', a: 'Yes. When the monthly plan launches there is no contract — cancelling simply pauses your public profile, and none of your data is deleted, so you can reactivate later.' },
 ]
 
 export default function PricingPage() {
@@ -81,7 +81,7 @@ export default function PricingPage() {
           <section style={s.hero} className={reveal ? 'r show' : 'r'}>
             <p style={s.eyebrow}>Pricing</p>
             <h1 style={s.h1}>Buy the card once.<br /><span style={s.h1dim}>Keep it for £1 a month.</span></h1>
-            <p style={s.sub}>Every TAPPED-IN card is a one-time purchase with 3 months of full access included. After that, just £1/month keeps it live — or upgrade for more. No contract, cancel anytime.</p>
+            <p style={s.sub}>Every TAPPED-IN card is a one-time purchase that includes full access to everything we&apos;ve built. A simple £1/month plan to keep your card live long-term — with optional upgrades — is launching soon.</p>
           </section>
 
           {/* how it works */}
@@ -154,7 +154,7 @@ export default function PricingPage() {
             <div style={s.terms}>
               <p style={s.eyebrow}>How billing works</p>
               <p style={s.termsBody}>
-                Your card is a one-time purchase. It includes <strong style={s.strong}>3 months of full premium access</strong>, starting when you activate it. After that, <strong style={s.strong}>£1/month (Bronze)</strong> keeps your card active and your data protected — you can cancel anytime, and cancelling simply pauses your public profile rather than deleting anything. Silver, Gold and Platinum are optional upgrades. <strong style={s.strong}>Founders Edition owners keep Bronze free for life</strong> and never pay a monthly fee.
+                Your card is a one-time purchase, and it unlocks <strong style={s.strong}>full access to everything we&apos;ve built</strong> — yours from the moment you activate. We&apos;re rolling out a simple <strong style={s.strong}>£1/month plan (Bronze)</strong> to keep cards live long-term, with optional Silver, Gold and Platinum upgrades for more. <strong style={s.strong}>Founders Edition owners are set for life</strong> — Bronze free, no monthly fee, ever. We&apos;ll share full details before any monthly billing begins.
               </p>
             </div>
           </section>
