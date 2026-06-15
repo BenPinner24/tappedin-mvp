@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound }     from 'next/navigation'
 import type { CSSProperties } from 'react'
+export const dynamic = 'force-dynamic'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
