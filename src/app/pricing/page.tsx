@@ -39,16 +39,16 @@ type Tier = {
 }
 
 const TIERS: Tier[] = [
-  { name: 'Bronze', price: '£1', forWho: 'Keep your card live', features: ['Live profile & unlimited links', 'Save Contact + QR code', 'Basic taps & clicks count', '3 profile images'] },
-  { name: 'Silver', price: '£3.99', forWho: 'Creators & freelancers', features: ['Everything in Bronze', 'Full analytics dashboard', 'Profile themes & customisation', 'Portfolio page (~12 images, 1 GB)', 'Remove TAPPED-IN branding'] },
-  { name: 'Gold', price: '£7.99', forWho: 'Professionals & brands', features: ['Everything in Silver', 'Custom domain', 'Lead capture — see who taps', 'Video uploads', '30 GB storage', 'Priority support'] },
+  { name: 'Bronze', price: '£1', forWho: 'Keep your card live', features: ['Live profile & unlimited links', 'Save Contact + QR code', 'Basic analytics (taps & clicks)', '3 profile images'] },
+  { name: 'Silver', price: '£3.99', forWho: 'Creators & freelancers', features: ['Everything in Bronze', 'Detailed analytics dashboard', 'Profile themes & customisation', 'Portfolio page (~12 images, 1 GB)'] },
+  { name: 'Gold', price: '£7.99', forWho: 'Professionals & brands', features: ['Everything in Silver', 'Lead capture — see who taps', 'Video uploads', '30 GB storage', 'Priority support'] },
   { name: 'Platinum', price: '£16.99', forWho: 'Teams & agencies', features: ['Everything in Gold', 'Multiple cards on one account', 'Team management', 'Pooled team analytics', '80 GB storage', 'Dedicated support'] },
 ]
 
 const STEPS = [
-  { n: '01', h: 'Buy your card', b: 'A one-time payment. The card is yours to keep — no contract.' },
-  { n: '02', h: 'Full access, included', b: 'Everything we\u2019ve built is unlocked the moment you activate your card.' },
-  { n: '03', h: '£1/month — coming soon', b: 'A simple monthly plan to keep your card live long-term is on the way. Founders Edition stays free for life.' },
+  { n: '01', h: 'Get your card', b: 'A single one-time payment — the card is yours to keep, with no contract and no surprises.' },
+  { n: '02', h: 'Everything included', b: 'Every feature we\u2019ve built is yours the moment you activate — nothing locked behind extra fees.' },
+  { n: '03', h: 'Stay live for £1 — soon', b: 'A simple monthly plan to keep your card live long-term is on the way. Founders Edition stays free for life.' },
 ]
 
 const FAQS = [
@@ -80,8 +80,8 @@ export default function PricingPage() {
           {/* hero */}
           <section style={s.hero} className={reveal ? 'r show' : 'r'}>
             <p style={s.eyebrow}>Pricing</p>
-            <h1 style={s.h1}>Buy the card once.<br /><span style={s.h1dim}>Keep it for £1 a month.</span></h1>
-            <p style={s.sub}>Every TAPPED-IN card is a one-time purchase that includes full access to everything we&apos;ve built. A simple £1/month plan to keep your card live long-term — with optional upgrades — is launching soon.</p>
+            <h1 style={s.h1}>Everything included.<br /><span style={s.h1dim}>Yours for just £1 a month.</span></h1>
+            <p style={s.sub}>Your TAPPED-IN card comes with full access to everything we&apos;ve built — nothing locked away, nothing extra to unlock. A simple £1/month plan to keep it live long-term is launching soon, with optional upgrades if you ever want more.</p>
           </section>
 
           {/* how it works */}
@@ -100,7 +100,7 @@ export default function PricingPage() {
           {/* cards */}
           <section style={s.section}>
             <p style={s.eyebrowCenter}>Choose your card</p>
-            <h2 style={s.h2}>One-time purchase</h2>
+            <h2 style={s.h2}>Yours to keep</h2>
             <div style={s.cardsGrid} className="cards">
               {CARDS.map((c, i) => {
                 const live = !!c.url
@@ -120,14 +120,14 @@ export default function PricingPage() {
                 )
               })}
             </div>
-            <p style={s.cardsNote}>Every card includes 3 months of full access from activation, then £1/month (Bronze) to stay live.</p>
+            <p style={s.cardsNote}>Every card comes with full access to everything we&apos;ve built. A £1/month plan to keep it live is coming soon — Founders Edition stays free for life.</p>
           </section>
 
           {/* tiers */}
           <section style={s.section}>
             <p style={s.eyebrowCenter}>What&apos;s next</p>
             <h2 style={s.h2}>Monthly plans are coming</h2>
-            <p style={s.subCenter}>Right now, every card includes full access to everything we&apos;ve built — your profile, unlimited links, QR, Save Contact, analytics and gallery. These monthly plans are what&apos;s coming next.</p>
+            <p style={s.subCenter}>Right now, every card includes full access to everything we&apos;ve built — your profile, unlimited links, QR, Save Contact, analytics and gallery, all included. These optional monthly plans are simply what&apos;s coming next.</p>
             <div style={s.tiersGrid} className="tiers">
               {TIERS.map((t, i) => (
                 <div key={t.name} style={{ ...s.tier, ...(t.highlight ? s.tierHighlight : {}), transitionDelay: `${i * 0.06}s` }} className={reveal ? 'r show' : 'r'}>
