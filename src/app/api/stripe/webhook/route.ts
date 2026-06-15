@@ -7,11 +7,16 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// ── Standard PVC card product ID ─────────────────────────────────────────────
-// This is the Stripe Product ID for the Standard PVC card (Stripe → Products →
-// Standard PVC → "prod_..."). Matching on product ID means a price change won't
-// break this. If it's empty/wrong, PVC orders fall through to the Founders flow.
+// One-off card product (PVC) — sends the Standard email.
 const PVC_PRODUCT_ID = 'prod_UhzE8eaEZgXQiR'
+
+// Subscription products → tier.
+const PRODUCT_TIERS: Record<string, string> = {
+  prod_Ui0fOuIDHiNshg: 'bronze',
+  prod_Ui0g7f43Sy5AF8: 'silver',
+  prod_Ui0icn6ymBMyNX: 'gold',
+  prod_Ui0iODipZ768Wq: 'platinum',
+}
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -20,6 +25,19 @@ function getStripe(): Stripe {
   if (!key) throw new Error('STRIPE_SECRET_KEY is not set.')
   _stripe = new Stripe(key)
   return _stripe
+}
+
+// Pull the tier from a subscription's first line item's product.
+function tierFromSubscription(sub: Stripe.Subscription): string | null {
+  const item = sub.items?.data?.[0]
+  const product = item?.price?.product
+  const productId = typeof product === 'string' ? product : product?.id
+  return productId ? (PRODUCT_TIERS[productId] ?? null) : null
+}
+
+function periodEndIso(sub: Stripe.Subscription): string | null {
+  const cpe = (sub as { current_period_end?: number }).current_period_end
+  return cpe ? new Date(cpe * 1000).toISOString() : null
 }
 
 export async function POST(req: NextRequest) {
@@ -47,11 +65,80 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Webhook Error: ${msg}` }, { status: 400 })
   }
 
+  // ── SUBSCRIPTION LIFECYCLE (sync tier onto the user's profile) ──────────────
+  if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
+    const sub = event.data.object as Stripe.Subscription
+    const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
+    const admin = createAdminClient()
+    await admin
+      .from('profiles')
+      .update({
+        subscription_tier: tierFromSubscription(sub),
+        subscription_status: sub.status,
+        subscription_current_period_end: periodEndIso(sub),
+      })
+      .eq('stripe_customer_id', customerId)
+    return NextResponse.json({ received: true, type: 'subscription_sync', status: sub.status })
+  }
+
+  if (event.type === 'customer.subscription.deleted') {
+    const sub = event.data.object as Stripe.Subscription
+    const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
+    const admin = createAdminClient()
+    await admin
+      .from('profiles')
+      .update({ subscription_status: 'canceled', subscription_tier: null })
+      .eq('stripe_customer_id', customerId)
+    return NextResponse.json({ received: true, type: 'subscription_deleted' })
+  }
+
   if (event.type !== 'checkout.session.completed') {
     return NextResponse.json({ received: true })
   }
 
   const session = event.data.object as Stripe.Checkout.Session
+
+  // ── SUBSCRIPTION CHECKOUT (first time someone subscribes) ───────────────────
+  if (session.mode === 'subscription') {
+    const userId = session.client_reference_id || session.metadata?.user_id || null
+    const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
+    let resolvedTier: string | null = session.metadata?.tier ?? null
+    let status = 'active'
+    let periodEnd: string | null = null
+
+    try {
+      if (session.subscription) {
+        const subId = typeof session.subscription === 'string' ? session.subscription : session.subscription.id
+        const sub = await getStripe().subscriptions.retrieve(subId)
+        status = sub.status
+        periodEnd = periodEndIso(sub)
+        if (!resolvedTier) resolvedTier = tierFromSubscription(sub)
+      }
+    } catch (e) {
+      console.error('[stripe/webhook] could not retrieve subscription:', e)
+    }
+
+    if (userId) {
+      const admin = createAdminClient()
+      await admin
+        .from('profiles')
+        .update({
+          stripe_customer_id: customerId,
+          subscription_tier: resolvedTier,
+          subscription_status: status,
+          subscription_current_period_end: periodEnd,
+        })
+        .eq('id', userId)
+    } else {
+      console.warn('[stripe/webhook] subscription checkout with no user id:', session.id)
+    }
+
+    return NextResponse.json({ received: true, type: 'subscription_checkout', tier: resolvedTier })
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // ONE-OFF CARD PAYMENT (PVC / Founders) — unchanged
+  // ════════════════════════════════════════════════════════════════════════════
 
   // 1. Only continue if paid
   if (session.payment_status !== 'paid') {
@@ -73,8 +160,7 @@ export async function POST(req: NextRequest) {
 
   const orderNumber = session.id ? session.id.slice(-8).toUpperCase() : undefined
 
-  // ── Determine which product was purchased ──────────────────────────────────
-  // checkout.session.completed doesn't include line items, so fetch them.
+  // Determine which product was purchased
   const stripeClient = getStripe()
   let purchasedProductId: string | undefined
   try {
@@ -85,9 +171,7 @@ export async function POST(req: NextRequest) {
     console.error('[stripe/webhook] Could not fetch line items:', err)
   }
 
-  // ── STANDARD PVC ORDER ──────────────────────────────────────────────────────
-  // A plain one-off purchase: send the Standard confirmation email and stop.
-  // No Founders card is allocated.
+  // STANDARD PVC ORDER — send the Standard confirmation and stop.
   if (purchasedProductId && purchasedProductId === PVC_PRODUCT_ID) {
     const standardResult = await sendStandardConfirmation({
       to: recipient,
@@ -104,7 +188,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, emailed: true, id: standardResult.id, type: 'standard' })
   }
 
-  // ── FOUNDERS ORDER (default — unchanged) ────────────────────────────────────
+  // FOUNDERS ORDER (default)
   const supabase = createAdminClient()
 
   // 2. Prevent duplicate processing
@@ -140,7 +224,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, emailed: false, error: 'Sold out' })
   }
 
-  // 7. Extract allocation number from card_id e.g. "founders-edition-004" → 4
+  // 7. Extract allocation number from card_id e.g. "founders-edition-004" -> 4
   const allocationNumber = parseInt(card.card_id.split('-').pop() ?? '0', 10)
 
   // 5. Update card status to 'reserved'
