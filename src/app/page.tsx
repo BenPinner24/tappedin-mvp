@@ -8,7 +8,7 @@ const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
 // ── EDIT ME ───────────────────────────────────────────────────────────────────
 // Real number of Founder cards already claimed (0–100). Drives the
 // "X / 100 claimed" counter + progress bar in the Founding section below.
-const FOUNDERS_CLAIMED = 12
+const FOUNDERS_CLAIMED = 16
 // Optional: real founder @handles to show a "Founding members" chip row.
 // Leave as [] to hide the row entirely. e.g. ['@benpinner', '@studio.xyz']
 const FOUNDING_MEMBERS: string[] = []
