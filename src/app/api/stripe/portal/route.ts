@@ -24,13 +24,13 @@ export async function POST(req: NextRequest) {
     }
 
     const admin = createAdminClient()
-    const { data: profile } = await admin
-      .from('profiles')
+    const { data: billing } = await admin
+      .from('user_billing')
       .select('stripe_customer_id')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .maybeSingle()
 
-    const customerId = (profile?.stripe_customer_id as string | null) ?? null
+    const customerId = (billing?.stripe_customer_id as string | null) ?? null
     if (!customerId) {
       return NextResponse.json({ error: 'No billing account yet — choose a plan first.' }, { status: 400 })
     }
