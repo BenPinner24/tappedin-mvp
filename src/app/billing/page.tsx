@@ -30,13 +30,13 @@ export default function BillingPage() {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session?.user?.id) { setSignedIn(false); return }
         setSignedIn(true)
-        const { data: profile } = await supabase
-          .from('profiles')
+        const { data: billing } = await supabase
+          .from('user_billing')
           .select('subscription_tier, subscription_status')
-          .eq('id', session.user.id)
+          .eq('user_id', session.user.id)
           .maybeSingle()
-        setCurrentTier(profile?.subscription_tier ?? null)
-        setStatus(profile?.subscription_status ?? null)
+        setCurrentTier(billing?.subscription_tier ?? null)
+        setStatus(billing?.subscription_status ?? null)
       } catch {
         // ignore — treated as no active plan
       } finally {

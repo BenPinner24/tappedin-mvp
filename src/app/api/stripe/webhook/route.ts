@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
     const admin = createAdminClient()
     await admin
-      .from('profiles')
+      .from('user_billing')
       .update({
         subscription_tier: tierFromSubscription(sub),
         subscription_status: sub.status,
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
     const admin = createAdminClient()
     await admin
-      .from('profiles')
+      .from('user_billing')
       .update({ subscription_status: 'canceled', subscription_tier: null })
       .eq('stripe_customer_id', customerId)
     return NextResponse.json({ received: true, type: 'subscription_deleted' })
@@ -121,14 +121,14 @@ export async function POST(req: NextRequest) {
     if (userId) {
       const admin = createAdminClient()
       await admin
-        .from('profiles')
-        .update({
+        .from('user_billing')
+        .upsert({
+          user_id: userId,
           stripe_customer_id: customerId,
           subscription_tier: resolvedTier,
           subscription_status: status,
           subscription_current_period_end: periodEnd,
-        })
-        .eq('id', userId)
+        }, { onConflict: 'user_id' })
     } else {
       console.warn('[stripe/webhook] subscription checkout with no user id:', session.id)
     }

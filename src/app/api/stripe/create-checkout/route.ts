@@ -49,20 +49,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Reuse the user's Stripe customer, or create one and store it
-    const { data: profile } = await admin
-      .from('profiles')
+    const { data: billing } = await admin
+      .from('user_billing')
       .select('stripe_customer_id')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .maybeSingle()
 
-    let customerId: string | null = (profile?.stripe_customer_id as string | null) ?? null
+    let customerId: string | null = (billing?.stripe_customer_id as string | null) ?? null
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email ?? undefined,
         metadata: { user_id: user.id },
       })
       customerId = customer.id
-      await admin.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
+      await admin.from('user_billing').upsert({ user_id: user.id, stripe_customer_id: customerId }, { onConflict: 'user_id' })
     }
 
     const origin = req.headers.get('origin') ?? 'https://tappedin.uk'
