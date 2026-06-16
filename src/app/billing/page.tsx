@@ -7,10 +7,10 @@ import { createClient } from '@/lib/supabase/client'
 type PlanKey = 'bronze' | 'silver' | 'gold' | 'platinum'
 
 const PLANS: { key: PlanKey; name: string; price: string; forWho: string; features: string[] }[] = [
-  { key: 'bronze',   name: 'Bronze',   price: '£1',     forWho: 'Keep your card live',     features: ['Live profile & unlimited links', 'Save Contact + QR code', 'Basic taps & clicks', '3 profile images'] },
-  { key: 'silver',   name: 'Silver',   price: '£3.99',  forWho: 'Creators & freelancers',  features: ['Everything in Bronze', 'Full analytics dashboard', 'Profile themes', 'Remove TAPPED-IN branding'] },
-  { key: 'gold',     name: 'Gold',     price: '£7.99',  forWho: 'Professionals & brands',  features: ['Everything in Silver', 'Custom domain', 'Lead capture', 'Video uploads', '30 GB storage'] },
-  { key: 'platinum', name: 'Platinum', price: '£16.99', forWho: 'Teams & agencies',        features: ['Everything in Gold', 'Multiple cards', 'Team management', '80 GB storage'] },
+  { key: 'bronze',   name: 'Bronze',   price: '£1',     forWho: 'Keep your card live',     features: ['Live profile & unlimited links', 'Save Contact + QR code', 'Basic analytics (taps & clicks)', '3 profile images'] },
+  { key: 'silver',   name: 'Silver',   price: '£3.99',  forWho: 'Creators & freelancers',  features: ['Everything in Bronze', 'Detailed analytics dashboard', 'Profile themes & customisation', 'Portfolio page (~12 images, 1 GB)'] },
+  { key: 'gold',     name: 'Gold',     price: '£7.99',  forWho: 'Professionals & brands',  features: ['Everything in Silver', 'Lead capture — see who taps', 'Video uploads', '30 GB storage', 'Priority support'] },
+  { key: 'platinum', name: 'Platinum', price: '£16.99', forWho: 'Teams & agencies',        features: ['Everything in Gold', 'Multiple cards on one account', 'Team management', 'Pooled team analytics', '80 GB storage', 'Dedicated support'] },
 ]
 
 const RANK: Record<PlanKey, number> = { bronze: 1, silver: 2, gold: 3, platinum: 4 }
