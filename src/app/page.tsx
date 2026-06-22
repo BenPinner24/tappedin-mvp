@@ -903,6 +903,7 @@ export default function HomePage() {
   useReveal()
   const [scrolled, setScrolled]   = useState(false)
   const [isMobile, setIsMobile]   = useState(false)
+  const [menuOpen, setMenuOpen]   = useState(false)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -920,6 +921,16 @@ export default function HomePage() {
       window.removeEventListener('resize', onResize)
     }
   }, [])
+
+  // Mobile menu: lock background scroll while open; auto-close on desktop.
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [menuOpen])
+
+  useEffect(() => {
+    if (!isMobile && menuOpen) setMenuOpen(false)
+  }, [isMobile, menuOpen])
 
   // Shared section padding — driven by JS so inline style values are correct
   const SP = isMobile
@@ -971,40 +982,71 @@ export default function HomePage() {
                 <a key={h} href={h} className="nav-link">{l}</a>
               ))}
               <Link href="/pricing" className="nav-link">Pricing</Link>
-                <Link href="/insights" className="nav-link">Insights</Link>
+              <Link href="/insights" className="nav-link">Insights</Link>
             </nav>
           )}
 
           {/* CTA buttons */}
-          <div style={{ display:'flex', gap: isMobile ? '.35rem' : '.6rem', alignItems:'center', flexShrink:0 }}>
-            {/* Hide "Sign in" on mobile to avoid crowding */}
+          <div style={{ display:'flex', gap: isMobile ? '.4rem' : '.6rem', alignItems:'center', flexShrink:0 }}>
             {!isMobile && (
               <Link href="/login" className="btn-ghost" style={{ padding:'9px 18px', fontSize:'.82rem' }}>Sign in</Link>
             )}
-<Link
-  href="/dashboard"
-  className="btn-ghost"
-  style={{
-  padding: isMobile ? "9px 16px" : "10px 22px",
-  fontSize: isMobile ? ".75rem" : ".82rem",
-  letterSpacing: isMobile ? ".08em" : ".12em",
-  textDecoration: "none",
-  }}
-  >
-  Dashboard
-</Link>
+            {!isMobile && (
+              <Link href="/dashboard" className="btn-ghost" style={{ padding:'10px 22px', fontSize:'.82rem', letterSpacing:'.12em', textDecoration:'none' }}>Dashboard</Link>
+            )}
             <Link
-href="/pricing"
-className="btn-primary"
-style={{
-padding: isMobile ? '9px 16px' : '10px 22px',
-fontSize: isMobile ? '.75rem' : '.82rem',
-letterSpacing: isMobile ? '.08em' : '.12em',
-}}
->
-Pre-order
-</Link>
+              href="/pricing"
+              className="btn-primary"
+              style={{
+                padding: isMobile ? '9px 16px' : '10px 22px',
+                fontSize: isMobile ? '.75rem' : '.82rem',
+                letterSpacing: isMobile ? '.08em' : '.12em',
+              }}
+            >
+              Pre-order
+            </Link>
+
+            {/* Mobile hamburger */}
+            {isMobile && (
+              <button aria-label="Open menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}
+                style={{ display:'inline-flex', flexDirection:'column', justifyContent:'center', gap:5, width:44, height:42, padding:'0 11px', cursor:'pointer', background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:3 }}>
+                <span style={{ display:'block', height:1.5, background:'#fff', borderRadius:2 }} />
+                <span style={{ display:'block', height:1.5, background:'#fff', borderRadius:2 }} />
+                <span style={{ display:'block', height:1.5, background:'#fff', borderRadius:2 }} />
+              </button>
+            )}
           </div>
+
+          {/* Mobile menu overlay */}
+          {isMobile && menuOpen && (
+            <div style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(5,5,5,0.98)', backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)', display:'flex', flexDirection:'column', padding:'1.25rem', animation:'fadeIn .25s ease both' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:56 }}>
+                <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1rem', fontWeight:600, letterSpacing:'.28em', color:'#fff', textTransform:'uppercase' }}>TAPPED-IN</span>
+                <button aria-label="Close menu" onClick={() => setMenuOpen(false)}
+                  style={{ width:42, height:42, cursor:'pointer', position:'relative', background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:3 }}>
+                  <span style={{ position:'absolute', top:'50%', left:'50%', width:16, height:1.5, background:'#fff', transform:'translate(-50%,-50%) rotate(45deg)' }} />
+                  <span style={{ position:'absolute', top:'50%', left:'50%', width:16, height:1.5, background:'#fff', transform:'translate(-50%,-50%) rotate(-45deg)' }} />
+                </button>
+              </div>
+
+              <nav style={{ display:'flex', flexDirection:'column', gap:'.25rem', marginTop:'2rem' }}>
+                {[['#product','The Card'],['#how-it-works','How it works'],['#profile','Profile'],['#editions','Editions']].map(([h,l])=>(
+                  <a key={h} href={h} onClick={() => setMenuOpen(false)}
+                    style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>{l}</a>
+                ))}
+                <Link href="/pricing" onClick={() => setMenuOpen(false)}
+                  style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>Pricing</Link>
+                <Link href="/insights" onClick={() => setMenuOpen(false)}
+                  style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>Insights</Link>
+              </nav>
+
+              <div style={{ marginTop:'auto', display:'flex', flexDirection:'column', gap:'.6rem' }}>
+                <Link href="/login" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Sign in</Link>
+                <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Dashboard</Link>
+                <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="btn-primary" style={{ width:'100%', padding:'15px' }}>Pre-order Founders Edition</Link>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
