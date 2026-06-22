@@ -29,13 +29,48 @@ const inter = Inter({
   display: "swap",
 });
 
-export const metadata = {
-  title: "Tapped-In",
-  description: "Premium NFC digital profiles.",
-  robots: {
-    index: false,
-    follow: false,
+export const metadata: Metadata = {
+  metadataBase: new URL("https://tappedin.uk"),
+  title: {
+    default: "TAPPED-IN | Premium NFC Business Cards & Digital Profiles",
+    template: "%s | TAPPED-IN",
   },
+  description:
+    "TAPPED-IN makes premium NFC business cards and digital profiles. Tap to share your contact details, links and socials instantly — one card, always up to date.",
+  applicationName: "TAPPED-IN",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "TAPPED-IN",
+    title: "TAPPED-IN | Premium NFC Business Cards & Digital Profiles",
+    description:
+      "Premium NFC business cards and digital profiles. Tap to share everything that matters — instantly.",
+    url: "https://tappedin.uk",
+    locale: "en_GB",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "TAPPED-IN",
+  url: "https://tappedin.uk",
+  description:
+    "Premium NFC business cards and digital profiles for professionals, creators and businesses.",
+  sameAs: ["https://www.instagram.com/tappedinspace"],
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "TAPPED-IN",
+  url: "https://tappedin.uk",
 };
 
 export default function RootLayout({
@@ -49,6 +84,14 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${oswald.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
         {children}
         <Analytics />
       </body>
