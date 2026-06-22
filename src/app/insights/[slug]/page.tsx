@@ -30,98 +30,44 @@ export async function generateMetadata({
   };
 }
 
-const page: React.CSSProperties = {
-  minHeight: "100vh",
-  background: "#0a0a0b",
-  color: "#ededed",
-  fontFamily: "var(--font-inter), system-ui, sans-serif",
-  padding: "72px 24px 120px",
-};
-const container: React.CSSProperties = { maxWidth: 680, margin: "0 auto" };
-const back: React.CSSProperties = {
-  fontFamily: "var(--font-oswald), sans-serif",
-  textTransform: "uppercase",
-  letterSpacing: "0.2em",
-  fontSize: 12,
-  color: "#8a8a90",
-  textDecoration: "none",
-};
-const h1: React.CSSProperties = {
-  fontFamily: "var(--font-oswald), sans-serif",
-  fontSize: 42,
-  lineHeight: 1.12,
-  margin: "28px 0 14px",
-  color: "#ffffff",
-  fontWeight: 600,
-};
-const meta: React.CSSProperties = {
-  fontSize: 13,
-  letterSpacing: "0.06em",
-  textTransform: "uppercase",
-  color: "#6f6f76",
-  margin: "0 0 40px",
-};
-const para: React.CSSProperties = {
-  fontSize: 18,
-  lineHeight: 1.75,
-  color: "#cfcfd4",
-  margin: "0 0 22px",
-};
-const h2: React.CSSProperties = {
-  fontFamily: "var(--font-oswald), sans-serif",
-  fontSize: 24,
-  lineHeight: 1.25,
-  color: "#ffffff",
-  fontWeight: 600,
-  margin: "40px 0 14px",
-};
-const listWrap: React.CSSProperties = {
-  margin: "0 0 22px",
-  paddingLeft: 22,
-  color: "#cfcfd4",
-  fontSize: 18,
-  lineHeight: 1.75,
-};
-const ctaWrap: React.CSSProperties = {
-  marginTop: 64,
-  paddingTop: 36,
-  borderTop: "1px solid rgba(255,255,255,0.08)",
-  textAlign: "center",
-};
-const ctaText: React.CSSProperties = {
-  fontFamily: "var(--font-oswald), sans-serif",
-  textTransform: "uppercase",
-  letterSpacing: "0.12em",
-  fontSize: 18,
-  color: "#ededed",
-  margin: "0 0 20px",
-};
-const ctaBtn: React.CSSProperties = {
-  display: "inline-block",
-  textDecoration: "none",
-  fontFamily: "var(--font-oswald), sans-serif",
-  textTransform: "uppercase",
-  letterSpacing: "0.14em",
-  fontSize: 14,
-  color: "#0a0a0b",
-  background: "#ffffff",
-  padding: "14px 28px",
-  borderRadius: 999,
-};
+const css = `
+.ti-art{position:relative;min-height:100vh;overflow:hidden;background:#070708;color:#f4f4f6;font-family:var(--font-inter),system-ui,sans-serif;padding:clamp(64px,9vw,84px) 24px 140px;}
+.ti-art *{box-sizing:border-box;}
+.ti-art-glow{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.ti-art-glow::before{content:"";position:absolute;top:-380px;left:50%;transform:translateX(-50%);width:1100px;height:1100px;max-width:170vw;background:radial-gradient(circle,rgba(255,255,255,0.06),rgba(255,255,255,0) 60%),repeating-radial-gradient(circle,rgba(255,255,255,0.05) 0 1px,rgba(255,255,255,0) 1px 30px);-webkit-mask-image:radial-gradient(circle,#000 0%,transparent 60%);mask-image:radial-gradient(circle,#000 0%,transparent 60%);opacity:.55;}
+.ti-art-wrap{position:relative;max-width:680px;margin:0 auto;}
+.ti-art .ti-eyebrow{display:inline-block;font-family:var(--font-oswald),sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.28em;font-size:12px;color:#7c7c85;text-decoration:none;transition:color .3s ease;}
+.ti-art a.ti-eyebrow:hover{color:#cfcfd6;}
+.ti-art-title{font-family:var(--font-oswald),sans-serif;font-weight:600;font-size:clamp(34px,5.4vw,46px);line-height:1.1;letter-spacing:-0.01em;margin:30px 0 18px;color:#fff;}
+.ti-art-meta{font-family:var(--font-oswald),sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#6a6a73;margin:0 0 46px;}
+.ti-art-p{font-size:clamp(17px,2.3vw,18px);line-height:1.78;color:#cdcdd4;margin:0 0 24px;font-weight:300;}
+.ti-art-p.ti-lead{font-size:clamp(20px,3vw,22px);line-height:1.62;color:#eaeaef;margin-bottom:30px;}
+.ti-art-h2{font-family:var(--font-oswald),sans-serif;font-weight:600;font-size:clamp(22px,3vw,25px);line-height:1.25;color:#fff;margin:44px 0 16px;}
+.ti-art-ul{margin:0 0 24px;padding-left:22px;color:#cdcdd4;font-size:18px;line-height:1.78;font-weight:300;}
+.ti-art-ul li{margin-bottom:8px;}
+.ti-art-cta{margin-top:70px;padding-top:42px;border-top:1px solid rgba(255,255,255,0.10);text-align:center;}
+.ti-cta-line{font-family:var(--font-oswald),sans-serif;text-transform:uppercase;letter-spacing:.16em;font-size:clamp(17px,2.6vw,19px);color:#f4f4f6;margin:0 0 26px;}
+.ti-cta-btn{display:inline-block;text-decoration:none;font-family:var(--font-oswald),sans-serif;text-transform:uppercase;letter-spacing:.16em;font-size:13px;color:#070708;background:#fff;padding:15px 32px;border-radius:999px;transition:transform .25s ease,background .25s ease;}
+.ti-cta-btn:hover{transform:translateY(-2px);background:#e9e9ee;}
+.ti-cta-btn:focus-visible,.ti-art a.ti-eyebrow:focus-visible{outline:2px solid rgba(255,255,255,0.45);outline-offset:5px;}
+@media (prefers-reduced-motion: reduce){.ti-cta-btn{transition:none;}.ti-cta-btn:hover{transform:none;}}
+`;
 
 function renderBlock(block: Block, i: number) {
-  if (block.type === "h2") return <h2 key={i} style={h2}>{block.text}</h2>;
+  if (block.type === "h2") return <h2 key={i} className="ti-art-h2">{block.text}</h2>;
   if (block.type === "ul")
     return (
-      <ul key={i} style={listWrap}>
+      <ul key={i} className="ti-art-ul">
         {block.items.map((item, j) => (
-          <li key={j} style={{ marginBottom: 8 }}>
-            {item}
-          </li>
+          <li key={j}>{item}</li>
         ))}
       </ul>
     );
-  return <p key={i} style={para}>{block.text}</p>;
+  return (
+    <p key={i} className={i === 0 ? "ti-art-p ti-lead" : "ti-art-p"}>
+      {block.text}
+    </p>
+  );
 }
 
 export default async function ArticlePage({
@@ -140,35 +86,29 @@ export default async function ArticlePage({
     description: article.description,
     datePublished: article.date,
     dateModified: article.date,
-    author: {
-      "@type": "Organization",
-      name: "TAPPED-IN",
-      url: "https://tappedin.uk",
-    },
-    publisher: {
-      "@type": "Organization",
-      name: "TAPPED-IN",
-      url: "https://tappedin.uk",
-    },
+    author: { "@type": "Organization", name: "TAPPED-IN", url: "https://tappedin.uk" },
+    publisher: { "@type": "Organization", name: "TAPPED-IN", url: "https://tappedin.uk" },
     mainEntityOfPage: `https://tappedin.uk/insights/${article.slug}`,
   };
 
   return (
-    <main style={page}>
-      <article style={container}>
-        <Link href="/insights" style={back}>
+    <main className="ti-art">
+      <style dangerouslySetInnerHTML={{ __html: css }} />
+      <div className="ti-art-glow" aria-hidden="true" />
+      <article className="ti-art-wrap">
+        <Link href="/insights" className="ti-eyebrow">
           &larr; Insights
         </Link>
-        <h1 style={h1}>{article.title}</h1>
-        <p style={meta}>
+        <h1 className="ti-art-title">{article.title}</h1>
+        <p className="ti-art-meta">
           {formatDate(article.date)} &middot; {article.readingTime}
         </p>
 
         {article.body.map((block, i) => renderBlock(block, i))}
 
-        <div style={ctaWrap}>
-          <p style={ctaText}>One identity, one tap, always current.</p>
-          <Link href="/" style={ctaBtn}>
+        <div className="ti-art-cta">
+          <p className="ti-cta-line">One identity, one tap, always current.</p>
+          <Link href="/" className="ti-cta-btn">
             Explore TAPPED-IN
           </Link>
         </div>
