@@ -971,6 +971,7 @@ export default function HomePage() {
                 <a key={h} href={h} className="nav-link">{l}</a>
               ))}
               <Link href="/pricing" className="nav-link">Pricing</Link>
+                <Link href="/insights" className="nav-link">Insights</Link>
             </nav>
           )}
 
@@ -1747,7 +1748,7 @@ Pre-order
               </div>
               <div className="footer-links" style={{ display:'flex', gap:'4rem', flexWrap:'wrap' }}>
                 {[
-                  { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['#editions','Editions'],['/demo','Demo profile']] },
+                  { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['#editions','Editions'],['/insights','Insights'],['/demo','Demo profile']] },
                   { head:'Account', links:[['/signup','Pre-order'],['/login','Sign in'],['/dashboard','Dashboard']] },
                   { head:'Connect', links:[['https://www.instagram.com/tappedinspace/','Instagram ↗'],['mailto:contact@tappedin.uk','Contact us']] },
                 ].map(col=>(
