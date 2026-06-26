@@ -60,10 +60,21 @@ const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "TAPPED-IN",
+  legalName: "TAPPEDIN SPACE LTD",
   url: "https://tappedin.uk",
   description:
     "Premium NFC business cards and digital profiles for professionals, creators and businesses.",
-  sameAs: ["https://www.instagram.com/tappedinspace"],
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "66 Paul Street",
+    addressLocality: "London",
+    postalCode: "EC2A 4NA",
+    addressCountry: "GB",
+  },
+  sameAs: [
+    "https://www.instagram.com/tappedinspace",
+    "https://www.linkedin.com/company/tappedinspace",
+  ],
 };
 
 const websiteSchema = {
@@ -71,6 +82,7 @@ const websiteSchema = {
   "@type": "WebSite",
   name: "TAPPED-IN",
   url: "https://tappedin.uk",
+  inLanguage: "en-GB",
 };
 
 export default function RootLayout({
