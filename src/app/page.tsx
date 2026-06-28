@@ -583,7 +583,7 @@ function PhoneShell({ scale = 1, children }: { scale?: number; children?: React.
       borderRadius: Math.round(42 * scale),
       background:'linear-gradient(155deg, #1a1a1a 0%, #0d0d0d 50%, #141414 100%)',
       boxShadow:'0 0 0 1.5px rgba(255,255,255,0.07), 0 60px 120px rgba(0,0,0,0.92), 0 24px 48px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
-      padding: Math.round(7 * scale), flexShrink:0, isolation:'isolate',
+      padding: Math.round(7 * scale), flexShrink:0, isolation:'isolate', transform:'translateZ(0)', WebkitTransform:'translateZ(0)', WebkitBackfaceVisibility:'hidden', backfaceVisibility:'hidden', willChange:'transform',
     }}>
       <div style={{ position:'absolute', inset:0, opacity:0.06, backgroundImage:GRAIN, backgroundSize:'180px 180px', borderRadius:'inherit', pointerEvents:'none', zIndex:2 }} />
       <div style={{ position:'absolute', top:0, left:'8%', right:'8%', height:1.5, zIndex:3, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent)', pointerEvents:'none' }} />
@@ -1308,7 +1308,7 @@ export default function HomePage() {
                   <div style={{ flex: isMobile ? '0 0 auto' : '1 1 320px', display:'flex', justifyContent:'center', width: isMobile ? '100%' : undefined }}>
                     <div style={{ position:'relative', display:'inline-block' }}>
                       <div style={{ position:'absolute', inset: isMobile ? -28 : -56, background:'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.05) 0%, transparent 65%)', filter: isMobile ? 'blur(8px)' : 'blur(20px)', animation: isMobile ? 'none' : 'glowPulse 6s ease-in-out infinite', pointerEvents:'none', borderRadius:'50%' }} />
-                      <div style={{ position:'relative', transform:'translateZ(0)', WebkitTransform:'translateZ(0)' }}>{s.mock}</div>
+                      <div style={{ position:'relative' }}>{s.mock}</div>
                     </div>
                   </div>
 
