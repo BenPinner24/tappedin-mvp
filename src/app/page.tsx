@@ -679,7 +679,7 @@ function MockProfile({ scale = 1 }: { scale?: number }) {
         <div style={{ marginTop: 'auto', paddingTop: r(10), display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <div>
             <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.4), letterSpacing: '.22em', color: 'rgba(255,255,255,.26)', textTransform: 'uppercase' }}>TAPPED-IN</div>
-            <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.42), fontWeight: 300, fontStyle: 'italic', color: 'rgba(255,255,255,.2)' }}>A new standard of Networking.</div>
+            <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.42), fontWeight: 300, fontStyle: 'italic', color: 'rgba(255,255,255,.2)' }}>The New Standard for Networking.</div>
           </div>
           <span style={{ fontFamily: 'Oswald, Arial, sans-serif', fontSize: f(0.44), color: 'rgba(255,255,255,.4)', letterSpacing: '.04em', whiteSpace: 'nowrap' }}>Get your card →</span>
         </div>
@@ -1109,8 +1109,8 @@ export default function HomePage() {
                 marginBottom: isMobile ? '.8rem' : '1.25rem',
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) .08s both',
               }}>
-                A new standard<br />
-                <span style={{ fontWeight:300, color:'rgba(255,255,255,.52)', letterSpacing:'0.02em' }}>of Networking.</span>
+                The New Standard<br />
+                <span style={{ fontWeight:300, color:'rgba(255,255,255,.52)', letterSpacing:'0.02em' }}>for Networking.</span>
               </h1>
 
               {/* Body */}
@@ -1786,7 +1786,7 @@ export default function HomePage() {
             <div className="footer-cols" style={{ display:'flex', justifyContent:'space-between', gap:'3rem', marginBottom:'2.5rem', flexWrap:'wrap' }}>
               <div style={{ maxWidth:280 }}>
                 <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.05rem', fontWeight:600, letterSpacing:'.3em', color:'#fff', marginBottom:'.7rem', textTransform:'uppercase' }}>TAPPED-IN</div>
-                <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.82rem', fontWeight:300, color:'rgba(255,255,255,.18)', lineHeight:1.7, letterSpacing:'0.01em' }}>A new standard of Networking. Premium NFC digital identity for creators and professionals.</p>
+                <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.82rem', fontWeight:300, color:'rgba(255,255,255,.18)', lineHeight:1.7, letterSpacing:'0.01em' }}>The New Standard for Networking. Premium NFC digital identity for creators and professionals.</p>
               </div>
               <div className="footer-links" style={{ display:'flex', gap:'4rem', flexWrap:'wrap' }}>
                 {[
