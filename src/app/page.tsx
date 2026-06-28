@@ -1003,7 +1003,7 @@ export default function HomePage() {
                 letterSpacing: isMobile ? '.08em' : '.12em',
               }}
             >
-              Pre-order
+              Order
             </Link>
 
             {/* Mobile hamburger */}
@@ -1045,7 +1045,7 @@ export default function HomePage() {
           <div style={{ marginTop:'auto', paddingTop:'2rem', display:'flex', flexDirection:'column', gap:'.6rem' }}>
             <Link href="/login" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Sign in</Link>
             <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Dashboard</Link>
-            <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="btn-primary" style={{ width:'100%', padding:'15px' }}>Pre-order Founders Edition</Link>
+            <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="btn-primary" style={{ width:'100%', padding:'15px' }}>Order Founders Edition</Link>
           </div>
         </div>
       )}
@@ -1132,7 +1132,7 @@ export default function HomePage() {
                 marginBottom: isMobile ? '1.4rem' : '2.75rem',
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) .26s both',
               }}>
-                <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">Pre-order Founders Edition</Link>
+                <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">Order Founders Edition</Link>
                 <Link href="/pricing" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Standard PVC · £34.99</Link>
                 <a href="#product" className="btn-ghost">View the card</a>
                 <a
@@ -1276,7 +1276,7 @@ export default function HomePage() {
             </div>
 
             <div className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '3rem' }}>
-              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Pre-order founders edition</Link>
+              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Order founders edition</Link>
             </div>
           </div>
         </section>
@@ -1426,7 +1426,7 @@ export default function HomePage() {
                 </div>
                 <div className="reveal d4">
                   <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer"
- className="btn-primary" style={{ fontSize: '.84rem', padding: '13px 28px' }}>Pre-order Founders Edition</Link>
+ className="btn-primary" style={{ fontSize: '.84rem', padding: '13px 28px' }}>Order Founders Edition</Link>
                 </div>
               </div>
 
@@ -1473,7 +1473,7 @@ export default function HomePage() {
 
             <div className="reveal d4">
               <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer"
- className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Pre-order Founders Edition</Link>
+ className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Order Founders Edition</Link>
             </div>
           </div>
         </section>
@@ -1749,7 +1749,7 @@ export default function HomePage() {
               Limited to 100 individually numbered cards. Founder Edition pre-orders are live now.
             </p>
             <div className="reveal d3 final-cta-btns" style={{ display:'flex', gap:'.75rem', justifyContent:'center', flexWrap:'wrap' }}>
-              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Pre-orders are live</Link>
+              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Order now</Link>
               <Link href="/demo" className="btn-ghost">View demo profile</Link>
             </div>
             <div className="reveal d3" style={{ marginTop:'1.25rem', display:'flex', justifyContent:'center' }}>
@@ -1791,7 +1791,7 @@ export default function HomePage() {
               <div className="footer-links" style={{ display:'flex', gap:'4rem', flexWrap:'wrap' }}>
                 {[
                   { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['#editions','Editions'],['/insights','Insights'],['/demo','Demo profile']] },
-                  { head:'Account', links:[['/signup','Pre-order'],['/login','Sign in'],['/dashboard','Dashboard']] },
+                  { head:'Account', links:[['/signup','Order'],['/login','Sign in'],['/dashboard','Dashboard']] },
                   { head:'Connect', links:[['https://www.instagram.com/tappedinspace/','Instagram ↗'],['mailto:contact@tappedin.uk','Contact us']] },
                 ].map(col=>(
                   <div key={col.head} style={{ display:'flex', flexDirection:'column', gap:'.65rem' }}>
