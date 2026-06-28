@@ -1307,8 +1307,8 @@ export default function HomePage() {
                   {/* Mockup column */}
                   <div style={{ flex: isMobile ? '0 0 auto' : '1 1 320px', display:'flex', justifyContent:'center', width: isMobile ? '100%' : undefined }}>
                     <div style={{ position:'relative', display:'inline-block' }}>
-                      <div style={{ position:'absolute', inset: isMobile ? -28 : -56, background:'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.05) 0%, transparent 65%)', filter:'blur(20px)', animation:'glowPulse 6s ease-in-out infinite', pointerEvents:'none', borderRadius:'50%' }} />
-                      <div style={{ position:'relative' }}>{s.mock}</div>
+                      <div style={{ position:'absolute', inset: isMobile ? -28 : -56, background:'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.05) 0%, transparent 65%)', filter: isMobile ? 'blur(8px)' : 'blur(20px)', animation: isMobile ? 'none' : 'glowPulse 6s ease-in-out infinite', pointerEvents:'none', borderRadius:'50%' }} />
+                      <div style={{ position:'relative', transform:'translateZ(0)', WebkitTransform:'translateZ(0)' }}>{s.mock}</div>
                     </div>
                   </div>
 
