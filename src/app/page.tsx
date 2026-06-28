@@ -932,6 +932,28 @@ export default function HomePage() {
     if (!isMobile && menuOpen) setMenuOpen(false)
   }, [isMobile, menuOpen])
 
+  // iOS Safari can fail to paint a heavily-composited element that first appears
+  // below the fold (it only shows after a rotate). Force a one-off repaint of each
+  // how-it-works phone the moment it scrolls into view — the same thing rotating does.
+  useEffect(() => {
+    if (!isMobile) return
+    const mocks = Array.from(document.querySelectorAll('.howit-mock')) as HTMLElement[]
+    if (!mocks.length) return
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          const el = e.target as HTMLElement
+          el.style.display = 'none'
+          void el.offsetHeight
+          el.style.display = ''
+          obs.unobserve(el)
+        }
+      })
+    }, { threshold: 0.05, rootMargin: '0px 0px 120px 0px' })
+    mocks.forEach((m) => obs.observe(m))
+    return () => obs.disconnect()
+  }, [isMobile])
+
   // Shared section padding — driven by JS so inline style values are correct
   const SP = isMobile
     ? 'clamp(3rem,8vw,4.5rem) clamp(1.25rem,5vw,1.5rem)'
@@ -1308,7 +1330,7 @@ export default function HomePage() {
                   <div style={{ flex: isMobile ? '0 0 auto' : '1 1 320px', display:'flex', justifyContent:'center', width: isMobile ? '100%' : undefined }}>
                     <div style={{ position:'relative', display:'inline-block' }}>
                       <div style={{ position:'absolute', inset: isMobile ? -28 : -56, background:'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.05) 0%, transparent 65%)', filter: isMobile ? 'blur(8px)' : 'blur(20px)', animation: isMobile ? 'none' : 'glowPulse 6s ease-in-out infinite', pointerEvents:'none', borderRadius:'50%' }} />
-                      <div style={{ position:'relative' }}>{s.mock}</div>
+                      <div className="howit-mock" style={{ position:'relative' }}>{s.mock}</div>
                     </div>
                   </div>
 
