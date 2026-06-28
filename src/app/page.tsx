@@ -1320,7 +1320,7 @@ export default function HomePage() {
               {[
                 { n:'01', title:'Tap your card',     body:'Hold the Founder Edition to any phone. Your digital profile opens instantly — any device, no app required.', detail:'Works on iPhone & Android', mock:<MockTap scale={isMobile ? 0.7 : 0.92} /> },
                 { n:'02', title:'Share your profile', body:'Every card links to your live profile — links, contact, portfolio, bio. Update it any time from your dashboard.', detail:'Always up to date', mock:<MockProfile scale={isMobile ? 0.7 : 0.92} /> },
-                { n:'03', title:'Track engagement',  body:'See every tap and link click in real time. Know exactly when and how people engage with your card.', detail:'Real-time analytics', mock: isMobile ? <img src={STEP3_IMG} alt="Real-time tap analytics dashboard" style={{ width: 191, height: 'auto', display: 'block' }} /> : <MockAnalytics scale={0.92} isMobile={false} /> },
+                { n:'03', title:'Track engagement',  body:'See every tap and link click in real time. Know exactly when and how people engage with your card.', detail:'Real-time analytics', mock: <img src={STEP3_IMG} alt="Real-time tap analytics dashboard" style={{ width: isMobile ? 191 : 237, height: 'auto', display: 'block' }} /> },
               ].map((s,i)=>(
                 <div key={s.n} className="reveal" style={{
                   display:'flex',
