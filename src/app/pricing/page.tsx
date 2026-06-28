@@ -27,7 +27,7 @@ type Card = {
 const CARDS: Card[] = [
   { name: 'Standard PVC', price: '£34.99', material: 'Matte PVC', blurb: 'The everyday tap card. Premium matte finish, full platform access.', url: PVC_STRIPE_URL, cta: 'Buy now' },
   { name: 'Standard Metal', price: '£49.99', material: 'Brushed metal', blurb: 'Heavier premium metal card. Same digital profile, more presence.', url: METAL_STRIPE_URL },
-  { name: 'Founders Edition', price: '£49.99', material: 'Matte black · numbered', tag: '100 only', blurb: '1 of 100, individually numbered. Bronze free for life — no monthly fee, ever.', url: FOUNDERS_STRIPE_URL, cta: 'Pre-order', founder: true },
+  { name: 'Founders Edition', price: '£49.99', material: 'Matte black · numbered', tag: '100 only', blurb: '1 of 100, individually numbered. Bronze free for life — no monthly fee, ever.', url: FOUNDERS_STRIPE_URL, cta: 'Order now', founder: true },
 ]
 
 type Tier = {
@@ -112,7 +112,7 @@ export default function PricingPage() {
                     <p style={s.cardPrice}>{c.price}<span style={s.cardOnce}> one-time</span></p>
                     <p style={s.cardBlurb}>{c.blurb}</p>
                     {live ? (
-                      <a href={c.url} target="_blank" rel="noopener noreferrer" style={c.founder ? s.buyPrimary : s.buy}>{c.cta || 'Pre-order'}</a>
+                      <a href={c.url} target="_blank" rel="noopener noreferrer" style={c.founder ? s.buyPrimary : s.buy}>{c.cta || 'Order'}</a>
                     ) : (
                       <span style={s.buyDisabled}>Coming soon</span>
                     )}
@@ -176,7 +176,7 @@ export default function PricingPage() {
           <section style={s.finalCta}>
             <h2 style={s.h2}>Ready to tap in?</h2>
             <div style={s.ctaRow}>
-              <a href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Pre-order Founders Edition</a>
+              <a href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Order now</a>
               <Link href="/demo" style={s.buy}>View demo profile</Link>
             </div>
           </section>
@@ -184,7 +184,7 @@ export default function PricingPage() {
           {/* footer */}
           <footer style={s.footer}>
             <span style={s.footerBrand}>TAPPED-IN</span>
-            <span style={s.footerSlogan}>A new standard of Networking.</span>
+            <span style={s.footerSlogan}>The New Standard for Networking.</span>
           </footer>
 
         </div>
