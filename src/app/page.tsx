@@ -1096,7 +1096,7 @@ export default function HomePage() {
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) both',
               }}>
                 <div style={{ width:5, height:5, borderRadius:'50%', background:'#fff', animation:'dotBlink 2s ease-in-out infinite' }} />
-                <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.63rem' : '.7rem', fontWeight:500, color:'rgba(255,255,255,.5)', letterSpacing:'.22em', textTransform:'uppercase' }}>Pre-order Founders Edition</span>
+                <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.63rem' : '.7rem', fontWeight:500, color:'rgba(255,255,255,.5)', letterSpacing:'.22em', textTransform:'uppercase' }}>Order your Founders Edition card now</span>
               </div>
 
               {/* Headline */}
@@ -1314,7 +1314,7 @@ export default function HomePage() {
 
                   {/* Text column */}
                   <div style={{ flex: isMobile ? '0 0 auto' : '1 1 380px', maxWidth: isMobile ? '100%' : 440, textAlign: isMobile ? 'center' : 'left' }}>
-                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '2.6rem' : 'clamp(3rem,5vw,4.25rem)', fontWeight:600, color:'rgba(255,255,255,.09)', lineHeight:1, letterSpacing:'0.02em', marginBottom: isMobile ? '.4rem' : '.75rem' }}>{s.n}</div>
+                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '2.6rem' : 'clamp(3rem,5vw,4.25rem)', fontWeight:600, color:'rgba(255,255,255,.3)', lineHeight:1, letterSpacing:'0.02em', marginBottom: isMobile ? '.4rem' : '.75rem' }}>{s.n}</div>
                     <h3 style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '1.4rem' : 'clamp(1.6rem,3vw,2.25rem)', fontWeight:500, color:'#fff', letterSpacing:'0.02em', textTransform:'uppercase', lineHeight:1.1, marginBottom:'1rem' }}>{s.title}</h3>
                     <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.92rem' : '1.02rem', fontWeight:300, color:'rgba(255,255,255,.42)', lineHeight:1.75, letterSpacing:'0.01em', marginBottom:'1.25rem', maxWidth: isMobile ? '100%' : 380, marginLeft: isMobile ? 'auto' : undefined, marginRight: isMobile ? 'auto' : undefined }}>{s.body}</p>
                     <div style={{ display:'inline-flex', alignItems:'center', gap:9 }}>
@@ -1339,7 +1339,7 @@ export default function HomePage() {
             <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? '2rem' : '3rem' }}>
               <div style={EB}>Founding 100</div>
               <h2 style={H2}>Once it&apos;s claimed,<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>it&apos;s gone for good.</span></h2>
-              <p style={SUB}>Every Founder card is numbered 1–100 and tied to one person. No reprints. No second batch. And no monthly fee — unlike every other card out there.</p>
+              <p style={SUB}>Every Founder card is numbered 1–100 and tied to one person. No reprints. No second batch. And no monthly fee, unlike every other card out there.</p>
             </div>
 
             {/* Scarcity counter */}
