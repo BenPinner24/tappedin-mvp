@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 // Comma-separated list of admin auth user IDs. Set ADMIN_USER_IDS in Vercel to
 // add more admins. Defaults to the owner account so it works out of the box.
 function adminIds(): string[] {
-  const raw = process.env.ADMIN_USER_IDS ?? 'f16d9181-fe6c-4b2a-8bd2-46b1bb8d736a'
+  const raw = process.env.ADMIN_USER_IDS ?? 'f16d9181-fe6c-4b2a-8bd2-46b1bb8d736a,32407af9-ec4d-4d71-a582-d4b6405b9857'
   return raw.split(',').map((s) => s.trim()).filter(Boolean)
 }
 
