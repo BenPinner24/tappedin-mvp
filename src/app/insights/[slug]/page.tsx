@@ -97,7 +97,7 @@ export default async function ArticlePage({
       <div className="ti-art-glow" aria-hidden="true" />
       <article className="ti-art-wrap">
         <Link href="/insights" className="ti-eyebrow">
-          &larr; Insights
+          &larr; Blogs
         </Link>
         <h1 className="ti-art-title">{article.title}</h1>
         <p className="ti-art-meta">

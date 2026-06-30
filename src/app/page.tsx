@@ -1005,7 +1005,7 @@ export default function HomePage() {
                 <a key={h} href={h} className="nav-link">{l}</a>
               ))}
               <Link href="/pricing" className="nav-link">Pricing</Link>
-              <Link href="/insights" className="nav-link">Insights</Link>
+              <Link href="/insights" className="nav-link">Blogs</Link>
             </nav>
           )}
 
@@ -1062,7 +1062,7 @@ export default function HomePage() {
             <Link href="/pricing" onClick={() => setMenuOpen(false)}
               style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>Pricing</Link>
             <Link href="/insights" onClick={() => setMenuOpen(false)}
-              style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>Insights</Link>
+              style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>Blogs</Link>
           </nav>
 
           <div style={{ marginTop:'auto', paddingTop:'2rem', display:'flex', flexDirection:'column', gap:'.6rem' }}>
@@ -1813,7 +1813,7 @@ export default function HomePage() {
               </div>
               <div className="footer-links" style={{ display:'flex', gap:'4rem', flexWrap:'wrap' }}>
                 {[
-                  { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['#editions','Editions'],['/insights','Insights'],['/demo','Demo profile']] },
+                  { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['#editions','Editions'],['/insights','Blogs'],['/demo','Demo profile']] },
                   { head:'Account', links:[['/signup','Order'],['/login','Sign in'],['/dashboard','Dashboard']] },
                   { head:'Connect', links:[['https://www.instagram.com/tappedinspace/','Instagram ↗'],['mailto:contact@tappedin.uk','Contact us']] },
                 ].map(col=>(

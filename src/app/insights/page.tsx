@@ -3,12 +3,12 @@ import Link from "next/link";
 import { articles, formatDate } from "./articles";
 
 export const metadata: Metadata = {
-  title: "Insights",
+  title: "Blogs",
   description:
     "Ideas on modern networking, digital identity, and the end of the paper business card — from TAPPED-IN.",
   alternates: { canonical: "/insights" },
   openGraph: {
-    title: "Insights | TAPPED-IN",
+    title: "Blogs | TAPPED-IN",
     description:
       "Ideas on modern networking, digital identity, and the end of the paper business card.",
     url: "https://tappedin.uk/insights",
@@ -53,7 +53,7 @@ export default function InsightsIndex() {
       <div className="ti-ins-glow" aria-hidden="true" />
       <div className="ti-ins-wrap">
         <Link href="/" className="ti-eyebrow">
-          Tapped-In &middot; Insights
+          Tapped-In &middot; Blogs
         </Link>
         <h1 className="ti-ins-title">
           Notes on the new standard for networking.
