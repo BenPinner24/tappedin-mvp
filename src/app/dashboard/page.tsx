@@ -37,7 +37,7 @@ function cleanUsername(value: string) {
 
 const USERNAME_REGEX = /^[a-z0-9-_]{3,30}$/
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type Profile = {
   id: string
@@ -89,7 +89,7 @@ type LocalGallerySlot = {
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 type ActiveTab = 'profile' | 'links' | 'style' | 'gallery' | 'card'
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const MAX_LINKS = 8
 const MAX_GALLERY = 3
@@ -125,7 +125,7 @@ const PLATFORM_OPTIONS = [
   { value: 'Custom', kind: 'custom' },
 ] as const
 
-// ─── Link-type detection & normalisation ──────────────────────────────────────
+// â”€â”€â”€ Link-type detection & normalisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type LinkKind = 'whatsapp' | 'email' | 'url'
 
@@ -215,8 +215,8 @@ function validateLinkRow(label: string, url: string): string | null {
     const waMatch = normalised.match(/^https:\/\/wa\.me\/(\d+)$/)
     if (!waMatch) return 'Enter a phone number or WhatsApp link'
     const digitCount = waMatch[1].length
-    if (digitCount < 8) return 'Phone number is too short — include your country code (e.g. 447901109774)'
-    if (digitCount > 15) return 'Phone number is too long — check and re-enter'
+    if (digitCount < 8) return 'Phone number is too short â€” include your country code (e.g. 447901109774)'
+    if (digitCount > 15) return 'Phone number is too long â€” check and re-enter'
     return null
   }
   if (kind === 'email') {
@@ -256,7 +256,7 @@ return 'Enter a valid URL, phone number, or email'
 }
 }
 
-// ─── Username normalisation ───────────────────────────────────────────────────
+// â”€â”€â”€ Username normalisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function normaliseUsername(raw: string): string {
   return raw
@@ -266,7 +266,7 @@ function normaliseUsername(raw: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
-// ─── Gallery helpers ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Gallery helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function emptySlot(): LocalGallerySlot {
   return { dbId: null, imageUrl: null, preview: null, caption: '', uploading: false, uploadError: null }
@@ -281,7 +281,7 @@ function slotsFromDb(items: GalleryItem[]): LocalGallerySlot[] {
   return slots
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function FormInput({
   label,
@@ -334,7 +334,7 @@ function FormTextarea({
   )
 }
 
-// ─── QR Code generator ───────────────────────────────────────────────────────
+// â”€â”€â”€ QR Code generator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 import type { MutableRefObject } from 'react'
 
@@ -382,7 +382,7 @@ function QRCanvas({ url, size = 240, dark = '#ffffff', light = '#0a0a0a', canvas
   )
 }
 
-// ─── Gallery slot component ───────────────────────────────────────────────────
+// â”€â”€â”€ Gallery slot component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function GallerySlot({
   slot,
@@ -444,7 +444,7 @@ function GallerySlot({
         console.error('[Gallery upload]', storageError)
         onChange({
           uploading: false,
-          uploadError: storageError.message || 'Upload failed — please try again.',
+          uploadError: storageError.message || 'Upload failed â€” please try again.',
           preview: null,
         })
         return
@@ -526,7 +526,7 @@ function GallerySlot({
   )
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function DashboardPage() {
   const supabase = useMemo(() => createClient(), [])
@@ -565,7 +565,7 @@ export default function DashboardPage() {
     return () => window.removeEventListener('resize', update)
   }, [])
 
-  // ─── Load ─────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function loadDashboard() {
     try {
@@ -642,7 +642,7 @@ loadDashboard()
 return () => window.clearTimeout(timer)
 }, [])
 
-  // ─── Save profile ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ Save profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function saveProfile() {
     if (!profile) return
@@ -651,7 +651,7 @@ return () => window.clearTimeout(timer)
     const normUsername = cleanUsername(profile.username ?? '')
 
     if (normUsername && !USERNAME_REGEX.test(normUsername)) {
-      setUsernameError('Username must be 3–30 characters and can only use letters, numbers, hyphens, or underscores.')
+      setUsernameError('Username must be 3â€“30 characters and can only use letters, numbers, hyphens, or underscores.')
       return
     }
 
@@ -688,14 +688,14 @@ return () => window.clearTimeout(timer)
     }
   }
 
-  // ─── Save links ────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Save links â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function saveLinks() {
     setSaveError(null)
     const { data: { session } } = await supabase.auth.getSession()
     const uid = session?.user?.id ?? userId
     if (!profile || !uid) {
-      const msg = '[saveLinks] aborted — missing ' + (!profile ? 'profile' : 'uid')
+      const msg = '[saveLinks] aborted â€” missing ' + (!profile ? 'profile' : 'uid')
       console.error(msg, { hasProfile: !!profile, uid })
       setSaveError(msg)
       setLinksSave('error')
@@ -821,7 +821,7 @@ is_active: l.is_active ?? true,
     }
   }
 
-  // ─── Save style ────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Save style â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function saveStyle() {
     if (!profile) return
@@ -843,7 +843,7 @@ accent_color: profile.accent_color,
     }
   }
 
-  // ─── Save gallery ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ Save gallery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function saveGallery() {
     if (!profile) return
@@ -882,7 +882,7 @@ accent_color: profile.accent_color,
     }
   }
 
-  // ─── Avatar upload ─────────────────────────────────────────────────────────
+  // â”€â”€â”€ Avatar upload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -912,7 +912,7 @@ accent_color: profile.accent_color,
         .from('avatars')
         .upload(filePath, file, { upsert: true, cacheControl: '3600' })
       if (storageError) {
-        setUploadError('Upload failed — please try again.')
+        setUploadError('Upload failed â€” please try again.')
         setAvatarPreview(null)
         console.error('[avatar upload]', storageError)
         return
@@ -924,7 +924,7 @@ accent_color: profile.accent_color,
         .update({ avatar_url: publicUrl })
         .eq('id', profile.id)
       if (dbError) {
-        setUploadError('Saved to storage but failed to update profile — refresh and try again.')
+        setUploadError('Saved to storage but failed to update profile â€” refresh and try again.')
         console.error('[avatar db]', dbError)
         return
       }
@@ -939,7 +939,7 @@ accent_color: profile.accent_color,
     }
   }
 
-  // ─── Helpers ───────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function downloadQR() {
     const canvas = qrCanvasRef.current
@@ -983,9 +983,9 @@ accent_color: profile.accent_color,
     : null
 
   function saveBtnLabel(state: SaveState, idle: string) {
-    if (state === 'saving') return 'Saving…'
-    if (state === 'saved')  return '✓ Saved'
-    if (state === 'error')  return 'Error — try again'
+    if (state === 'saving') return 'Savingâ€¦'
+    if (state === 'saved')  return 'âœ“ Saved'
+    if (state === 'error')  return 'Error â€” try again'
     return idle
   }
 
@@ -1005,7 +1005,7 @@ accent_color: profile.accent_color,
     return { ...base, background: colors.white.full, color: '#000' }
   }
 
-  // ─── Loading ───────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   if (loading) {
     return (
@@ -1019,7 +1019,7 @@ accent_color: profile.accent_color,
   const activeLinks = links.filter(l => l.is_active && l.label && l.url)
   const anySlotUploading = gallerySlots.some(sl => sl.uploading)
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
     <main style={{ ...s.page, overflowX: 'hidden', maxWidth: '100vw', width: '100%' }}>
@@ -1111,9 +1111,9 @@ accent_color: profile.accent_color,
         } : s.layout}
       >
 
-        {/* ═══════════════════════════════════════════════════════════
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             LEFT COLUMN
-        ═══════════════════════════════════════════════════════════ */}
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         <aside className="ti-left-col" style={isMobile ? { display: 'none' } : s.leftCol}>
 
           <div style={s.previewCard} className="ti-preview-card">
@@ -1151,7 +1151,7 @@ accent_color: profile.accent_color,
               <div style={s.previewFooter}>
                 <span style={s.previewUrl}>tappedin.uk/u/{profile.username}</span>
                 <Link href={`/u/${profile.username}`} target="_blank" rel="noopener" className="ti-view-link" style={s.previewViewLink}>
-                  View live →
+                  View live â†’
                 </Link>
               </div>
             ) : (
@@ -1164,7 +1164,7 @@ accent_color: profile.accent_color,
           <div style={s.miniStats} className="ti-preview-card">
             <div style={s.miniStatsHeader}>
               <span style={s.eyebrow}>Analytics</span>
-              <Link href="/analytics" className="ti-mini-link" style={s.miniStatsLink}>Full view →</Link>
+              <Link href="/analytics" className="ti-mini-link" style={s.miniStatsLink}>Full view â†’</Link>
             </div>
             <div style={s.miniStatsGrid}>
               {[
@@ -1216,7 +1216,7 @@ accent_color: profile.accent_color,
                   <div style={s.nfcStatDivider} />
                   <div style={s.nfcStat}>
                     <span style={s.nfcStatValue} title={lastTap ?? undefined}>
-                      {lastTap ? lastTap.split(',')[0] : '—'}
+                      {lastTap ? lastTap.split(',')[0] : 'â€”'}
                     </span>
                     <span style={s.nfcStatLabel}>Last tap</span>
                   </div>
@@ -1250,9 +1250,9 @@ accent_color: profile.accent_color,
 
         </aside>
 
-        {/* ═══════════════════════════════════════════════════════════
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             RIGHT COLUMN
-        ═══════════════════════════════════════════════════════════ */}
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         <div
           className="ti-right-col"
           style={isMobile ? {
@@ -1273,7 +1273,7 @@ accent_color: profile.accent_color,
             </div>
             {profile?.username && (
               <Link href={`/u/${profile.username}`} target="_blank" rel="noopener" className="ti-view-link" style={s.viewProfileBtn}>
-                View live profile →
+                View live profile â†’
               </Link>
             )}
           </div>
@@ -1285,7 +1285,7 @@ accent_color: profile.accent_color,
             {[
               { label: 'Total taps',  value: tapCount.toString() },
               { label: 'Card status', value: card?.status ?? 'No card' },
-              { label: 'Card ID',     value: card?.card_id ?? '—' },
+              { label: 'Card ID',     value: card?.card_id ?? 'â€”' },
               { label: 'Last tap',    value: lastTap ? lastTap.split(',')[0] : 'No activity' },
             ].map((stat, i) => (
               <div key={stat.label} className="ti-stat-cell" style={{
@@ -1297,6 +1297,52 @@ accent_color: profile.accent_color,
               </div>
             ))}
           </div>
+
+          {/* Leave a review CTA */}
+          <style>{`
+            @keyframes tiReviewGlow {
+              0%, 100% { box-shadow: 0 0 0 1px rgba(232,201,160,0.18), 0 8px 30px rgba(0,0,0,0.30); }
+              50%      { box-shadow: 0 0 0 1px rgba(232,201,160,0.42), 0 10px 38px rgba(232,201,160,0.12); }
+            }
+            @keyframes tiReviewStar {
+              0%, 100% { transform: scale(1);    opacity: 0.9; }
+              50%      { transform: scale(1.14); opacity: 1; }
+            }
+            .ti-review-cta { animation: tiReviewGlow 3.4s ease-in-out infinite; transition: transform 0.18s ease, background 0.18s ease; }
+            .ti-review-cta:hover { transform: translateY(-2px); background: rgba(232,201,160,0.06) !important; }
+            .ti-review-cta:hover .ti-review-cta-arrow { transform: translateX(4px); }
+            .ti-review-cta-star { animation: tiReviewStar 2.6s ease-in-out infinite; }
+            .ti-review-cta-arrow { transition: transform 0.18s ease; }
+          `}</style>
+          <Link href="/review" className="ti-review-cta" style={{
+            display: 'flex', alignItems: 'center', gap: '14px',
+            background: 'linear-gradient(135deg, rgba(232,201,160,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+            border: '1px solid rgba(232,201,160,0.20)', borderRadius: '16px',
+            padding: '16px 20px', textDecoration: 'none', color: '#fff',
+          }}>
+            <span className="ti-review-cta-star" style={{
+              flexShrink: 0, width: '38px', height: '38px', borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(232,201,160,0.10)', border: '1px solid rgba(232,201,160,0.25)',
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#E8C9A0" stroke="#E8C9A0" strokeWidth="1.2" strokeLinejoin="round">
+                <path d="M12 2.6l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.6l-5.88 3.1 1.12-6.55L2.48 9.52l6.58-.96z" />
+              </svg>
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.01em', color: '#fff' }}>
+                Enjoying Tapped-In? Leave a review
+              </span>
+              <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 400, color: 'rgba(255,255,255,0.45)', marginTop: '2px' }}>
+                Share your experience - approved reviews feature on our homepage.
+              </span>
+            </span>
+            <span className="ti-review-cta-arrow" style={{ flexShrink: 0, color: '#E8C9A0', display: 'flex' }}>
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </Link>
 
           <div
             className="ti-editor-card"
@@ -1328,7 +1374,7 @@ accent_color: profile.accent_color,
 
             <div style={s.tabDivider} />
 
-            {/* ────── PROFILE TAB ────── */}
+            {/* â”€â”€â”€â”€â”€â”€ PROFILE TAB â”€â”€â”€â”€â”€â”€ */}
             {activeTab === 'profile' && (
               <div style={isMobile ? { ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.tabContent}>
                 <div
@@ -1380,7 +1426,7 @@ accent_color: profile.accent_color,
                       {uploading ? (
                         <>
                           <span style={s.uploadSpinnerInline} />
-                          Uploading…
+                          Uploadingâ€¦
                         </>
                       ) : (
                         <>
@@ -1400,7 +1446,7 @@ accent_color: profile.accent_color,
                         {uploadError}
                       </p>
                     )}
-                    <p style={s.uploadHint}>JPG, PNG, WebP or GIF · max 5 MB</p>
+                    <p style={s.uploadHint}>JPG, PNG, WebP or GIF Â· max 5 MB</p>
                   </div>
 
                   <input
@@ -1487,7 +1533,7 @@ accent_color: profile.accent_color,
               </div>
             )}
 
-            {/* ────── LINKS TAB ────── */}
+            {/* â”€â”€â”€â”€â”€â”€ LINKS TAB â”€â”€â”€â”€â”€â”€ */}
             {activeTab === 'links' && (
               <div style={isMobile ? { ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.tabContent}>
                 <div style={s.linksHeader}>
@@ -1506,7 +1552,7 @@ accent_color: profile.accent_color,
                           <button
                             onClick={() => patchLink(i, { is_active: !link.is_active })}
                             className="ti-link-toggle"
-                            title={link.is_active ? 'Active — click to hide' : 'Hidden — click to show'}
+                            title={link.is_active ? 'Active â€” click to hide' : 'Hidden â€” click to show'}
                             style={{
                               ...s.linkToggle,
                               background: link.is_active ? colors.accent.successBg : colors.white[3],
@@ -1537,7 +1583,7 @@ accent_color: profile.accent_color,
                                   borderColor: (err && !link.label) ? colors.accent.errorBorder : undefined,
                                 }}
                               >
-                                <option value="" disabled>Select platform…</option>
+                                <option value="" disabled>Select platformâ€¦</option>
                                 {PLATFORM_OPTIONS.map(opt => (
                                   <option key={opt.value} value={opt.value}>{opt.value}</option>
                                 ))}
@@ -1655,12 +1701,12 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
 />
 )}
 
-            {/* ────── GALLERY TAB ────── */}
+            {/* â”€â”€â”€â”€â”€â”€ GALLERY TAB â”€â”€â”€â”€â”€â”€ */}
             {activeTab === 'gallery' && (
               <div style={isMobile ? { ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.tabContent}>
                 <div style={s.linksHeader}>
                   <p style={s.linksSubtitle}>
-                    Upload up to 3 images for your Featured Work section. Any aspect ratio — displayed in a 4:5 frame on your profile.
+                    Upload up to 3 images for your Featured Work section. Any aspect ratio â€” displayed in a 4:5 frame on your profile.
                   </p>
                 </div>
 
@@ -1688,7 +1734,7 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
 
                 <div style={s.tabFooter}>
                   <p style={s.tabFooterHint}>
-                    JPG, PNG or WebP · max 10 MB each · captions optional, max 80 characters.
+                    JPG, PNG or WebP Â· max 10 MB each Â· captions optional, max 80 characters.
                   </p>
                   <button
                     onClick={saveGallery}
@@ -1696,7 +1742,7 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
                     className="ti-save-btn"
                     style={saveBtnCx(gallerySave)}
                   >
-                    {anySlotUploading ? 'Uploading…' : saveBtnLabel(gallerySave, 'Save gallery')}
+                    {anySlotUploading ? 'Uploadingâ€¦' : saveBtnLabel(gallerySave, 'Save gallery')}
                   </button>
                   {gallerySave === 'error' && gallerySaveError && (
                     <p style={s.saveErrorDetail}>{gallerySaveError}</p>
@@ -1705,7 +1751,7 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
               </div>
             )}
 
-            {/* ────── CARD TAB ────── */}
+            {/* â”€â”€â”€â”€â”€â”€ CARD TAB â”€â”€â”€â”€â”€â”€ */}
             {activeTab === 'card' && (
               <div
                 className="ti-card-tab-content"
@@ -1788,7 +1834,7 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
                       {[
                         { label: 'Card ID',    value: card.card_id },
                         { label: 'Status',     value: card.status ?? 'Unknown' },
-                        { label: 'NFC URL',    value: card.nfc_url ?? '—' },
+                        { label: 'NFC URL',    value: card.nfc_url ?? 'â€”' },
                         { label: 'Total taps', value: tapCount.toString() },
                         { label: 'Last tap',   value: lastTap ?? 'No activity' },
                       ].map((row) => (
@@ -1856,7 +1902,7 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
               <p style={s.eyebrow}>Analytics</p>
               <h3 style={s.analyticsTitle}>View full insights</h3>
               <p style={s.analyticsText}>
-                Tap history, link click rates, CTR, and engagement — all in one view.
+                Tap history, link click rates, CTR, and engagement â€” all in one view.
               </p>
             </div>
             <div style={s.analyticsArrowWrap}>
@@ -1872,7 +1918,7 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
   )
 }
 
-// ─── Gallery slot styles ──────────────────────────────────────────────────────
+// â”€â”€â”€ Gallery slot styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const gs: Record<string, CSSProperties> = {
   slotWrap: {
@@ -1988,7 +2034,7 @@ const gs: Record<string, CSSProperties> = {
   },
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const s: Record<string, CSSProperties> = {
 
