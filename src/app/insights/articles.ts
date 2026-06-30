@@ -14,11 +14,13 @@ export type Article = {
   date: string; // ISO date, e.g. "2026-06-22"
   readingTime: string;
   body: Block[];
+  pinned?: boolean;
 };
 
 export const articles: Article[] = [
   {
     slug: "the-new-standard-for-networking",
+    pinned: true,
     title: "The New Standard for Networking",
     description:
       "For a century, networking meant handing over paper and hoping it survived the week. TAPPED-IN replaces it with a single tap — and a profile that is always current.",

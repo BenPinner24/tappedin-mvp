@@ -45,7 +45,10 @@ const css = `
 `;
 
 export default function InsightsIndex() {
-  const sorted = [...articles].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const sorted = [...articles].sort((a, b) => {
+    if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+    return a.date < b.date ? 1 : -1;
+  });
 
   return (
     <main className="ti-ins">
