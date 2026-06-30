@@ -16,12 +16,8 @@ const FOUNDING_MEMBERS: string[] = []
 // The section AUTO-HIDES until at least one review is listed here.
 // Replace these examples with REAL reviews. Each: name, role, rating (1-5), quote.
 const REVIEWS: { name: string; role: string; rating: number; quote: string }[] = [
-  { name: 'James Whitlock', role: 'Estate Agent, Leeds', rating: 5, quote: 'Handed it over at a valuation and won the instruction the same week. Looks the part, works every time.' },
-  { name: 'Priya Anand', role: 'Sales Director', rating: 5, quote: 'My whole sales team runs on these now. Faster follow-up, zero reprints, and we can finally see what lands.' },
-  { name: 'Nieves Calvo', role: 'Embroidery & Craft', rating: 5, quote: 'Tapped it at a market stall and the follows came in instantly. It pays for itself in one event.' },
-  { name: 'Daniel Okafor', role: 'Freelance Designer', rating: 4, quote: 'Genuinely premium in the hand. Clients always ask about it, it starts the conversation for me.' },
-  { name: 'Sofia Maren', role: 'Salon Owner', rating: 5, quote: 'Setup took two minutes and I never have to reprint when my number changes. Exactly what I wanted.' },
-  { name: 'Tom Bradley', role: 'Mortgage Broker', rating: 5, quote: 'The profile looks expensive, which makes me look expensive. Best money I have spent on the business.' },
+  // Empty on purpose. Real reviews will be loaded here once the submission system is live.
+  // While this is empty, the reviews section below stays hidden.
 ]
 // ──────────────────────────────────────────────────────────────────────────────
 
