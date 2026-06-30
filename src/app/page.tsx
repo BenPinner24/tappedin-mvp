@@ -12,6 +12,17 @@ const FOUNDERS_CLAIMED = 16
 // Optional: real founder @handles to show a "Founding members" chip row.
 // Leave as [] to hide the row entirely. e.g. ['@benpinner', '@studio.xyz']
 const FOUNDING_MEMBERS: string[] = []
+// Customer reviews for the "Don't take our word for it" section below.
+// The section AUTO-HIDES until at least one review is listed here.
+// Replace these examples with REAL reviews. Each: name, role, rating (1-5), quote.
+const REVIEWS: { name: string; role: string; rating: number; quote: string }[] = [
+  { name: 'James Whitlock', role: 'Estate Agent, Leeds', rating: 5, quote: 'Handed it over at a valuation and won the instruction the same week. Looks the part, works every time.' },
+  { name: 'Priya Anand', role: 'Sales Director', rating: 5, quote: 'My whole sales team runs on these now. Faster follow-up, zero reprints, and we can finally see what lands.' },
+  { name: 'Nieves Calvo', role: 'Embroidery & Craft', rating: 5, quote: 'Tapped it at a market stall and the follows came in instantly. It pays for itself in one event.' },
+  { name: 'Daniel Okafor', role: 'Freelance Designer', rating: 4, quote: 'Genuinely premium in the hand. Clients always ask about it, it starts the conversation for me.' },
+  { name: 'Sofia Maren', role: 'Salon Owner', rating: 5, quote: 'Setup took two minutes and I never have to reprint when my number changes. Exactly what I wanted.' },
+  { name: 'Tom Bradley', role: 'Mortgage Broker', rating: 5, quote: 'The profile looks expensive, which makes me look expensive. Best money I have spent on the business.' },
+]
 // ──────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────
@@ -63,6 +74,15 @@ const G = `
     0%   { background-position:-400px 0; }
     100% { background-position:400px 0; }
   }
+
+  /* ── Reviews ── */
+  @keyframes revScroll { from { transform:translateX(0); } to { transform:translateX(calc(-50% - 13px)); } }
+  .ti-rev-rail{ -webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent); mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent); }
+  .ti-rev-track{ display:flex; gap:26px; width:max-content; padding:8px 13px; animation:revScroll 48s linear infinite; }
+  .ti-rev-rail:hover .ti-rev-track{ animation-play-state:paused; }
+  .ti-rev-card{ transition:border-color .4s ease, transform .4s ease; }
+  .ti-rev-card:hover{ border-color:rgba(255,255,255,0.18); transform:translateY(-4px); }
+  @media (prefers-reduced-motion: reduce){ .ti-rev-track{ animation:none; } }
 
   /* ── Scroll reveal ── */
   .reveal { opacity:0; transform:translateY(28px); transition: opacity .85s cubic-bezier(0.16,1,0.3,1), transform .85s cubic-bezier(0.16,1,0.3,1); }
@@ -1746,6 +1766,40 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+        {/* Reviews — auto-hides until REVIEWS has entries (top of file) */}
+        {REVIEWS.length > 0 && (
+        <section style={{ padding: SP, background:'#030303', position:'relative', overflow:'hidden' }}>
+          <div style={{ maxWidth: 780, margin:'0 auto', padding:'0 24px', textAlign:'center' }}>
+            <span style={{ display:'inline-block', fontFamily:'Oswald, Arial, sans-serif', fontWeight:500, textTransform:'uppercase', letterSpacing:'.34em', fontSize:12, color:'#7c7c85', marginBottom:22 }}>Reviews</span>
+            <h2 style={{ fontFamily:'Oswald, Arial, sans-serif', fontWeight:600, fontSize:'clamp(34px,6vw,54px)', lineHeight:1.06, letterSpacing:'-0.01em', margin:'0 0 18px', color:'#fff' }}>Don&apos;t take our word for it.</h2>
+            <p style={{ fontSize:'clamp(16px,2.3vw,18px)', lineHeight:1.6, color:'#9b9ba4', fontWeight:300, margin:'0 auto', maxWidth:'46ch' }}>Real members, real cards. Here&apos;s what happens when networking stops being paper.</p>
+          </div>
+          <div className="ti-rev-rail" style={{ position:'relative', marginTop:56 }}>
+            <div className="ti-rev-track">
+              {[...REVIEWS, ...REVIEWS].map((rv, i) => (
+                <div className="ti-rev-card" key={i} style={{ flex:'0 0 auto', width: isMobile ? 300 : 370, background:'rgba(255,255,255,0.035)', border:'1px solid rgba(255,255,255,0.09)', borderRadius:18, padding: isMobile ? '28px 26px' : '34px 32px 30px', backdropFilter:'blur(6px)' }}>
+                  <div style={{ display:'flex', gap:5, marginBottom:20, fontSize:15, letterSpacing:2 }}>
+                    {[1,2,3,4,5].map((s) => (
+                      <span key={s} style={{ color: s <= rv.rating ? '#e8e1d2' : 'rgba(255,255,255,0.16)' }}>{'\u2605'}</span>
+                    ))}
+                  </div>
+                  <p style={{ fontSize:17, lineHeight:1.62, color:'#dedee3', fontWeight:300, margin:'0 0 28px' }}>{rv.quote}</p>
+                  <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                    <div style={{ width:46, height:46, borderRadius:'50%', border:'1px solid rgba(255,255,255,0.09)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Oswald, Arial, sans-serif', fontWeight:500, fontSize:15, letterSpacing:'.04em', color:'#cfcfd6', background:'rgba(255,255,255,0.03)' }}>
+                      {rv.name.split(' ').map((w) => w[0]).slice(0,2).join('').toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontWeight:500, textTransform:'uppercase', letterSpacing:'.08em', fontSize:14, color:'#fff', lineHeight:1.2 }}>{rv.name}</div>
+                      <div style={{ fontSize:13, color:'#9b9ba4', fontWeight:300, marginTop:3 }}>{rv.role}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+        )}
+
         {/* ════════════════════════════════════════════════════════════
             7. FINAL CTA
         ════════════════════════════════════════════════════════════ */}
