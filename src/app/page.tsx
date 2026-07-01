@@ -918,6 +918,124 @@ function ProfileQR({ isMobile }: { isMobile: boolean }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REVIEWS CAROUSEL — coverflow. Centre review is sharp; neighbours peek blurred.
+// Auto-advances every 4s; arrows/dots take control and restart the timer.
+// Self-contained state + timer, so a tap can never freeze it.
+// ─────────────────────────────────────────────────────────────────────────────
+function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role: string; rating: number; quote: string }[]; isMobile: boolean }) {
+  const N = reviews.length
+  const [active, setActive] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const [nonce, setNonce] = useState(0)
+
+  useEffect(() => {
+    if (N <= 1 || paused) return
+    const reduce = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduce) return
+    const id = setInterval(() => setActive((a) => (a + 1) % N), 4000)
+    return () => clearInterval(id)
+  }, [N, paused, nonce])
+
+  const go = (dir: number) => { setActive((a) => (a + dir + N) % N); setNonce((n) => n + 1) }
+  const jump = (i: number) => { setActive(i); setNonce((n) => n + 1) }
+
+  const cardW = isMobile ? 300 : 380
+  const spacing = cardW * (isMobile ? 0.5 : 0.6)
+  const stageH = isMobile ? 430 : 380
+
+  const offsetOf = (i: number) => {
+    let o = i - active
+    if (o > N / 2) o -= N
+    if (o < -N / 2) o += N
+    return o
+  }
+
+  const arrowStyle = (side: 'left' | 'right'): React.CSSProperties => ({
+    position: 'absolute', top: stageH / 2, transform: 'translateY(-50%)',
+    [side]: isMobile ? 2 : 18, zIndex: 30,
+    width: isMobile ? 40 : 46, height: isMobile ? 40 : 46, borderRadius: '50%',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'rgba(10,10,10,0.72)', border: '1px solid rgba(255,255,255,0.14)',
+    backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+    color: 'rgba(255,255,255,0.85)', cursor: 'pointer', padding: 0,
+    fontFamily: 'Oswald, Arial, sans-serif', fontSize: isMobile ? 20 : 24, lineHeight: 1,
+    transition: 'background .25s, border-color .25s, color .25s',
+  })
+
+  return (
+    <div
+      style={{ position: 'relative', marginTop: isMobile ? 44 : 56, width: '100%' }}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div style={{ position: 'relative', height: stageH, maxWidth: 1120, margin: '0 auto', overflow: 'hidden' }}>
+        {reviews.map((rv, i) => {
+          const o = offsetOf(i)
+          const abs = Math.abs(o)
+          const isCentre = o === 0
+          return (
+            <div
+              key={i}
+              aria-hidden={!isCentre}
+              style={{
+                position: 'absolute', top: '50%', left: '50%', width: cardW,
+                transform: 'translate(-50%, -50%) translateX(' + (o * spacing) + 'px) scale(' + (isCentre ? 1 : 0.85) + ')',
+                opacity: abs <= 1 ? (isCentre ? 1 : 0.4) : 0,
+                filter: isCentre ? 'blur(0px)' : 'blur(4px)',
+                zIndex: 20 - abs,
+                pointerEvents: isCentre ? 'auto' : 'none',
+                transition: 'transform .6s cubic-bezier(0.16,1,0.3,1), opacity .55s ease, filter .55s ease',
+              }}
+            >
+              <div style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 18, padding: isMobile ? '28px 26px' : '34px 32px 30px', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
+                <div style={{ display: 'flex', gap: 5, marginBottom: 20, fontSize: 15, letterSpacing: 2 }}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <span key={s} style={{ color: s <= rv.rating ? '#e8e1d2' : 'rgba(255,255,255,0.16)' }}>{'\u2605'}</span>
+                  ))}
+                </div>
+                <p style={{ fontSize: 17, lineHeight: 1.62, color: '#dedee3', fontWeight: 300, margin: '0 0 28px' }}>{rv.quote}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ width: 46, height: 46, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Oswald, Arial, sans-serif', fontWeight: 500, fontSize: 15, letterSpacing: '.04em', color: '#cfcfd6', background: 'rgba(255,255,255,0.03)' }}>
+                    {rv.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', fontSize: 14, color: '#fff', lineHeight: 1.2 }}>{rv.name}</div>
+                    <div style={{ fontSize: 13, color: '#9b9ba4', fontWeight: 300, marginTop: 3 }}>{rv.role}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {N > 1 && (
+        <>
+          <button aria-label="Previous review" onClick={() => go(-1)} style={arrowStyle('left')}>‹</button>
+          <button aria-label="Next review" onClick={() => go(1)} style={arrowStyle('right')}>›</button>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: isMobile ? 24 : 30 }}>
+            {reviews.map((_, i) => (
+              <button
+                key={i}
+                aria-label={'Go to review ' + (i + 1)}
+                onClick={() => jump(i)}
+                style={{
+                  width: i === active ? 22 : 7, height: 7, borderRadius: 99, border: 'none',
+                  cursor: 'pointer', padding: 0,
+                  background: i === active ? '#e8e1d2' : 'rgba(255,255,255,0.18)',
+                  transition: 'width .4s ease, background .4s ease',
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function HomePage() {
   const [liveReviews, setLiveReviews] = useState<{ name: string; role: string; rating: number; quote: string }[]>([])
   useEffect(() => {
@@ -1514,8 +1632,8 @@ export default function HomePage() {
 
             <div className="founder-cols reveal d3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:2, background:'rgba(255,255,255,0.05)', borderRadius:3, overflow:'hidden', marginBottom: isMobile ? '2rem' : '3rem' }}>
               {[
-                { icon:'ÃƒÂ¢Ã¢â‚¬â€Ã‹â€ ', h:'Permanently numbered',  b:'Your card carries a serial number from 1 to 100. No duplicates. No reprints.' },
-                { icon:'ÃƒÂ¢Ã¢â‚¬â€Ã…Â½', h:'First ever release',    b:'This is the first TAPPED-IN product. No cards existed before this drop.' },
+                { icon:'◇', h:'Permanently numbered',  b:'Your card carries a serial number from 1 to 100. No duplicates. No reprints.' },
+                { icon:'△', h:'First ever release',    b:'This is the first TAPPED-IN product. No cards existed before this drop.' },
                 { icon:'⬡', h:'Early platform access', b:'Founders get priority access to every new platform feature as TAPPED-IN grows.' },
               ].map((c,i)=>(
                 <div key={i} style={{ background:'#060606', padding: isMobile ? '1.25rem .9rem' : 'clamp(1.5rem,3vw,2rem)', display:'flex', flexDirection:'column', gap:'.65rem' }}>
@@ -1786,29 +1904,7 @@ export default function HomePage() {
             <h2 style={{ fontFamily:'Oswald, Arial, sans-serif', fontWeight:600, fontSize:'clamp(34px,6vw,54px)', lineHeight:1.06, letterSpacing:'-0.01em', margin:'0 0 18px', color:'#fff' }}>Don&apos;t take our word for it.</h2>
             <p style={{ fontSize:'clamp(16px,2.3vw,18px)', lineHeight:1.6, color:'#9b9ba4', fontWeight:300, margin:'0 auto', maxWidth:'46ch' }}>Real members, real cards. Here&apos;s what happens when networking stops being paper.</p>
           </div>
-          <div className={shownReviews.length > 3 ? 'ti-rev-rail' : 'ti-rev-rail ti-rev-rail--static'} style={{ position:'relative', marginTop:56 }}>
-            <div className={shownReviews.length > 3 ? 'ti-rev-track' : 'ti-rev-track ti-rev-track--static'}>
-              {(shownReviews.length > 3 ? [...shownReviews, ...shownReviews] : shownReviews).map((rv, i) => (
-                <div className="ti-rev-card" key={i} style={{ flex:'0 0 auto', width: isMobile ? 300 : 370, background:'rgba(255,255,255,0.035)', border:'1px solid rgba(255,255,255,0.09)', borderRadius:18, padding: isMobile ? '28px 26px' : '34px 32px 30px', backdropFilter:'blur(6px)' }}>
-                  <div style={{ display:'flex', gap:5, marginBottom:20, fontSize:15, letterSpacing:2 }}>
-                    {[1,2,3,4,5].map((s) => (
-                      <span key={s} style={{ color: s <= rv.rating ? '#e8e1d2' : 'rgba(255,255,255,0.16)' }}>{'\u2605'}</span>
-                    ))}
-                  </div>
-                  <p style={{ fontSize:17, lineHeight:1.62, color:'#dedee3', fontWeight:300, margin:'0 0 28px' }}>{rv.quote}</p>
-                  <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-                    <div style={{ width:46, height:46, borderRadius:'50%', border:'1px solid rgba(255,255,255,0.09)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Oswald, Arial, sans-serif', fontWeight:500, fontSize:15, letterSpacing:'.04em', color:'#cfcfd6', background:'rgba(255,255,255,0.03)' }}>
-                      {rv.name.split(' ').map((w) => w[0]).slice(0,2).join('').toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontWeight:500, textTransform:'uppercase', letterSpacing:'.08em', fontSize:14, color:'#fff', lineHeight:1.2 }}>{rv.name}</div>
-                      <div style={{ fontSize:13, color:'#9b9ba4', fontWeight:300, marginTop:3 }}>{rv.role}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ReviewsCarousel reviews={shownReviews} isMobile={isMobile} />
         </section>
         )}
 
