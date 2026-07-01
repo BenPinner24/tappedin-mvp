@@ -73,7 +73,6 @@ const organizationSchema = {
   },
   sameAs: [
     "https://www.instagram.com/tappedinspace",
-    "https://www.tiktok.com/@tappedinspace",
     "https://www.linkedin.com/company/tappedinspace",
   ],
 };
