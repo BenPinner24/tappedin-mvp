@@ -10,4 +10,4 @@ persistSession: false,
 autoRefreshToken: false,
 },
 })
-} 
+}
