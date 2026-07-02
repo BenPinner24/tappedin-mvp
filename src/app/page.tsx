@@ -1511,7 +1511,7 @@ export default function HomePage() {
             <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? '2rem' : '3rem' }}>
               <div style={EB}>Founding 100</div>
               <h2 style={H2}>Once it&apos;s claimed,<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>it&apos;s gone for good.</span></h2>
-              <p style={SUB}>The Founder Edition is a numbered metal collector&apos;s piece &mdash; 1 of 100, the first cards we ever made, never reproduced. Full access for life, with no monthly fee, ever.</p>
+              <p style={SUB}>The Founder Edition is a numbered metal collector&apos;s piece &mdash; 1 of 100, the first cards we ever made, never reproduced. Your card stays live for life with no monthly fee. Premium tiers stay optional, the same as any card.</p>
             </div>
 
             {/* Scarcity counter */}
@@ -1546,7 +1546,7 @@ export default function HomePage() {
             {/* Differentiators — what the others can't say */}
             <div className="reveal d3" style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap:2, background:'rgba(255,255,255,0.05)', borderRadius:3, overflow:'hidden', marginTop: isMobile ? '2rem' : '3rem' }}>
               {[
-                { h:'No subscription', s:'One payment. Keep it for good.' },
+                { h:'No monthly fee', s:'Your card stays live free, for life.' },
                 { h:'Numbered 1–100', s:'Your serial is yours alone.' },
                 { h:'Never restocking', s:'This batch is the only batch.' },
                 { h:'Yours for life', s:'Profile stays live. Updates free.' },

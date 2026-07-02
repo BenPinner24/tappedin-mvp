@@ -22,12 +22,13 @@ type Card = {
   url: string
   cta?: string
   founder?: boolean
+  sub?: string
 }
 
 const CARDS: Card[] = [
-  { name: 'Standard PVC', price: '£34.99', material: 'Matte PVC', blurb: 'The everyday tap card. Premium matte finish, full platform access.', url: PVC_STRIPE_URL, cta: 'Buy now' },
-  { name: 'Standard Metal', price: '£49.99', material: 'Brushed metal', blurb: 'Heavier premium metal card. Same digital profile, more presence.', url: METAL_STRIPE_URL },
-  { name: 'Founders Edition', price: '£49.99', material: 'Matte black · numbered', tag: '100 only', blurb: '1 of 100, individually numbered. Bronze free for life — no monthly fee, ever.', url: FOUNDERS_STRIPE_URL, cta: 'Order now', founder: true },
+  { name: 'The Tapped-In Card', price: '£34.99', material: 'Premium PVC', blurb: 'The everyday card, engineered for the strongest, most reliable tap on any phone. No app needed.', url: PVC_STRIPE_URL, cta: 'Buy now', sub: '3 months included, then £1/mo' },
+  { name: 'Tapped-In Metal', price: '£49.99', material: 'Brushed metal', blurb: 'A heavier premium metal finish. Same instant digital profile, more presence.', url: METAL_STRIPE_URL },
+  { name: 'Founders Edition', price: '£49.99', material: 'Matte black · numbered', tag: '100 only', blurb: '1 of 100, individually numbered. The first cards we ever made. Your card stays live for life with no monthly fee. Premium tiers are optional upgrades, the same as any card.', url: FOUNDERS_STRIPE_URL, cta: 'Order now', founder: true, sub: 'No monthly fee to stay live' },
 ]
 
 type Tier = {
@@ -109,7 +110,8 @@ export default function PricingPage() {
                     {c.tag && <span style={{ ...s.tag, ...(c.founder ? s.tagFounder : {}) }}>{c.tag}</span>}
                     <h3 style={s.cardName}>{c.name}</h3>
                     <p style={s.cardMaterial}>{c.material}</p>
-                    <p style={s.cardPrice}>{c.price}<span style={s.cardOnce}> one-time</span></p>
+                    <p style={s.cardPrice}>{c.price}</p>
+                    {c.sub && <p style={s.cardSub}>{c.sub}</p>}
                     <p style={s.cardBlurb}>{c.blurb}</p>
                     {live ? (
                       <a href={c.url} target="_blank" rel="noopener noreferrer" style={c.founder ? s.buyPrimary : s.buy}>{c.cta || 'Order'}</a>
@@ -176,8 +178,8 @@ export default function PricingPage() {
           <section style={s.finalCta}>
             <h2 style={s.h2}>Ready to tap in?</h2>
             <div style={s.ctaRow}>
-              <a href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Order now</a>
-              <Link href="/demo" style={s.buy}>View demo profile</Link>
+              <a href={PVC_STRIPE_URL} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Order The Tapped-In Card</a>
+              <a href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" style={s.buy}>Order Founders Edition</a>
             </div>
           </section>
 
@@ -253,6 +255,7 @@ const s: Record<string, React.CSSProperties> = {
   cardMaterial: { fontFamily: FF, fontSize: '.72rem', fontWeight: 400, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,.35)', marginTop: 4 },
   cardPrice: { fontFamily: FF, fontSize: '2.2rem', fontWeight: 600, color: '#fff', margin: '1.25rem 0 .25rem' },
   cardOnce: { fontSize: '.8rem', fontWeight: 300, color: 'rgba(255,255,255,.4)', letterSpacing: '.02em' },
+  cardSub: { fontFamily: FF, fontSize: '.8rem', fontWeight: 300, lineHeight: 1.4, color: 'rgba(255,255,255,.42)', letterSpacing: '.02em', marginBottom: '.5rem' },
   cardBlurb: { fontFamily: FF, fontSize: '.86rem', fontWeight: 300, lineHeight: 1.6, color: 'rgba(255,255,255,.45)', marginBottom: '1.5rem', flex: 1 },
   buy: { display: 'block', textAlign: 'center', padding: '13px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#fff', fontFamily: FF, fontSize: '.85rem', fontWeight: 500, letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none', cursor: 'pointer', transition: 'opacity .2s' },
   buyPrimary: { display: 'block', textAlign: 'center', padding: '13px', borderRadius: 8, border: 'none', background: '#fff', color: '#000', fontFamily: FF, fontSize: '.85rem', fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none', cursor: 'pointer', transition: 'opacity .2s' },
