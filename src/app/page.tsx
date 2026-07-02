@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
+const STANDARD_STRIPE_URL = 'https://buy.stripe.com/dRm14pc1H16F9N7et1cfK03'
 
 // ── EDIT ME ───────────────────────────────────────────────────────────────────
 // Real number of Founder cards already claimed (0–100). Drives the
@@ -305,10 +306,7 @@ function CardBack({ size = 'lg', float = false, scale = 1 }: { size?: CardSize; 
       <div style={{ position:'absolute', top:0, bottom:0, right:0, width:2.5, zIndex:4, background:'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.1) 40%, rgba(255,255,255,0.05) 100%)', pointerEvents:'none' }} />
       <div style={{ position:'absolute', bottom:0, left:0, right:0, height:2.5, zIndex:4, background:'linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03))', pointerEvents:'none' }} />
       <div style={{ position:'absolute', top:0, right:0, width:'65%', height:'60%', zIndex:2, background:'radial-gradient(ellipse at 85% 10%, rgba(255,255,255,0.04) 0%, transparent 65%)', pointerEvents:'none' }} />
-      <div style={{ position:'absolute', top: pad, right: pad, zIndex:3, display:'flex', flexDirection:'column', alignItems:'flex-end', gap: size === 'sm' ? 3 : 5 }}>
-        <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: labelSize, fontWeight:600, letterSpacing:'0.14em', color:'rgba(255,255,255,0.9)', textTransform:'uppercase', lineHeight:1 }}>FOUNDER EDITION</div>
-        <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: numSize, fontWeight:500, letterSpacing:'0.1em', color:'rgba(255,255,255,0.72)', lineHeight:1 }}>1/100</div>
-      </div>
+      
       <div style={{ position:'absolute', bottom: pad, left: pad, display:'flex', alignItems:'center', gap: size === 'sm' ? 8 : 12, zIndex:3 }}>
         <div style={{ width: stripW, height: stripH, background:'rgba(255,255,255,0.9)', borderRadius:2, boxShadow:'0 1px 6px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.5)' }} />
         <div style={{ display:'flex', alignItems:'center', gap: size === 'sm' ? 2 : 3 }}>
@@ -1218,7 +1216,7 @@ export default function HomePage() {
           <div style={{ marginTop:'auto', paddingTop:'2rem', display:'flex', flexDirection:'column', gap:'.6rem' }}>
             <Link href="/login" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Sign in</Link>
             <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Dashboard</Link>
-            <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="btn-primary" style={{ width:'100%', padding:'15px' }}>Order Founders Edition</Link>
+            <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="btn-primary" style={{ width:'100%', padding:'15px' }}>Order The Tapped-In Card</Link>
           </div>
         </div>
       )}
@@ -1269,7 +1267,7 @@ export default function HomePage() {
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) both',
               }}>
                 <div style={{ width:5, height:5, borderRadius:'50%', background:'#fff', animation:'dotBlink 2s ease-in-out infinite' }} />
-                <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.63rem' : '.7rem', fontWeight:500, color:'rgba(255,255,255,.5)', letterSpacing:'.22em', textTransform:'uppercase' }}>Order your Founders Edition card now</span>
+                <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.63rem' : '.7rem', fontWeight:500, color:'rgba(255,255,255,.5)', letterSpacing:'.22em', textTransform:'uppercase' }}>OUT NOW &middot; The Tapped-In Card</span>
               </div>
 
               {/* Headline */}
@@ -1296,7 +1294,7 @@ export default function HomePage() {
                 marginBottom: isMobile ? '1.4rem' : '2.5rem',
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) .18s both',
               }}>
-                100 individually numbered matte black metal NFC identity cards. The first ever TAPPED-IN release. Never restocking. Once they&apos;re gone, they&apos;re gone.
+                Tap your Tapped-In card to any phone and your whole digital profile opens instantly: links, contact, portfolio. No app, no friction. Engineered for a fast, reliable tap every time.
               </p>
 
               {/* CTAs */}
@@ -1305,8 +1303,8 @@ export default function HomePage() {
                 marginBottom: isMobile ? '1.4rem' : '2.75rem',
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) .26s both',
               }}>
-                <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">Order Founders Edition</Link>
-                <Link href="/pricing" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Standard PVC · £34.99</Link>
+                <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">Order The Tapped-In Card</Link>
+                <a href="#founding" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Explore the Founder Edition</a>
                 <a href="#product" className="btn-ghost">View the card</a>
                 <a
   href="https://www.instagram.com/tappedinspace/"
@@ -1377,10 +1375,11 @@ export default function HomePage() {
               </div>
 
               {/* Stats */}
+              <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.74rem' : '.8rem', fontWeight:300, color:'rgba(255,255,255,.4)', letterSpacing:'.01em', lineHeight:1.6, maxWidth:440, marginBottom: isMobile ? '1.4rem' : '2.5rem' }}>&pound;34.99 &mdash; includes 3 months of full access. After that, just &pound;1/month keeps your card live.</p>
               <div style={{ animation:'fadeIn 1.2s ease .55s both' }}>
                 <div style={{ ...DIVIDER, marginBottom: isMobile ? '.9rem' : '1.25rem' }} />
                 <div className="hero-stats" style={{ display:'flex', gap:'2.75rem', flexWrap:'wrap' }}>
-                  {[{n:'100', l:'Total ever made'},{n:'1/100', l:'Individually numbered'},{n:'£49.99', l:'One-time price'}].map((s,i)=>(
+                  {[{n:'Instant', l:'Tap to connect'},{n:'Any phone', l:'iPhone & Android'},{n:'No app', l:'Needed, ever'}].map((s,i)=>(
                     <div key={i}>
                       <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '1.35rem' : '1.75rem', fontWeight:600, color:'#fff', lineHeight:1, marginBottom:4, letterSpacing:'0.02em' }}>{s.n}</div>
                       <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.68rem', fontWeight:400, color:'rgba(255,255,255,.28)', letterSpacing:'.1em', textTransform:'uppercase' }}>{s.l}</div>
@@ -1411,9 +1410,9 @@ export default function HomePage() {
           <div style={{ maxWidth:1160, margin:'0 auto' }}>
 
             <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(2rem,5vw,3rem)' : 'clamp(4rem,8vw,6rem)' }}>
-              <div style={EB}>The Founder Edition</div>
-              <h2 style={H2}>Matte black metal.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>Individually numbered.</span></h2>
-              <p style={SUB}>One of 100 in existence. Hand-finished matte metal. The first TAPPED-IN card ever released.</p>
+              <div style={EB}>The Tapped-In Card</div>
+              <h2 style={H2}>Premium finish.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>Built to just work.</span></h2>
+              <p style={SUB}>The everyday card, engineered for the strongest, most reliable tap on any phone. No app needed. A premium metal finish is coming soon.</p>
             </div>
 
             {/* Card pair — lg cards scaled down on mobile, glow contained */}
@@ -1435,10 +1434,10 @@ export default function HomePage() {
             {/* Detail strip */}
             <div className="reveal detail-strip" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:2, background:'rgba(255,255,255,0.05)', borderRadius:3, overflow:'hidden' }}>
               {[
-                { l:'Material',   v:'Matte black metal',    s:'Premium aircraft-grade construction' },
-                { l:'Edition',    v:'Founder — 1 of 100',   s:'Never restocking. Ever.' },
+                { l:'Material',   v:'Premium PVC', s:'Unobstructed antenna, strongest tap' },
+                { l:'Finish', v:'Matte black', s:'Metal finish coming soon' },
                 { l:'Technology', v:'NFC + Digital Profile', s:'Tap-to-profile, no app needed' },
-                { l:'Price',      v:'£49.99',                s:'One-time. No subscription.' },
+                { l:'Price', v:'£34.99', s:'3 months included, then £1/mo' },
               ].map((d,i)=>(
                 <div key={i} style={{ background:'#080808', padding: isMobile ? '1rem .9rem' : 'clamp(1.25rem,2.5vw,1.75rem)', display:'flex', flexDirection:'column', gap:8, minWidth:0 }}>
                   <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, color:'rgba(255,255,255,.22)', letterSpacing:'.22em', textTransform:'uppercase' }}>{d.l}</div>
@@ -1449,7 +1448,7 @@ export default function HomePage() {
             </div>
 
             <div className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '3rem' }}>
-              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Order founders edition</Link>
+              <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Order The Tapped-In Card</Link>
             </div>
           </div>
         </section>
@@ -1467,7 +1466,7 @@ export default function HomePage() {
 
             <div style={{ display:'flex', flexDirection:'column', gap: isMobile ? 'clamp(2.5rem,8vw,3.5rem)' : 'clamp(4rem,9vw,7rem)' }}>
               {[
-                { n:'01', title:'Tap your card',     body:'Hold the Founder Edition to any phone. Your digital profile opens instantly — any device, no app required.', detail:'Works on iPhone & Android', mock:<MockTap scale={isMobile ? 0.7 : 0.92} /> },
+                { n:'01', title:'Tap your card',     body:'Hold your Tapped-In card to any phone and your digital profile opens instantly. No app, any device.', detail:'Works on iPhone & Android', mock:<MockTap scale={isMobile ? 0.7 : 0.92} /> },
                 { n:'02', title:'Share your profile', body:'Every card links to your live profile — links, contact, portfolio, bio. Update it any time from your dashboard.', detail:'Always up to date', mock:<MockProfile scale={isMobile ? 0.7 : 0.92} /> },
                 { n:'03', title:'Track engagement',  body:'See every tap and link click in real time. Know exactly when and how people engage with your card.', detail:'Real-time analytics', mock: <img src={STEP3_IMG} alt="Real-time tap analytics dashboard" style={{ width: isMobile ? 191 : 237, height: 'auto', display: 'block' }} /> },
               ].map((s,i)=>(
@@ -1512,7 +1511,7 @@ export default function HomePage() {
             <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? '2rem' : '3rem' }}>
               <div style={EB}>Founding 100</div>
               <h2 style={H2}>Once it&apos;s claimed,<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>it&apos;s gone for good.</span></h2>
-              <p style={SUB}>Every Founder card is numbered 1–100 and tied to one person. No reprints. No second batch. And no monthly fee, unlike every other card out there.</p>
+              <p style={SUB}>The Founder Edition is a numbered metal collector&apos;s piece &mdash; 1 of 100, the first cards we ever made, never reproduced. Full access for life, with no monthly fee, ever.</p>
             </div>
 
             {/* Scarcity counter */}
@@ -1664,8 +1663,8 @@ export default function HomePage() {
 
             <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', maxWidth:720, margin:'0 auto' }}>
               {[
-                { label:'Standard PVC',   price:'£34.99', available:true,  note:'The everyday tap card. Premium matte finish — available now.' },
-                { label:'Standard Metal', price:'£49.99', available:false, note:'Heavier premium metal finish. Coming soon.' },
+                { label:'The Tapped-In Card',   price:'£34.99', available:true,  note:'The everyday tap card. Premium matte finish — available now.' },
+                { label:'Tapped-In Metal', price:'£49.99', available:false, note:'Heavier premium metal finish. Coming soon.' },
               ].map((ed,i)=>{
                 const inner = (
                   <div style={{ background:'#070707', border:`1px solid rgba(255,255,255,${ed.available ? 0.08 : 0.04})`, borderRadius:3, padding: isMobile ? '1.1rem .9rem' : 'clamp(1.5rem,3vw,2rem)', opacity: ed.available ? 1 : .4, position:'relative', overflow:'hidden', height:'100%' }}>
