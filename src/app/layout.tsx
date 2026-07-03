@@ -64,6 +64,7 @@ const organizationSchema = {
   url: "https://tappedin.uk",
   description:
     "Premium NFC business cards and digital profiles for professionals, creators and businesses.",
+  email: "contact@tappedin.uk",
   address: {
     "@type": "PostalAddress",
     streetAddress: "66 Paul Street",
@@ -71,8 +72,19 @@ const organizationSchema = {
     postalCode: "EC2A 4NA",
     addressCountry: "GB",
   },
+  contactPoint: {
+    "@type": "ContactPoint",
+    email: "contact@tappedin.uk",
+    contactType: "customer support",
+  },
+  founder: {
+    "@type": "Person",
+    name: "Ben Pinner",
+    sameAs: ["https://www.linkedin.com/in/ben-pinner/"],
+  },
   sameAs: [
     "https://www.instagram.com/tappedinspace",
+    "https://www.tiktok.com/@tappedinspace",
     "https://www.linkedin.com/company/tappedinspace",
   ],
 };
