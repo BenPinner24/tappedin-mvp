@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { sendFounderConfirmation } from '@/lib/email/sendFounderConfirmation'
 import { sendStandardConfirmation } from '@/lib/email/sendStandardConfirmation'
+import { sendMultipackConfirmation } from '@/lib/email/sendMultipackConfirmation'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
@@ -9,6 +10,12 @@ export const dynamic = 'force-dynamic'
 
 // One-off card product (PVC) — sends the Standard email.
 const PVC_PRODUCT_ID = 'prod_UhzE8eaEZgXQiR'
+
+// Multi-Pack products (PVC bundles) → pack name + quantity. One profile, one email.
+const PACK_PRODUCTS: Record<string, { packName: string; quantity: number }> = {
+  prod_Up2tgzkQsZ7qeP: { packName: '3-Pack', quantity: 3 },
+  prod_Up2uzzjNPusik9: { packName: '5-Pack', quantity: 5 },
+}
 
 // Subscription products → tier.
 const PRODUCT_TIERS: Record<string, string> = {
@@ -186,6 +193,26 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ received: true, emailed: true, id: standardResult.id, type: 'standard' })
+  }
+
+  // MULTI-PACK ORDER — send the multipack confirmation and stop.
+  // Placed before the Founders fallback so packs never touch the numbered cards.
+  const pack = purchasedProductId ? PACK_PRODUCTS[purchasedProductId] : undefined
+  if (pack) {
+    const multipackResult = await sendMultipackConfirmation({
+      to: recipient,
+      customerName,
+      orderNumber,
+      packName: pack.packName,
+      quantity: pack.quantity,
+    })
+
+    if (!multipackResult.success) {
+      console.error('[stripe/webhook] Multipack email send failed:', multipackResult.error)
+      return NextResponse.json({ received: true, emailed: false, error: multipackResult.error })
+    }
+
+    return NextResponse.json({ received: true, emailed: true, id: multipackResult.id, type: 'multipack', pack: pack.packName })
   }
 
   // FOUNDERS ORDER (default)
