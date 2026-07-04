@@ -62,6 +62,7 @@ const organizationSchema = {
   name: "TAPPED-IN",
   legalName: "TAPPEDIN SPACE LTD",
   url: "https://tappedin.uk",
+  logo: "https://tappedin.uk/logo.png",
   description:
     "Premium NFC business cards and digital profiles for professionals, creators and businesses.",
   email: "contact@tappedin.uk",
