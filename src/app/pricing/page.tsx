@@ -74,10 +74,13 @@ const STEPS = [
 ]
 
 const FAQS = [
-  { q: 'Is there a monthly fee right now?', a: 'No. Every card today includes full access to everything we\u2019ve built. We\u2019re introducing a simple £1/month plan (Bronze) to keep cards live long-term, and we\u2019ll share full details before any billing begins.' },
-  { q: 'What will the monthly plan cost?', a: '£1/month (Bronze) is planned to keep your card live, with optional Silver, Gold and Platinum tiers for more. Prices and features may change before launch.' },
-  { q: 'Do Founders pay the monthly fee?', a: 'No. Founders Edition owners keep Bronze free for life — the card stays active forever at no recurring cost, with optional upgrades available.' },
-  { q: 'Will I be able to cancel?', a: 'Yes. When the monthly plan launches there is no contract — cancelling simply pauses your public profile, and none of your data is deleted, so you can reactivate later.' },
+  { q: 'Which phones does it work on?', a: 'Tapped-In works with the NFC reader built into virtually any modern smartphone. On iPhone, hold the top of the phone to the card. On Android, use the centre of the back. There is no app to download, for you or the person you are sharing with.' },
+  { q: 'Where exactly do I tap?', a: 'On iPhone, the NFC reader sits at the very top edge, so tap the card there. On Android it is usually the centre of the back. If nothing happens straight away, move the card slowly around that area so it lines up with the reader.' },
+  { q: 'Is the Founders Edition single or double-sided?', a: 'The Founders Edition is single-sided by design, with the numbered collector\u2019s design on one face. The everyday PVC Tapped-In Card is the workhorse, built for the strongest, most reliable tap.' },
+  { q: 'Is the Founders tap as strong as the standard card?', a: 'Honestly, no. The PVC Tapped-In Card has the strongest, most reliable tap because its material leaves the antenna unobstructed. The Founders Edition is a premium metal collector\u2019s card, so its tap can be a little more particular about positioning. For heavy daily use, reach for the PVC. The Founders is the keepsake.' },
+  { q: 'What makes the Founders Edition special?', a: 'The Founders Edition is a true collector\u2019s item. It is the first 100 cards Tapped-In ever made, each individually numbered from 1 to 100. This edition will never be reproduced or restocked, so once all 100 are claimed, no more will ever exist. Owning one isn\u2019t just a card, it is a permanent piece of the brand\u2019s origin, held by only 100 people, ever.' },
+  { q: 'Do I or the other person need an app?', a: 'No. Neither of you needs to install anything. Your card opens your profile straight in the browser, so anyone can receive it instantly.' },
+  { q: 'What if someone\u2019s phone will not tap?', a: 'You are never stuck. Every profile also has its own QR code and a shareable link, so you can share it even if a tap does not land.' },
 ]
 
 export default function PricingPage() {
