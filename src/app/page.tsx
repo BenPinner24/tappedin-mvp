@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { ReviewProfileModal } from './_components/ReviewProfileModal'
 
 const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
 const STANDARD_STRIPE_URL = 'https://buy.stripe.com/dRm14pc1H16F9N7et1cfK03'
@@ -17,7 +18,7 @@ const FOUNDING_MEMBERS: string[] = []
 // Customer reviews for the "Don't take our word for it" section below.
 // The section AUTO-HIDES until at least one review is listed here.
 // Replace these examples with REAL reviews. Each: name, role, rating (1-5), quote.
-const REVIEWS: { name: string; role: string; rating: number; quote: string }[] = [
+const REVIEWS: { name: string; role: string; rating: number; quote: string; profile_username?: string | null }[] = [
   // Empty on purpose. Real reviews will be loaded here once the submission system is live.
   // While this is empty, the reviews section below stays hidden.
 ]
@@ -923,11 +924,12 @@ function ProfileQR({ isMobile }: { isMobile: boolean }) {
 // Auto-advances every 4s; arrows/dots take control and restart the timer.
 // Self-contained state + timer, so a tap can never freeze it.
 // ─────────────────────────────────────────────────────────────────────────────
-function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role: string; rating: number; quote: string }[]; isMobile: boolean }) {
+function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role: string; rating: number; quote: string; profile_username?: string | null }[]; isMobile: boolean }) {
   const N = reviews.length
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
   const [nonce, setNonce] = useState(0)
+  const [previewUser, setPreviewUser] = useState<string | null>(null)
 
   useEffect(() => {
     if (N <= 1 || paused) return
@@ -988,7 +990,7 @@ function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role:
                 transition: 'transform .6s cubic-bezier(0.16,1,0.3,1), opacity .55s ease, filter .55s ease',
               }}
             >
-              <div style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 18, padding: isMobile ? '28px 26px' : '34px 32px 30px', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
+              <div onClick={() => { if (isCentre && rv.profile_username) setPreviewUser(rv.profile_username) }} style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 18, padding: isMobile ? '28px 26px' : '34px 32px 30px', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', cursor: (isCentre && rv.profile_username) ? 'pointer' : 'default' }}>
                 <div style={{ display: 'flex', gap: 5, marginBottom: 20, fontSize: 15, letterSpacing: 2 }}>
                   {[1, 2, 3, 4, 5].map((s) => (
                     <span key={s} style={{ color: s <= rv.rating ? '#e8e1d2' : 'rgba(255,255,255,0.16)' }}>{'\u2605'}</span>
@@ -1004,6 +1006,12 @@ function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role:
                     <div style={{ fontSize: 13, color: '#9b9ba4', fontWeight: 300, marginTop: 3 }}>{rv.role}</div>
                   </div>
                 </div>
+                {rv.profile_username && (
+                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'Oswald, Arial, sans-serif', fontSize: 12, letterSpacing: '.12em', textTransform: 'uppercase', color: '#e8e1d2' }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80' }} />
+                    Tap to view live profile
+                  </div>
+                )}
               </div>
             </div>
           )
@@ -1031,21 +1039,24 @@ function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role:
           </div>
         </>
       )}
+      {previewUser && (
+        <ReviewProfileModal username={previewUser} onClose={() => setPreviewUser(null)} />
+      )}
     </div>
   )
 }
 
 export default function HomePage() {
-  const [liveReviews, setLiveReviews] = useState<{ name: string; role: string; rating: number; quote: string }[]>([])
+  const [liveReviews, setLiveReviews] = useState<{ name: string; role: string; rating: number; quote: string; profile_username?: string | null }[]>([])
   useEffect(() => {
     const sb = createClient()
     sb.from('reviews')
-      .select('name, role, rating, quote')
+      .select('name, role, rating, quote, profile_username')
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(12)
       .then(({ data }) => {
-        if (data) setLiveReviews(data.map((r) => ({ name: r.name, role: r.role ?? '', rating: r.rating, quote: r.quote })))
+        if (data) setLiveReviews(data.map((r) => ({ name: r.name, role: r.role ?? '', rating: r.rating, quote: r.quote, profile_username: r.profile_username ?? null })))
       })
   }, [])
   const shownReviews = liveReviews.length > 0 ? liveReviews : REVIEWS
