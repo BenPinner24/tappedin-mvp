@@ -5,7 +5,9 @@
 export type Block =
   | { type: "p"; text: string }
   | { type: "h2"; text: string }
-  | { type: "ul"; items: string[] };
+  | { type: "ul"; items: string[] }
+  | { type: "faq"; items: { q: string; a: string }[] }
+  | { type: "related"; heading: string; items: { label: string; href: string }[] };
 
 export type Article = {
   slug: string;
@@ -24,7 +26,7 @@ export const articles: Article[] = [
     title: "The New Standard for Networking",
     description:
       "For a century, networking meant handing over paper and hoping it survived the week. TAPPED-IN replaces it with a single tap — and a profile that is always current.",
-    date: "2026-06-22",
+    date: "2026-06-30",
     readingTime: "2 min read",
     body: [
       {
@@ -55,7 +57,7 @@ export const articles: Article[] = [
     title: "From Paper to Profile: Why Your First Impression Should Be Alive",
     description:
       "A printed business card is out of date the moment it's made. Here's why your first impression should be a living digital profile you control — not a paper rectangle.",
-    date: "2026-06-22",
+    date: "2026-06-29",
     readingTime: "3 min read",
     body: [
       {
@@ -96,7 +98,7 @@ export const articles: Article[] = [
     title: "Will It Work on Their Phone? Tap-to-Share on iPhone and Android",
     description:
       "Will a tap work on their phone? On virtually every modern iPhone and Android it opens your profile instantly — no app needed. Here's exactly how, plus the backup.",
-    date: "2026-06-22",
+    date: "2026-06-26",
     readingTime: "3 min read",
     body: [
       {
@@ -133,37 +135,55 @@ export const articles: Article[] = [
     slug: "how-do-nfc-business-cards-work",
     title: "How Do NFC Business Cards Work? Everything You Need to Know",
     description:
-      "How do NFC business cards work? One tap shares your details instantly — no app, no typing. Here's what's inside the card and exactly what happens when it meets a phone.",
-    date: "2026-06-24",
+      "How do NFC business cards work? One tap shares your details instantly, with no app and no typing. Here is what is inside the card and exactly what happens when it meets a phone.",
+    date: "2026-06-27",
     readingTime: "4 min read",
     body: [
       {
         type: "p",
-        text: "An NFC business card looks like an ordinary premium card — until you hold it against a phone and someone's screen fills with your profile. No app, no typing, no fumbling for a number. It can feel like magic, but it's a simple, proven technology finally put to elegant use. Here's exactly how an NFC business card works.",
+        text: "An NFC business card looks like an ordinary premium card, until you hold it against a phone and someone's screen fills with your profile. No app, no typing, no fumbling for a number. It can feel like magic, but it is a simple, proven technology finally put to elegant use. Here is exactly how an NFC business card works.",
       },
-      { type: "h2", text: "What's inside the card" },
+      { type: "h2", text: "What is inside an NFC business card" },
       {
         type: "p",
-        text: "Built into the card is a tiny NFC chip — Near Field Communication, the same technology behind contactless payments and travel cards. It has no battery and no moving parts. It sits dormant until a phone comes within a few centimetres, at which point the phone's own NFC field quietly powers it. That's why an NFC card never needs charging and never wears out.",
+        text: "Built into the card is a tiny NFC chip. NFC stands for Near Field Communication, the same technology behind contactless payments and travel cards. It has no battery and no moving parts. It sits dormant until a phone comes within a few centimetres, at which point the phone's own NFC field quietly powers it. That is why an NFC business card never needs charging and never wears out.",
       },
-      { type: "h2", text: "What happens when you tap" },
+      { type: "h2", text: "What happens when you tap an NFC business card" },
       {
         type: "p",
-        text: "Stored on that chip is a single piece of information: a secure web link to your TAPPED-IN profile. When a phone reads the card, it offers to open that link, and your profile appears in the browser in about a second. The other person sees your name, your links and your contact details — whatever you've chosen to share — and can save you to their phone on the spot.",
+        text: "Stored on that chip is a single piece of information: a secure web link to your TAPPED-IN profile. When a phone reads the card, it offers to open that link, and your profile appears in the browser in about a second. The other person sees your name, your links and your contact details, whatever you have chosen to share, and can save you to their phone on the spot.",
       },
       { type: "h2", text: "The clever part: the card points to a profile, not your details" },
       {
         type: "p",
-        text: "This is what separates a proper NFC card from a gimmick. The card itself doesn't store your phone number or your job title — it stores a permanent link to a profile you control. Change roles, add a new project, update your number, and you edit the profile once. Every card you've ever handed out instantly shows the new version. The card never changes; the profile behind it is always current.",
+        text: "This is what separates a proper NFC business card from a gimmick. The card itself does not store your phone number or your job title. It stores a permanent link to a profile you control. Change roles, add a new project, update your number, and you edit the profile once. Every card you have ever handed out instantly shows the new version. The card never changes; the profile behind it is always current.",
       },
-      { type: "h2", text: "Do you need an app?" },
+      { type: "h2", text: "Do NFC business cards need an app?" },
       {
         type: "p",
-        text: "No — and that's the whole point. The person you're sharing with needs nothing installed. Every iPhone from the iPhone XS (2018) onward reads a tap automatically, and most modern Android phones have done so for years. For older handsets, or anyone without NFC, the same profile opens instantly from a QR code or a plain link, so no one is ever left out.",
+        text: "No, and that is the whole point. The person you are sharing with needs nothing installed. Every iPhone from the iPhone XS (2018) onward reads a tap automatically, and most modern Android phones have done so for years. For older handsets, or anyone without NFC, the same profile opens instantly from a QR code or a plain link, so no one is ever left out.",
       },
+      { type: "h2", text: "The new standard for networking" },
       {
         type: "p",
-        text: "That's the entire trick: a passive chip, a permanent link, and a living profile behind it. Simple to use, impossible to run out of, and always up to date.",
+        text: "That is the entire idea: a passive chip, a permanent link, and a living profile behind it. Simple to use, impossible to run out of, and always up to date. An NFC business card is not a better version of paper. It is the new standard for networking.",
+      },
+      {
+        type: "faq",
+        items: [
+          { q: "Do NFC business cards work with all phones?", a: "They work with virtually every modern smartphone. Every iPhone from the iPhone XS (2018) reads a tap automatically, and most Android phones have NFC built in. For any phone without NFC, your profile still opens from a QR code or a link." },
+          { q: "Do NFC business cards need charging?", a: "No. The chip inside has no battery. It draws the tiny amount of power it needs from the phone the moment they touch, so an NFC business card never needs charging and never wears out." },
+          { q: "Can I update my details after the card is made?", a: "Yes. The card links to a profile you control, so you can change your number, role or links as often as you like. Every card you have already handed out shows the new version instantly, with no reprinting." },
+        ],
+      },
+      {
+        type: "related",
+        heading: "Keep reading",
+        items: [
+          { label: "Digital vs traditional business cards: which is better?", href: "/insights/digital-vs-traditional-business-cards" },
+          { label: "Will it work on their phone? iPhone and Android", href: "/insights/will-it-work-on-their-phone" },
+          { label: "See the Tapped-In card and pricing", href: "/pricing" },
+        ],
       },
     ],
   },
@@ -172,7 +192,7 @@ export const articles: Article[] = [
     title: "Digital Business Cards vs Traditional Business Cards: Which Is Better?",
     description:
       "Digital business cards vs traditional paper cards — which wins? An honest comparison of cost, convenience, follow-up and first impressions for 2026.",
-    date: "2026-06-26",
+    date: "2026-06-28",
     readingTime: "5 min read",
     body: [
       {
@@ -211,7 +231,7 @@ export const articles: Article[] = [
     title: "Are Smart Business Cards Worth It for Small Businesses?",
     description:
       "Are smart business cards worth it for a small business in the UK? A practical look at the real costs, benefits and return before you buy.",
-    date: "2026-06-27",
+    date: "2026-06-25",
     readingTime: "4 min read",
     body: [
       {
@@ -254,7 +274,7 @@ export const articles: Article[] = [
     title: "Why Sales Teams Are Switching to NFC Business Cards",
     description:
       "NFC business cards for sales teams: faster lead capture, instant follow-up and a consistent brand on every rep. Here's why sales teams are making the switch.",
-    date: "2026-06-28",
+    date: "2026-06-24",
     readingTime: "4 min read",
     body: [
       {
@@ -292,7 +312,7 @@ export const articles: Article[] = [
     title: "How NFC Business Cards Improve Lead Generation at Events",
     description:
       "Turn event conversations into captured leads. How NFC business cards speed up exhibition and conference lead capture — and stop great contacts slipping away.",
-    date: "2026-06-29",
+    date: "2026-06-23",
     readingTime: "4 min read",
     body: [
       {
@@ -330,7 +350,7 @@ export const articles: Article[] = [
     title: "NFC Business Cards for Estate Agents: The Complete Guide",
     description:
       "NFC business cards for estate agents: share listings, book viewings and capture buyers in one tap — at valuations, viewings and open houses. The complete guide.",
-    date: "2026-06-30",
+    date: "2026-06-22",
     readingTime: "5 min read",
     body: [
       {
