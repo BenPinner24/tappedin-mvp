@@ -1504,6 +1504,39 @@ export default function HomePage() {
         {/* ════════════════════════════════════════════════════════════
             3.5 FOUNDING — social proof via scarcity
         ════════════════════════════════════════════════════════════ */}
+{/* ════════════════════════════════════════════════════════════
+            ABOUT — Our Story
+        ════════════════════════════════════════════════════════════ */}
+        <section id="about" style={{ padding: SP, background:'#030303' }}>
+          <div style={{ maxWidth:820, margin:'0 auto' }}>
+            <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? '2rem' : '3rem' }}>
+              <div style={EB}>Our Story</div>
+              <h2 style={H2}>Paper cards are dead.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>We built what comes next.</span></h2>
+            </div>
+            <div className="reveal d2" style={{ display:'flex', flexDirection:'column', gap:'1.4rem', maxWidth:640, margin:'0 auto', marginBottom: isMobile ? '2.5rem' : '3.5rem' }}>
+              {[
+                'Tapped-In started with a frustration. Handing out paper business cards that cost a fortune to print, only to watch them collect dust on someone\u2019s desk or get thrown away entirely. Most people never really wanted them in the first place. It wasn\u2019t just wasteful for the wallet. It was wasteful for the planet, printed on paper from felled trees, for something destined for the bin.',
+                'So we built the new standard. One tap, and your whole profile is on their phone. Instant, premium, effortless. No paper, no printing, no waste. Every part of Tapped-In is built in house, from the ground up, with no third parties, so the experience stays exactly as premium as it should be.',
+                'It began for creators, because that\u2019s who we are. Networking at events, fighting over loud music to get someone to add you on Instagram, repeating yourself, wasting the moment. Tapped-In fixes that. But it didn\u2019t stay there. Lawyers, estate agents and whole organisations started asking for it, so today the platform is built for creators and the businesses and teams who want to network like the future, not the past.',
+              ].map((t,i)=>(
+                <p key={i} style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.92rem' : '1.02rem', fontWeight:300, color:'rgba(255,255,255,.5)', lineHeight:1.85, letterSpacing:'0.01em', textAlign:'center' }}>{t}</p>
+              ))}
+            </div>
+            <div className="reveal d3" style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap:2, background:'rgba(255,255,255,0.05)', borderRadius:3, overflow:'hidden' }}>
+              {[
+                { h:'Instant', b:'One tap. Their phone opens your profile. No app, no friction.' },
+                { h:'Sustainable', b:'No paper, no printing, no waste. Networking that doesn\u2019t cost the planet.' },
+                { h:'Built in house', b:'Engineered from the ground up, with no third parties. Premium end to end.' },
+              ].map((d,i)=>(
+                <div key={i} style={{ background:'#070707', padding: isMobile ? '1.25rem 1rem' : 'clamp(1.5rem,3vw,2rem)', display:'flex', flexDirection:'column', gap:8, minWidth:0 }}>
+                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.98rem' : '1.1rem', fontWeight:500, color:'#fff', letterSpacing:'0.03em', textTransform:'uppercase' }}>{d.h}</div>
+                  <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.86rem', fontWeight:300, color:'rgba(255,255,255,.32)', lineHeight:1.7, letterSpacing:'0.01em' }}>{d.b}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section id="founding" style={{ padding: SP, background:'#030303', position:'relative', overflow:'hidden' }}>
           {/* Soft glow */}
           <div style={{ position:'absolute', top:'30%', left:'50%', transform:'translate(-50%,-50%)', width:720, height:440, background:'radial-gradient(ellipse, rgba(255,255,255,0.022) 0%, transparent 65%)', filter:'blur(8px)', pointerEvents:'none' }} />
