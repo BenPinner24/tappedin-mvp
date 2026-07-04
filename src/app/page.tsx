@@ -18,7 +18,7 @@ const FOUNDING_MEMBERS: string[] = []
 // Customer reviews for the "Don't take our word for it" section below.
 // The section AUTO-HIDES until at least one review is listed here.
 // Replace these examples with REAL reviews. Each: name, role, rating (1-5), quote.
-const REVIEWS: { name: string; role: string; rating: number; quote: string; profile_username?: string | null }[] = [
+const REVIEWS: { name: string; role: string; rating: number; quote: string; profile_username?: string | null; avatar_url?: string | null }[] = [
   // Empty on purpose. Real reviews will be loaded here once the submission system is live.
   // While this is empty, the reviews section below stays hidden.
 ]
@@ -924,7 +924,7 @@ function ProfileQR({ isMobile }: { isMobile: boolean }) {
 // Auto-advances every 4s; arrows/dots take control and restart the timer.
 // Self-contained state + timer, so a tap can never freeze it.
 // ─────────────────────────────────────────────────────────────────────────────
-function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role: string; rating: number; quote: string; profile_username?: string | null }[]; isMobile: boolean }) {
+function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role: string; rating: number; quote: string; profile_username?: string | null; avatar_url?: string | null }[]; isMobile: boolean }) {
   const N = reviews.length
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
@@ -990,7 +990,7 @@ function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role:
                 transition: 'transform .6s cubic-bezier(0.16,1,0.3,1), opacity .55s ease, filter .55s ease',
               }}
             >
-              <div onClick={() => { if (isCentre && rv.profile_username) setPreviewUser(rv.profile_username) }} style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 18, padding: isMobile ? '28px 26px' : '34px 32px 30px', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', cursor: (isCentre && rv.profile_username) ? 'pointer' : 'default' }}>
+              <div onClick={() => { if (isCentre && rv.profile_username) setPreviewUser(rv.profile_username) }} onMouseEnter={(e) => { if (isCentre && rv.profile_username) { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 22px 55px rgba(0,0,0,0.55)'; e.currentTarget.style.borderColor = 'rgba(232,225,210,0.4)' } }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)' }} style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 18, padding: isMobile ? '28px 26px' : '34px 32px 30px', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', cursor: (isCentre && rv.profile_username) ? 'pointer' : 'default', transition: 'transform .3s cubic-bezier(0.16,1,0.3,1), box-shadow .3s ease, border-color .3s ease' }}>
                 <div style={{ display: 'flex', gap: 5, marginBottom: 20, fontSize: 15, letterSpacing: 2 }}>
                   {[1, 2, 3, 4, 5].map((s) => (
                     <span key={s} style={{ color: s <= rv.rating ? '#e8e1d2' : 'rgba(255,255,255,0.16)' }}>{'\u2605'}</span>
@@ -998,8 +998,11 @@ function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role:
                 </div>
                 <p style={{ fontSize: 17, lineHeight: 1.62, color: '#dedee3', fontWeight: 300, margin: '0 0 28px' }}>{rv.quote}</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 46, height: 46, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Oswald, Arial, sans-serif', fontWeight: 500, fontSize: 15, letterSpacing: '.04em', color: '#cfcfd6', background: 'rgba(255,255,255,0.03)' }}>
+                  <div style={{ position: 'relative', width: 46, height: 46, borderRadius: '50%', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Oswald, Arial, sans-serif', fontWeight: 500, fontSize: 15, letterSpacing: '.04em', color: '#cfcfd6', background: 'rgba(255,255,255,0.03)', flexShrink: 0 }}>
                     {rv.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
+                    {rv.avatar_url && (
+                      <img src={rv.avatar_url} alt={rv.name} onError={(e) => { e.currentTarget.style.display = 'none' }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )}
                   </div>
                   <div>
                     <div style={{ fontFamily: 'Oswald, Arial, sans-serif', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', fontSize: 14, color: '#fff', lineHeight: 1.2 }}>{rv.name}</div>
@@ -1047,16 +1050,16 @@ function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role:
 }
 
 export default function HomePage() {
-  const [liveReviews, setLiveReviews] = useState<{ name: string; role: string; rating: number; quote: string; profile_username?: string | null }[]>([])
+  const [liveReviews, setLiveReviews] = useState<{ name: string; role: string; rating: number; quote: string; profile_username?: string | null; avatar_url?: string | null }[]>([])
   useEffect(() => {
     const sb = createClient()
     sb.from('reviews')
-      .select('name, role, rating, quote, profile_username')
+      .select('name, role, rating, quote, profile_username, avatar_url')
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(12)
       .then(({ data }) => {
-        if (data) setLiveReviews(data.map((r) => ({ name: r.name, role: r.role ?? '', rating: r.rating, quote: r.quote, profile_username: r.profile_username ?? null })))
+        if (data) setLiveReviews(data.map((r) => ({ name: r.name, role: r.role ?? '', rating: r.rating, quote: r.quote, profile_username: r.profile_username ?? null, avatar_url: r.avatar_url ?? null })))
       })
   }, [])
   const shownReviews = liveReviews.length > 0 ? liveReviews : REVIEWS
