@@ -11,6 +11,10 @@ const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
 const PVC_STRIPE_URL = 'https://buy.stripe.com/dRm14pc1H16F9N7et1cfK03'
 const METAL_STRIPE_URL = ''
 
+// Multi-Pack (PVC bundles) — one person, one profile, several cards.
+const PACK_3_URL = 'https://buy.stripe.com/fZu14p9Tz2aJf7r1GfcfK05'
+const PACK_5_URL = 'https://buy.stripe.com/aFaaEZ7Lr2aJ9N73OncfK04'
+
 const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E")`
 
 type Card = {
@@ -29,6 +33,23 @@ const CARDS: Card[] = [
   { name: 'The Tapped-In Card', price: '£34.99', material: 'Premium PVC', blurb: 'The everyday card, engineered for the strongest, most reliable tap on any phone. No app needed.', url: PVC_STRIPE_URL, cta: 'Buy now', sub: '3 months included, then £1/mo' },
   { name: 'Tapped-In Metal', price: '£49.99', material: 'Brushed metal', blurb: 'A heavier premium metal finish. Same instant digital profile, more presence.', url: METAL_STRIPE_URL },
   { name: 'Founders Edition', price: '£49.99', material: 'Matte black · numbered', tag: '100 only', blurb: '1 of 100, individually numbered. The first cards we ever made. Your card stays live for life with no monthly fee. Premium tiers are optional upgrades, the same as any card.', url: FOUNDERS_STRIPE_URL, cta: 'Order now', founder: true, sub: 'No monthly fee to stay live' },
+]
+
+type Pack = {
+  name: string
+  qty: number
+  price: string
+  rrp: string
+  save: string
+  per: string
+  blurb: string
+  url: string
+  best?: boolean
+}
+
+const PACKS: Pack[] = [
+  { name: '3-Pack', qty: 3, price: '£94.47', rrp: '£104.97', save: 'Save 10%', per: '£31.49 per card', blurb: 'For the wallet, the phone case, and the desk.', url: PACK_3_URL },
+  { name: '5-Pack', qty: 5, price: '£148.71', rrp: '£174.95', save: 'Save 15%', per: '£29.74 per card', blurb: 'Cover every pocket — and keep spares to hand.', url: PACK_5_URL, best: true },
 ]
 
 type Tier = {
@@ -125,6 +146,30 @@ export default function PricingPage() {
             <p style={s.cardsNote}>Every card comes with full access to everything we&apos;ve built. A £1/month plan to keep it live is coming soon — Founders Edition stays free for life.</p>
           </section>
 
+          {/* multi-pack */}
+          <section style={s.section}>
+            <p style={s.eyebrowCenter}>Buy in packs</p>
+            <h2 style={s.h2}>One profile. Every pocket.</h2>
+            <p style={s.subCenter}>Keep a Tapped-In Card everywhere — wallet, phone case, desk. Every card in a pack opens the same profile with one tap, always in sync. The more you add, the less you pay per card.</p>
+            <div style={s.packsGrid} className="packs">
+              {PACKS.map((p) => {
+                const best = !!p.best
+                return (
+                  <div key={p.name} style={{ ...s.card, ...(best ? s.cardFounder : {}) }} className={reveal ? 'r show' : 'r'}>
+                    {best && <span style={{ ...s.tag, ...s.tagFounder }}>Best value</span>}
+                    <h3 style={s.cardName}>{p.name}</h3>
+                    <p style={s.cardMaterial}>{p.qty} PVC cards · one profile</p>
+                    <p style={s.cardPrice}>{p.price}</p>
+                    <p style={s.packMeta}><span style={s.packRrp}>{p.rrp}</span><span style={s.packSave}>{p.save}</span><span>{p.per}</span></p>
+                    <p style={s.cardBlurb}>{p.blurb}</p>
+                    <a href={p.url} target="_blank" rel="noopener noreferrer" style={best ? s.buyPrimary : s.buy}>Order {p.name}</a>
+                  </div>
+                )
+              })}
+            </div>
+            <p style={s.cardsNote}>Multi-Packs are PVC. All cards share one profile — so when the £1/month plan launches, that&apos;s one plan, never a fee per card. Need cards for a team, each with their own profile? Team Packs coming soon.</p>
+          </section>
+
           {/* tiers */}
           <section style={s.section}>
             <p style={s.eyebrowCenter}>What&apos;s next</p>
@@ -202,11 +247,13 @@ const G = `
   .r { opacity: 0; transform: translateY(16px); transition: opacity .7s cubic-bezier(0.16,1,0.3,1), transform .7s cubic-bezier(0.16,1,0.3,1); }
   .r.show { opacity: 1; transform: translateY(0); }
   .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+  .packs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; max-width: 720px; margin: 0 auto; }
   .tiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
   a.pricing-buy:hover, .pricing-buy:hover { opacity: .88; }
   @media (max-width: 920px) {
     .cards { grid-template-columns: 1fr; }
+    .packs { grid-template-columns: 1fr; }
     .tiers { grid-template-columns: 1fr 1fr; }
     .steps { grid-template-columns: 1fr; }
   }
@@ -261,6 +308,10 @@ const s: Record<string, React.CSSProperties> = {
   buyPrimary: { display: 'block', textAlign: 'center', padding: '13px', borderRadius: 8, border: 'none', background: '#fff', color: '#000', fontFamily: FF, fontSize: '.85rem', fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none', cursor: 'pointer', transition: 'opacity .2s' },
   buyDisabled: { display: 'block', textAlign: 'center', padding: '13px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,.3)', fontFamily: FF, fontSize: '.85rem', fontWeight: 500, letterSpacing: '.1em', textTransform: 'uppercase' },
   cardsNote: { fontFamily: FF, fontSize: '.82rem', fontWeight: 300, color: 'rgba(255,255,255,.35)', textAlign: 'center', marginTop: '1.75rem', lineHeight: 1.6 },
+  packsGrid: {},
+  packMeta: { fontFamily: FF, fontSize: '.8rem', fontWeight: 300, color: 'rgba(255,255,255,.5)', letterSpacing: '.02em', marginBottom: '.9rem', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' },
+  packRrp: { textDecoration: 'line-through', color: 'rgba(255,255,255,.3)' },
+  packSave: { color: '#fff', fontWeight: 500 },
 
   tiersGrid: {},
   tier: { position: 'relative', padding: '1.75rem 1.4rem', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, background: 'linear-gradient(155deg, rgba(13,13,13,0.8), rgba(9,9,9,0.9))', display: 'flex', flexDirection: 'column' },
