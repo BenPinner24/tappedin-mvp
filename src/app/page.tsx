@@ -2036,7 +2036,7 @@ export default function HomePage() {
                 {[
                   { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['#editions','Editions'],['/insights','Blogs'],['/demo','Demo profile']] },
                   { head:'Account', links:[['/signup','Order'],['/login','Sign in'],['/dashboard','Dashboard']] },
-                  { head:'Connect', links:[['mailto:contact@tappedin.uk','Contact us'],['/pricing','Pricing']] },
+                  { head:'Connect', links:[['/contact','Contact us'],['/pricing','Pricing']] },
                 ].map(col=>(
                   <div key={col.head} style={{ display:'flex', flexDirection:'column', gap:'.65rem' }}>
                     <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:500, letterSpacing:'.26em', textTransform:'uppercase', color:'rgba(255,255,255,.2)', marginBottom:'.2rem' }}>{col.head}</div>
