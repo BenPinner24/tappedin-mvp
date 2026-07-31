@@ -32,7 +32,7 @@ type Card = {
 const CARDS: Card[] = [
   { name: 'The Tapped-In Card', price: '£34.99', material: 'Premium PVC', blurb: 'The everyday card, engineered for the strongest, most reliable tap on any phone. No app needed.', url: PVC_STRIPE_URL, cta: 'Buy now', sub: '3 months included, then £1/mo' },
   { name: 'Tapped-In Metal', price: '£49.99', material: 'Brushed metal', blurb: 'A heavier premium metal finish. Same instant digital profile, more presence.', url: METAL_STRIPE_URL },
-  { name: 'Founders Edition', price: '£49.99', material: 'Matte black · numbered', tag: '100 only', blurb: '1 of 100, individually numbered. The first cards we ever made. Your card stays live for life with no monthly fee. Premium tiers are optional upgrades, the same as any card.', url: FOUNDERS_STRIPE_URL, cta: 'Order now', founder: true, sub: 'No monthly fee to stay live' },
+  { name: 'Founders Edition', price: '£49.99', material: 'Matte black · numbered', tag: '100 only', blurb: 'A numbered collector’s piece. 1 of 100 of the first metal cards we ever made. Owning it is the point: a permanent asset, held by only 100 people, ever. Tap it to reveal your number and show you hold one of the original 100. For everyday networking, the Tapped-In Card gives the strongest, most reliable tap.', url: FOUNDERS_STRIPE_URL, cta: 'Order now', founder: true, sub: 'A numbered collector’s asset · Live for life' },
 ]
 
 type Pack = {
@@ -61,10 +61,9 @@ type Tier = {
 }
 
 const TIERS: Tier[] = [
-  { name: 'Bronze', price: '£1', forWho: 'Keep your card live', features: ['Live profile & unlimited links', 'Save Contact + QR code', 'Basic analytics (taps & clicks)', '3 profile images'] },
-  { name: 'Silver', price: '£3.99', forWho: 'Creators & freelancers', features: ['Everything in Bronze', 'Detailed analytics dashboard', 'Profile themes & customisation', 'Portfolio page (~12 images, 1 GB)'] },
-  { name: 'Gold', price: '£7.99', forWho: 'Professionals & brands', features: ['Everything in Silver', 'Lead capture — see who taps', 'Video uploads', '30 GB storage', 'Priority support'] },
-  { name: 'Platinum', price: '£16.99', forWho: 'Teams & agencies', features: ['Everything in Gold', 'Multiple cards on one account', 'Team management', 'Pooled team analytics', '80 GB storage', 'Dedicated support'] },
+  { name: 'Bronze', price: '£1', forWho: 'Keep your card live', features: ['Live profile & unlimited links', 'Save Contact + QR code', 'Basic analytics (taps & clicks)'] },
+  { name: 'Silver', price: '£3.99', forWho: 'Creators & freelancers', features: ['Everything in Bronze', 'Detailed analytics dashboard', 'Profile themes & customisation'] },
+  { name: 'Gold', price: '£7.99', forWho: 'Professionals & brands', features: ['Everything in Silver', 'Lead capture — see who taps', 'Video uploads', 'Priority support'] },
 ]
 
 const STEPS = [
@@ -196,6 +195,19 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
+ 
+            {/* Teams call-out — links to the dedicated /business page */}
+            <div style={s.teamsCallout} className={reveal ? 'r show' : 'r'}>
+              <div style={s.teamsCalloutInner}>
+                <div>
+                  <p style={s.teamsEyebrow}>For Teams &amp; Agencies</p>
+                  <h3 style={s.teamsTitle}>Equipping a whole team?</h3>
+                  <p style={s.teamsBody}>Branded cards for every team member, a manager dashboard, and company-wide analytics. Built as its own package.</p>
+                </div>
+                <Link href="/business" style={s.teamsBtn}>Explore For Teams →</Link>
+              </div>
+            </div>
+ 
             <p style={s.cardsNote}>Plans, prices and features shown here are planned and may change before launch.</p>
           </section>
 
@@ -204,7 +216,7 @@ export default function PricingPage() {
             <div style={s.terms}>
               <p style={s.eyebrow}>How billing works</p>
               <p style={s.termsBody}>
-                Your card is a one-time purchase, and it unlocks <strong style={s.strong}>full access to everything we&apos;ve built</strong> — yours from the moment you activate. We&apos;re rolling out a simple <strong style={s.strong}>£1/month plan (Bronze)</strong> to keep cards live long-term, with optional Silver, Gold and Platinum upgrades for more. <strong style={s.strong}>Founders Edition owners are set for life</strong> — Bronze free, no monthly fee, ever. We&apos;ll share full details before any monthly billing begins.
+                Your card is a one-time purchase, and it unlocks <strong style={s.strong}>full access to everything we&apos;ve built</strong> — yours from the moment you activate. We&apos;re rolling out a simple <strong style={s.strong}>£1/month plan (Bronze)</strong> to keep cards live long-term, with optional Silver and Gold upgrades for more. Teams have their own dedicated package. <strong style={s.strong}>Founders Edition owners are set for life</strong> — Bronze free, no monthly fee, ever. We&apos;ll share full details before any monthly billing begins.
               </p>
             </div>
           </section>
@@ -251,7 +263,7 @@ const G = `
   .r.show { opacity: 1; transform: translateY(0); }
   .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
   .packs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; max-width: 720px; margin: 0 auto; }
-  .tiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+   .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
   a.pricing-buy:hover, .pricing-buy:hover { opacity: .88; }
   @media (max-width: 920px) {
@@ -327,7 +339,14 @@ const s: Record<string, React.CSSProperties> = {
   tierLine: { height: 1, background: 'rgba(255,255,255,0.07)', margin: '1.1rem 0' },
   featList: { listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '.6rem' },
   feat: { fontFamily: FF, fontSize: '.82rem', fontWeight: 300, color: 'rgba(255,255,255,.6)', lineHeight: 1.4, display: 'flex', gap: '8px', alignItems: 'flex-start' },
-  check: { color: 'rgba(255,255,255,.5)', fontWeight: 500, flexShrink: 0 },
+ check: { color: 'rgba(255,255,255,.5)', fontWeight: 500, flexShrink: 0 },
+ 
+  teamsCallout: { marginTop: '1.75rem', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 16, background: 'linear-gradient(155deg, rgba(20,20,20,0.9), rgba(11,11,11,0.96))', padding: '2rem' },
+  teamsCalloutInner: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem', flexWrap: 'wrap' },
+  teamsEyebrow: { fontFamily: FF, fontSize: '.62rem', fontWeight: 600, letterSpacing: '.24em', textTransform: 'uppercase', color: 'rgba(255,255,255,.4)', marginBottom: '.6rem' },
+  teamsTitle: { fontFamily: FF, fontSize: '1.5rem', fontWeight: 600, color: '#fff', letterSpacing: '.01em', marginBottom: '.5rem' },
+  teamsBody: { fontFamily: FF, fontSize: '.9rem', fontWeight: 300, lineHeight: 1.6, color: 'rgba(255,255,255,.5)', maxWidth: 480 },
+  teamsBtn: { flexShrink: 0, display: 'inline-block', textAlign: 'center', padding: '13px 26px', borderRadius: 8, border: 'none', background: '#fff', color: '#000', fontFamily: FF, fontSize: '.82rem', fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none', cursor: 'pointer', transition: 'opacity .2s' },
 
   terms: { maxWidth: 760, margin: '0 auto', padding: '2rem', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, background: 'rgba(255,255,255,0.015)' },
   termsBody: { fontFamily: FF, fontSize: '.92rem', fontWeight: 300, lineHeight: 1.75, color: 'rgba(255,255,255,.5)', marginTop: '1rem' },
