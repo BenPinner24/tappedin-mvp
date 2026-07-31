@@ -1147,10 +1147,10 @@ export default function HomePage() {
         WebkitBackdropFilter: navGlass ? 'blur(20px) saturate(160%)' : 'none',
       }}>
         <div style={{
-          maxWidth:1160, margin:'0 auto',
-          height: isMobile ? 56 : 64,
+          maxWidth:1200, margin:'0 auto',
+          height: isMobile ? 56 : 68,
           display:'flex', alignItems:'center', justifyContent:'space-between',
-          gap: isMobile ? '.75rem' : '2rem',
+          gap: isMobile ? '.75rem' : '1.5rem',
         }}>
           {/* Logo */}
           <Link href="/" style={{
@@ -1163,7 +1163,7 @@ export default function HomePage() {
 
           {/* Desktop nav links */}
           {!isMobile && (
-            <nav style={{ display:'flex', gap:'2rem', flex:1, justifyContent:'center' }}>
+            <nav style={{ display:'flex', alignItems:'center', gap:'1.75rem' }}>
               {[['#product','The Card'],['#how-it-works','How it works'],['#profile','Profile'],['#editions','Editions'], ...(shownReviews.length > 0 ? [['#reviews','Reviews']] : [])].map(([h,l])=>(
                 <a key={h} href={h} className="nav-link">{l}</a>
               ))}
@@ -1174,12 +1174,16 @@ export default function HomePage() {
           )}
 
           {/* CTA buttons */}
-          <div style={{ display:'flex', gap: isMobile ? '.4rem' : '.6rem', alignItems:'center', flexShrink:0 }}>
+          <div style={{ display:'flex', gap: isMobile ? '.4rem' : '.75rem', alignItems:'center', flexShrink:0 }}>
+
             {!isMobile && (
-              <Link href="/login" className="btn-ghost" style={{ padding:'9px 18px', fontSize:'.82rem' }}>Sign in</Link>
+             <Link href="/login" className="nav-link" style={{ padding:'0 .25rem' }}>Sign in</Link>
             )}
             {!isMobile && (
-              <Link href="/dashboard" className="btn-ghost" style={{ padding:'10px 22px', fontSize:'.82rem', letterSpacing:'.12em', textDecoration:'none' }}>Dashboard</Link>
+              <Link href="/dashboard" className="btn-ghost" style={{ padding:'10px 22px', fontSize:'.8rem', letterSpacing:'.12em', textDecoration:'none' }}>Dashboard</Link>
+            )}
+            {!isMobile && (
+              <span style={{ width:1, height:22, background:'rgba(255,255,255,0.12)' }} />
             )}
             <Link
               href="/pricing"
