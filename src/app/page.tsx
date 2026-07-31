@@ -1167,7 +1167,8 @@ export default function HomePage() {
               {[['#product','The Card'],['#how-it-works','How it works'],['#profile','Profile'],['#editions','Editions'], ...(shownReviews.length > 0 ? [['#reviews','Reviews']] : [])].map(([h,l])=>(
                 <a key={h} href={h} className="nav-link">{l}</a>
               ))}
-              <Link href="/pricing" className="nav-link">Pricing</Link>
+             <Link href="/pricing" className="nav-link">Pricing</Link>
+              <Link href="/business" className="nav-link">For Teams</Link>
               <Link href="/insights" className="nav-link">Blogs</Link>
             </nav>
           )}
@@ -1224,6 +1225,8 @@ export default function HomePage() {
             ))}
             <Link href="/pricing" onClick={() => setMenuOpen(false)}
               style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>Pricing</Link>
+            <Link href="/business" onClick={() => setMenuOpen(false)}
+              style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>For Teams</Link>
             <Link href="/insights" onClick={() => setMenuOpen(false)}
               style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>Blogs</Link>
           </nav>
