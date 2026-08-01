@@ -985,7 +985,7 @@ accent_color: profile.accent_color,
 
   function saveBtnLabel(state: SaveState, idle: string) {
     if (state === 'saving') return 'Saving…'
-    if (state === 'saved')  return 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Saved'
+    if (state === 'saved')  return '✓ Saved'
     if (state === 'error')  return 'Error — try again'
     return idle
   }
