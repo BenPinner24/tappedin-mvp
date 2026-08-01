@@ -49,6 +49,7 @@ const { data: card, error: cardError } = await supabase
 .eq('card_id', cleanCardId)
 .maybeSingle<CardRecord>()
 
+
 if (cardError || !card) {
 return <UnavailableCard />
 }
@@ -57,14 +58,8 @@ if (card.status === 'suspended' || card.status === 'replaced') {
 return <SuspendedCard />
 }
 
-const isClaimableCard =
-card.card_id.startsWith('founders-edition-') ||
-card.card_id.startsWith('pvc-') ||
-card.card_id.startsWith('BUSINESS-')
-
 if (
-isClaimableCard &&
-(card.status === 'unclaimed' || card.status === 'reserved')
+card.status === 'unclaimed' || card.status === 'reserved'
 ) {
 if (!card.first_tap_at) {
 await supabase
