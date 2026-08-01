@@ -1469,130 +1469,8 @@ export default function HomePage() {
               ))}
             </div>
 
-                        <div className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '3rem' }}>
+            <div className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '3rem' }}>
               <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Order The Tapped-In Card</Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════
-            2.5 CHOOSE YOUR CARD (moved up)
-        ════════════════════════════════════════════════════════════ */}
-        <section id="editions" style={{ padding: SP }}>
-          <div style={{ maxWidth:1160, margin:'0 auto' }}>
-            <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(1.75rem,5vw,2.5rem)' : 'clamp(3.5rem,7vw,5rem)' }}>
-              <div style={EB}>Choose your card</div>
-              <h2 style={H2}>Three editions.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.32)' }}>One platform.</span></h2>
-              <p style={SUB}>Buy the card once with 3 months of full access included, then just £1/month keeps it live. <Link href="/pricing" style={{ color:'#fff', textDecoration:'underline', textUnderlineOffset:'3px' }}>See all plans &amp; tiers →</Link></p>
-            </div>
-
-            <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', maxWidth:720, margin:'0 auto' }}>
-              {[
-                { label:'The Tapped-In Card',   price:'£34.99', available:true,  note:'The everyday tap card. Premium matte finish — available now.' },
-                { label:'Tapped-In Metal', price:'£49.99', available:false, note:'Heavier premium metal finish. Coming soon.' },
-              ].map((ed,i)=>{
-                const inner = (
-                  <div style={{ background:'#070707', border:`1px solid rgba(255,255,255,${ed.available ? 0.08 : 0.04})`, borderRadius:3, padding: isMobile ? '1.1rem .9rem' : 'clamp(1.5rem,3vw,2rem)', opacity: ed.available ? 1 : .4, position:'relative', overflow:'hidden', height:'100%' }}>
-                    <div style={{ position:'absolute', top:12, right:12, background: ed.available ? '#fff' : 'rgba(255,255,255,0.06)', border:`1px solid ${ed.available ? '#fff' : 'rgba(255,255,255,0.07)'}`, borderRadius:2, padding:'3px 9px', fontFamily:'Oswald, Arial, sans-serif', fontSize:'.58rem', fontWeight:600, letterSpacing:'.2em', color: ed.available ? '#000' : 'rgba(255,255,255,.38)', textTransform:'uppercase' }}>{ed.available ? 'Available' : 'Locked'}</div>
-                    <div style={{ marginBottom:'1rem', pointerEvents:'none' }}>
-                      <CardFront size="sm" scale={isMobile ? 0.78 : 1} />
-                    </div>
-                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.62rem', fontWeight:400, color:'rgba(255,255,255,.4)', letterSpacing:'.22em', textTransform:'uppercase', marginBottom:'.5rem' }}>{ed.label}</div>
-                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight:600, color:'#fff', marginBottom:'.3rem', letterSpacing:'0.02em' }}>{ed.price}</div>
-                    <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.84rem', fontWeight:300, color:'rgba(255,255,255,.35)', lineHeight:1.65, letterSpacing:'0.01em' }}>{ed.note}</p>
-                  </div>
-                )
-                return ed.available
-                  ? <Link key={i} href="/pricing" style={{ textDecoration:'none', display:'block' }}>{inner}</Link>
-                  : <div key={i}>{inner}</div>
-              })}
-            </div>
-
-            <p className="reveal" style={{ textAlign:'center', marginTop:'1.5rem' }}>
-              <Link href="/pricing" style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.75rem', fontWeight:400, color:'rgba(255,255,255,.45)', letterSpacing:'.1em', textTransform:'uppercase', textDecoration:'none' }}>View all editions &amp; pricing →</Link>
-            </p>
-          </div>
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════
-            2.6 PERSONAL vs TEAMS
-        ════════════════════════════════════════════════════════════ */}
-        <section id="who-its-for" style={{ padding: SP, position:'relative', overflow:'hidden' }}>
-          <div style={{ position:'absolute', inset:0, pointerEvents:'none', backgroundImage:'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)', backgroundSize:'72px 72px', WebkitMaskImage:'radial-gradient(ellipse 80% 70% at 50% 42%, black 12%, transparent 72%)', maskImage:'radial-gradient(ellipse 80% 70% at 50% 42%, black 12%, transparent 72%)', opacity: isMobile ? 0.5 : 1 }} />
-          <div style={{ position:'absolute', top:'34%', left:'50%', transform:'translate(-50%,-50%)', width:760, height:460, background:'radial-gradient(ellipse, rgba(255,255,255,0.025) 0%, transparent 65%)', filter:'blur(8px)', pointerEvents:'none' }} />
-
-          <div style={{ maxWidth:1160, margin:'0 auto', position:'relative', zIndex:2 }}>
-            <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(2rem,5vw,3rem)' : 'clamp(3.5rem,7vw,5rem)' }}>
-              <div style={EB}>Who it&apos;s for</div>
-              <h2 style={H2}>One card for you.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>A whole platform for your team.</span></h2>
-              <p style={SUB}>Whether you&apos;re networking solo or equipping an entire team, Tapped-In scales with you.</p>
-            </div>
-
-            <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.25rem', maxWidth:940, margin:'0 auto' }}>
-
-              <div style={{ position:'relative', background:'linear-gradient(155deg, rgba(14,14,14,0.96) 0%, rgba(9,9,9,0.98) 55%, rgba(12,12,12,0.96) 100%)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, overflow:'hidden', display:'flex', flexDirection:'column' }}>
-                <div style={{ position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent)', pointerEvents:'none', zIndex:5 }} />
-                <div style={{ position:'relative', height:190, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.05) 0%, transparent 62%)', pointerEvents:'none' }} />
-                  <div style={{ animation:'cardFloat 7s ease-in-out infinite', transform:'rotate(-6deg)' }}>
-                    <CardFront size="sm" scale={0.82} />
-                  </div>
-                </div>
-                <div style={{ padding: isMobile ? '1.5rem 1.25rem' : 'clamp(1.5rem,3vw,2.25rem)', display:'flex', flexDirection:'column', flex:1 }}>
-                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, color:'rgba(255,255,255,.4)', letterSpacing:'.22em', textTransform:'uppercase', marginBottom:'.85rem' }}>For Individuals</div>
-                  <h3 style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'clamp(1.4rem,3vw,1.9rem)', fontWeight:600, color:'#fff', letterSpacing:'0.01em', lineHeight:1.1, marginBottom:'.75rem' }}>The Tapped-In Card</h3>
-                  <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.9rem', fontWeight:300, color:'rgba(255,255,255,.4)', lineHeight:1.7, letterSpacing:'0.01em', marginBottom:'1.5rem' }}>Your own premium NFC card and live profile. Perfect for creators, freelancers and professionals who want to network like the future.</p>
-                  <div style={{ display:'flex', flexDirection:'column', gap:'.6rem', marginBottom:'1.75rem' }}>
-                    {['One tap to share everything','Your own live dashboard','3 months full access included'].map((f,i)=>(
-                      <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
-                        <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,.35)', flexShrink:0 }} />
-                        <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.86rem', fontWeight:300, color:'rgba(255,255,255,.5)', letterSpacing:'0.01em' }}>{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginTop:'auto', display:'flex', alignItems:'baseline', gap:'.5rem', marginBottom:'1.25rem' }}>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.75rem', fontWeight:600, color:'#fff', letterSpacing:'0.02em' }}>£34.99</span>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>then £1/mo</span>
-                  </div>
-                  <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.85rem', padding:'14px 28px' }}>Get Tapped-In</Link>
-                </div>
-              </div>
-
-              <div style={{ position:'relative', background:'linear-gradient(155deg, rgba(15,15,15,0.96) 0%, rgba(10,10,10,0.98) 55%, rgba(13,13,13,0.96) 100%)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:6, overflow:'hidden', display:'flex', flexDirection:'column' }}>
-                <div style={{ position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.2) 50%, transparent)', pointerEvents:'none', zIndex:5 }} />
-                <div style={{ position:'relative', height:190, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.06) 0%, transparent 62%)', pointerEvents:'none' }} />
-                  <div style={{ position:'relative', width:220, height:150, animation:'cardFloat 7s ease-in-out infinite' }}>
-                    <div style={{ position:'absolute', top:24, left:6, transform:'rotate(-14deg)', opacity:.5 }}><CardFront size="sm" scale={0.62} /></div>
-                    <div style={{ position:'absolute', top:14, left:34, transform:'rotate(-2deg)', opacity:.8 }}><CardFront size="sm" scale={0.62} /></div>
-                    <div style={{ position:'absolute', top:4, left:64, transform:'rotate(9deg)' }}><CardFront size="sm" scale={0.62} /></div>
-                  </div>
-                </div>
-                <div style={{ padding: isMobile ? '1.5rem 1.25rem' : 'clamp(1.5rem,3vw,2.25rem)', display:'flex', flexDirection:'column', flex:1 }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'.85rem' }}>
-                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, color:'rgba(255,255,255,.4)', letterSpacing:'.22em', textTransform:'uppercase' }}>For Teams &amp; Companies</div>
-                    <div style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 8px 3px 7px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:2 }}>
-                      <div style={{ width:5, height:5, borderRadius:'50%', background:'#fff', animation:'dotBlink 2s ease-in-out infinite' }} />
-                      <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.55rem', fontWeight:500, color:'rgba(255,255,255,.55)', letterSpacing:'.16em', textTransform:'uppercase' }}>Popular</span>
-                    </div>
-                  </div>
-                  <h3 style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'clamp(1.4rem,3vw,1.9rem)', fontWeight:600, color:'#fff', letterSpacing:'0.01em', lineHeight:1.1, marginBottom:'.75rem' }}>Tapped-In for Teams</h3>
-                  <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.9rem', fontWeight:300, color:'rgba(255,255,255,.4)', lineHeight:1.7, letterSpacing:'0.01em', marginBottom:'1.5rem' }}>Equip your whole team with branded cards and a central dashboard. One consistent, premium identity across everyone.</p>
-                  <div style={{ display:'flex', flexDirection:'column', gap:'.6rem', marginBottom:'1.75rem' }}>
-                    {['Branded cards for every member','Central team dashboard','Volume pricing & free sample'].map((f,i)=>(
-                      <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
-                        <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,.35)', flexShrink:0 }} />
-                        <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.86rem', fontWeight:300, color:'rgba(255,255,255,.5)', letterSpacing:'0.01em' }}>{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginTop:'auto', display:'flex', alignItems:'baseline', gap:'.5rem', marginBottom:'1.25rem' }}>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.75rem', fontWeight:600, color:'#fff', letterSpacing:'0.02em' }}>Custom</span>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>tailored to your team</span>
-                  </div>
-                  <Link href="/business" className="btn-ghost" style={{ fontSize:'.85rem', padding:'14px 28px', borderColor:'rgba(255,255,255,.28)' }}>Explore For Teams →</Link>
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -1604,7 +1482,6 @@ export default function HomePage() {
           <div style={{ maxWidth:1160, margin:'0 auto' }}>
             <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(1.75rem,5vw,2.5rem)' : 'clamp(3.5rem,7vw,5.5rem)' }}>
               <div style={EB}>Process</div>
-
               <h2 style={H2}>Three taps to everything.</h2>
               <p style={SUB}>No app. No friction. Your physical card does the work.</p>
             </div>
@@ -1829,6 +1706,44 @@ export default function HomePage() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════
+            6. FUTURE EDITIONS
+        ════════════════════════════════════════════════════════════ */}
+        <section id="editions" style={{ padding: SP, background:'#030303' }}>
+          <div style={{ maxWidth:1160, margin:'0 auto' }}>
+            <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(1.75rem,5vw,2.5rem)' : 'clamp(3.5rem,7vw,5rem)' }}>
+              <div style={EB}>Choose your card</div>
+              <h2 style={H2}>Three editions.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.32)' }}>One platform.</span></h2>
+              <p style={SUB}>Buy the card once with 3 months of full access included, then just £1/month keeps it live. <Link href="/pricing" style={{ color:'#fff', textDecoration:'underline', textUnderlineOffset:'3px' }}>See all plans &amp; tiers →</Link></p>
+            </div>
+
+            <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', maxWidth:720, margin:'0 auto' }}>
+              {[
+                { label:'The Tapped-In Card',   price:'£34.99', available:true,  note:'The everyday tap card. Premium matte finish — available now.' },
+                { label:'Tapped-In Metal', price:'£49.99', available:false, note:'Heavier premium metal finish. Coming soon.' },
+              ].map((ed,i)=>{
+                const inner = (
+                  <div style={{ background:'#070707', border:`1px solid rgba(255,255,255,${ed.available ? 0.08 : 0.04})`, borderRadius:3, padding: isMobile ? '1.1rem .9rem' : 'clamp(1.5rem,3vw,2rem)', opacity: ed.available ? 1 : .4, position:'relative', overflow:'hidden', height:'100%' }}>
+                    <div style={{ position:'absolute', top:12, right:12, background: ed.available ? '#fff' : 'rgba(255,255,255,0.06)', border:`1px solid ${ed.available ? '#fff' : 'rgba(255,255,255,0.07)'}`, borderRadius:2, padding:'3px 9px', fontFamily:'Oswald, Arial, sans-serif', fontSize:'.58rem', fontWeight:600, letterSpacing:'.2em', color: ed.available ? '#000' : 'rgba(255,255,255,.38)', textTransform:'uppercase' }}>{ed.available ? 'Available' : 'Locked'}</div>
+                    <div style={{ marginBottom:'1rem', pointerEvents:'none' }}>
+                      <CardFront size="sm" scale={isMobile ? 0.78 : 1} />
+                    </div>
+                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.62rem', fontWeight:400, color:'rgba(255,255,255,.4)', letterSpacing:'.22em', textTransform:'uppercase', marginBottom:'.5rem' }}>{ed.label}</div>
+                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight:600, color:'#fff', marginBottom:'.3rem', letterSpacing:'0.02em' }}>{ed.price}</div>
+                    <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.84rem', fontWeight:300, color:'rgba(255,255,255,.35)', lineHeight:1.65, letterSpacing:'0.01em' }}>{ed.note}</p>
+                  </div>
+                )
+                return ed.available
+                  ? <Link key={i} href="/pricing" style={{ textDecoration:'none', display:'block' }}>{inner}</Link>
+                  : <div key={i}>{inner}</div>
+              })}
+            </div>
+
+            <p className="reveal" style={{ textAlign:'center', marginTop:'1.5rem' }}>
+              <Link href="/pricing" style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.75rem', fontWeight:400, color:'rgba(255,255,255,.45)', letterSpacing:'.1em', textTransform:'uppercase', textDecoration:'none' }}>View all editions &amp; pricing →</Link>
+            </p>
+          </div>
+        </section>
+{/* ════════════════════════════════════════════════════════════
             6.5 INSTALL — Add to Home Screen
             Cinematic, matte, mobile-first. Slots between Editions
             and Final CTA. Uses existing tokens (EB, H2, SUB, SP, reveal).
@@ -2073,8 +1988,7 @@ export default function HomePage() {
               Limited to 100 individually numbered cards. Founder Edition pre-orders are live now.
             </p>
             <div className="reveal d3 final-cta-btns" style={{ display:'flex', gap:'.75rem', justifyContent:'center', flexWrap:'wrap' }}>
-              <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Get Tapped-In</Link>
-              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Or claim a Founder card</Link>
+              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Order now</Link>
               <Link href="/demo" className="btn-ghost">View demo profile</Link>
             </div>
             <div className="reveal d3" style={{ marginTop:'1.25rem', display:'flex', justifyContent:'center' }}>
