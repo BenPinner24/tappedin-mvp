@@ -278,7 +278,7 @@ export default function TeamsPage() {
               </div>
 
               {/* ─── Summary stat cards ─── */}
-              <div style={statGrid}>
+              <div className="ti-stat-grid" style={statGrid}>
                 <div style={statCard}>
                   <p style={statLabel}>Total taps</p>
                   <div style={statValueRow}>
@@ -528,6 +528,11 @@ const extraCss = `
   .ti-bar { transform-origin: left; animation: ti-barGrow 0.7s cubic-bezier(0.16,1,0.3,1) both; }
   .ti-cbar { transform-origin: bottom; animation: ti-barRise 0.6s cubic-bezier(0.16,1,0.3,1) both; }
   select option { background-color: #141414; color: #ffffff; }
+
+  /* Stat cards: 4-across on desktop, 2×2 on mobile */
+  @media (max-width: 640px) {
+    .ti-stat-grid { grid-template-columns: 1fr 1fr !important; }
+  }
 `
 
 const pageStyle: CSSProperties = {
