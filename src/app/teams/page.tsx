@@ -42,6 +42,11 @@ function useCountUp(target: number, duration = 900) {
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+// Champagne accent — brand tone used to make the #1 performer stand out
+const CHAMPAGNE = '#E8C9A0'
+const CHAMPAGNE_DIM = 'rgba(232,201,160,0.55)'
+const CHAMPAGNE_GLOW = 'rgba(232,201,160,0.35)'
+
 function timeAgo(iso: string | null): string {
   if (!iso) return 'Never'
   const then = new Date(iso).getTime()
@@ -278,7 +283,7 @@ export default function TeamsPage() {
               </div>
 
               {/* ─── Summary stat cards ─── */}
-              <div className="ti-stat-grid" style={statGrid}>
+              <div style={statGrid}>
                 <div style={statCard}>
                   <p style={statLabel}>Total taps</p>
                   <div style={statValueRow}>
@@ -326,14 +331,24 @@ export default function TeamsPage() {
                   <div style={chartWrap}>
                     <div style={chartBars}>
                       {daily.map((d, i) => {
-                        const pct = Math.round((Number(d.taps) / maxDaily) * 100)
+                        const taps = Number(d.taps)
+                        const pct = Math.round((taps / maxDaily) * 100)
+                        const isPeak = taps === maxDaily && taps > 0
                         const label = new Date(d.day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
                         return (
                           <div key={d.day} style={chartCol} title={`${label}: ${d.taps} taps`}>
                             <div style={chartBarTrack}>
-                              <div className="ti-cbar" style={{ ...chartBar, height: `${pct}%`, animationDelay: `${i * 0.03}s` }} />
+                              <div className="ti-cbar" style={{
+                                ...chartBar,
+                                height: `${Math.max(pct, taps > 0 ? 6 : 0)}%`,
+                                background: isPeak
+                                  ? 'linear-gradient(180deg, #fff, rgba(255,255,255,0.8))'
+                                  : 'linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.22))',
+                                boxShadow: isPeak ? '0 0 18px rgba(255,255,255,0.22)' : 'none',
+                                animationDelay: `${i * 0.03}s`,
+                              }} />
                             </div>
-                            <span style={chartCount}>{d.taps}</span>
+                            <span style={{ ...chartCount, color: isPeak ? colors.text.primary : colors.text.muted }}>{d.taps}</span>
                           </div>
                         )
                       })}
@@ -400,20 +415,33 @@ export default function TeamsPage() {
                     const taps = Number(m.taps)
                     const pct = Math.round((taps / maxMemberTaps) * 100)
                     const inactive = isInactive(m.last_active, range)
+                    const isTop = i === 0 && taps > 0
                     return (
-                      <div key={m.user_id} style={{ ...leaderRow, animation: `ti-riseUp 0.5s ease ${i * 0.06}s both` }}>
+                      <div key={m.user_id} style={{ ...(isTop ? leaderRowTop : leaderRow), animation: `ti-riseUp 0.5s ease ${i * 0.06}s both` }}>
                         <div style={leaderTop}>
                           <span style={leaderName}>
-                            <span style={{ ...rankBadge, background: i === 0 && taps > 0 ? colors.white.full : colors.white['5'], color: i === 0 && taps > 0 ? '#000' : colors.text.muted }}>{i + 1}</span>
-                            {m.name}
+                            <span style={{
+                              ...rankBadge,
+                              background: isTop ? CHAMPAGNE : colors.white['5'],
+                              color: isTop ? '#000' : colors.text.muted,
+                              boxShadow: isTop ? `0 0 14px ${CHAMPAGNE_GLOW}` : 'none',
+                            }}>{isTop ? '★' : i + 1}</span>
+                            <span style={{ color: isTop ? colors.text.primary : colors.text.secondary, fontWeight: isTop ? font.weight.semibold : font.weight.medium }}>{m.name}</span>
+                            {isTop && <span style={topTag}>Top performer</span>}
                             {inactive && taps === 0 && (
                               <span style={inactiveTag}>Inactive</span>
                             )}
                           </span>
-                          <span style={leaderCount}>{taps}</span>
+                          <span style={{ ...leaderCount, color: isTop ? CHAMPAGNE : colors.text.primary }}>{taps}</span>
                         </div>
                         <div style={barTrack}>
-                          <div className="ti-bar" style={{ ...barFill, width: `${pct}%`, animationDelay: `${i * 0.06 + 0.2}s` }} />
+                          <div className="ti-bar" style={{
+                            ...barFill,
+                            width: `${pct}%`,
+                            background: isTop ? `linear-gradient(90deg, ${CHAMPAGNE_DIM}, ${CHAMPAGNE})` : colors.white['70'],
+                            boxShadow: isTop ? `0 0 12px ${CHAMPAGNE_GLOW}` : 'none',
+                            animationDelay: `${i * 0.06 + 0.2}s`,
+                          }} />
                         </div>
                         <div style={leaderMeta}>
                           <span style={{ ...text.caption, color: inactive ? colors.accent.warning : colors.text.muted }}>
@@ -528,11 +556,6 @@ const extraCss = `
   .ti-bar { transform-origin: left; animation: ti-barGrow 0.7s cubic-bezier(0.16,1,0.3,1) both; }
   .ti-cbar { transform-origin: bottom; animation: ti-barRise 0.6s cubic-bezier(0.16,1,0.3,1) both; }
   select option { background-color: #141414; color: #ffffff; }
-
-  /* Stat cards: 4-across on desktop, 2×2 on mobile */
-  @media (max-width: 640px) {
-    .ti-stat-grid { grid-template-columns: 1fr 1fr !important; }
-  }
 `
 
 const pageStyle: CSSProperties = {
@@ -589,6 +612,8 @@ const weekdayLabel: CSSProperties = { fontSize: font.size.xs, fontWeight: font.w
 
 // Leaderboard
 const leaderRow: CSSProperties = { marginBottom: spacing['5'] }
+const leaderRowTop: CSSProperties = { marginBottom: spacing['5'], padding: '1rem 1.1rem', marginLeft: '-1.1rem', marginRight: '-1.1rem', borderRadius: radius.xl, background: 'linear-gradient(180deg, rgba(232,201,160,0.06), rgba(232,201,160,0.015))', border: '1px solid rgba(232,201,160,0.18)' }
+const topTag: CSSProperties = { marginLeft: spacing['3'], fontSize: font.size['2xs'], fontWeight: font.weight.bold, color: CHAMPAGNE, background: 'rgba(232,201,160,0.1)', border: '1px solid rgba(232,201,160,0.28)', padding: '2px 8px', borderRadius: radius.full, letterSpacing: '0.06em', textTransform: 'uppercase' }
 const leaderTop: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: spacing['2'] }
 const leaderName: CSSProperties = { ...text.body, color: colors.text.primary, fontWeight: font.weight.medium, display: 'inline-flex', alignItems: 'center' }
 const leaderCount: CSSProperties = { ...text.body, color: colors.text.primary, fontWeight: font.weight.bold, fontVariantNumeric: 'tabular-nums' }
