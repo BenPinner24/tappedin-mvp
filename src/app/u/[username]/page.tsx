@@ -522,8 +522,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
               <IconSaveContact />
               Save contact
             </a>
-            
-            <SaveToNetworkButton profileUserId={profile.id} profileName={displayName} />
+            <SaveToNetworkButton profileUserId={profile.id} profileName={displayName} profileUsername={profile.username} />
 
             {/* ── Website ── */}
             {profile.website && (

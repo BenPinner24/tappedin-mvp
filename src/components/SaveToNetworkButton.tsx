@@ -9,18 +9,20 @@ const CHAMPAGNE = '#E8C9A0'
 type Props = {
   profileUserId: string
   profileName: string
+  profileUsername?: string | null
 }
 
 type ViewState =
-  | 'checking'   // working out who's viewing
-  | 'hidden'     // own profile / not logged in — show nothing
-  | 'idle'       // can save
+  | 'checking'    // working out who's viewing
+  | 'own'         // own profile — show nothing
+  | 'logged-out'  // not logged in — show "Connect" that routes to login
+  | 'idle'        // logged in, can save
   | 'saving'
-  | 'pending'    // saved, awaiting their save-back
-  | 'mutual'     // fully connected
+  | 'pending'     // saved, awaiting their save-back
+  | 'mutual'      // fully connected
   | 'error'
 
-export default function SaveToNetworkButton({ profileUserId, profileName }: Props) {
+export default function SaveToNetworkButton({ profileUserId, profileName, profileUsername }: Props) {
   const supabase = createClient()
   const [state, setState] = useState<ViewState>('checking')
 
@@ -31,35 +33,61 @@ export default function SaveToNetworkButton({ profileUserId, profileName }: Prop
         const { data: { user } } = await supabase.auth.getUser()
         if (!active) return
 
-        // Not logged in, or viewing own profile → hide entirely
-        if (!user || user.id === profileUserId) {
-          setState('hidden')
+        // Own profile → never show
+        if (user && user.id === profileUserId) {
+          setState('own')
           return
         }
 
-        // Already connected? Check existing state so the button reflects reality.
-        const [{ data: net }, { data: pend }] = await Promise.all([
-          supabase.rpc('get_my_network'),
-          supabase.rpc('get_pending_connections'),
-        ])
+        // Logged out → show a Connect button that routes to login
+        if (!user) {
+          setState('logged-out')
 
+          // If they just came back from logging in with ?connect=, auto-complete.
+          const params = new URLSearchParams(window.location.search)
+          if (params.get('connect') === profileUserId) {
+            // shouldn't happen while logged out, but guard anyway
+          }
+          return
+        }
+
+        // Logged in — reflect existing connection state
+        const { data: net } = await supabase.rpc('get_my_network')
         const alreadyMutual = ((net as { user_id: string }[]) ?? []).some(c => c.user_id === profileUserId)
         if (alreadyMutual) { setState('mutual'); return }
 
-        // Have I already saved them (pending on my side)? get_pending_connections
-        // returns people awaiting MY save-back, so it won't show that. We infer
-        // "already saved by me" only via a mutual result; otherwise allow saving.
-        // (Saving again is harmless — save_connection is idempotent.)
-        void pend
+        // Auto-complete: if they arrived with ?connect matching this profile
+        // (i.e. just logged in via the connect flow), save immediately.
+        const params = new URLSearchParams(window.location.search)
+        if (params.get('connect') === profileUserId) {
+          setState('saving')
+          const { data, error } = await supabase.rpc('save_connection', { target_user_id: profileUserId })
+          if (!active) return
+          if (error) { setState('error'); return }
+          setState(data === 'mutual' ? 'mutual' : 'pending')
+          // clean the URL so a refresh doesn't re-run
+          window.history.replaceState({}, '', window.location.pathname)
+          return
+        }
+
         setState('idle')
       } catch {
-        if (active) setState('hidden') // fail safe: don't show a broken button
+        if (active) setState('logged-out') // safe fallback: still offer connect via login
       }
     })()
     return () => { active = false }
   }, [supabase, profileUserId])
 
-  async function handleSave() {
+  async function handleClick() {
+    // Logged out → send to login, remembering which profile to connect with
+    if (state === 'logged-out') {
+      const back = profileUsername ? `/u/${profileUsername}` : window.location.pathname
+      const url = `/login?connect=${encodeURIComponent(profileUserId)}&name=${encodeURIComponent(profileName)}&next=${encodeURIComponent(back + `?connect=${profileUserId}`)}`
+      window.location.href = url
+      return
+    }
+
+    // Logged in → save directly
     setState('saving')
     try {
       const { data, error } = await supabase.rpc('save_connection', { target_user_id: profileUserId })
@@ -70,17 +98,17 @@ export default function SaveToNetworkButton({ profileUserId, profileName }: Prop
     }
   }
 
-  if (state === 'checking' || state === 'hidden') return null
+  if (state === 'checking' || state === 'own') return null
 
   const firstName = profileName.trim().split(' ')[0] || 'them'
 
-  // Label + styling per state
   let label = `Save ${firstName} to network`
   let sub: string | null = null
   let disabled = false
   let showGlow = true
 
-  if (state === 'saving') { label = 'Saving…'; disabled = true; showGlow = false }
+  if (state === 'logged-out') { label = `Connect with ${firstName}`; sub = 'Log in to connect' }
+  if (state === 'saving') { label = 'Connecting…'; disabled = true; showGlow = false }
   if (state === 'pending') { label = 'Saved ✓'; sub = `${firstName} can save you back`; disabled = true; showGlow = false }
   if (state === 'mutual') { label = 'Connected ✓'; sub = 'In your network'; disabled = true; showGlow = false }
   if (state === 'error') { label = 'Try again'; showGlow = false }
@@ -106,7 +134,7 @@ export default function SaveToNetworkButton({ profileUserId, profileName }: Prop
       `}</style>
 
       <button
-        onClick={handleSave}
+        onClick={handleClick}
         disabled={disabled}
         className={`ti-net-btn${showGlow ? ' glow' : ''}`}
         style={{
