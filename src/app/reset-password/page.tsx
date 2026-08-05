@@ -1,13 +1,15 @@
 // src/app/reset-password/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { CSSProperties } from 'react'
 
 const FONT = `'DM Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif`
+
+type SessionStatus = 'verifying' | 'ready' | 'invalid'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -19,8 +21,67 @@ export default function ResetPasswordPage() {
   const [loading,         setLoading]         = useState(false)
   const [error,           setError]           = useState<string | null>(null)
   const [done,            setDone]            = useState(false)
+  const [sessionStatus,   setSessionStatus]   = useState<SessionStatus>('verifying')
 
   const supabase = createClient()
+
+  // ─── Establish the recovery session from the email link ───
+  // The reset email (PKCE flow) lands here with a ?code= param. We must
+  // exchange it for a session BEFORE updateUser will work — otherwise
+  // Supabase throws "Auth session missing!".
+  useEffect(() => {
+    let active = true
+
+    async function establishSession() {
+      try {
+        // 1. If a session already exists (Supabase may auto-detect the URL), use it.
+        const { data: { session: existing } } = await supabase.auth.getSession()
+        if (existing) {
+          if (active) setSessionStatus('ready')
+          return
+        }
+
+        // 2. Otherwise, exchange the ?code= from the URL for a session.
+        const url = new URL(window.location.href)
+        const code = url.searchParams.get('code')
+
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+          if (!active) return
+          if (exchangeError) {
+            console.error('[reset] exchange error', exchangeError)
+            setSessionStatus('invalid')
+            return
+          }
+          // clean the code out of the URL so a refresh doesn't re-run it
+          window.history.replaceState({}, '', '/reset-password')
+          setSessionStatus('ready')
+          return
+        }
+
+        // 3. No session and no code → the link is invalid or expired.
+        if (active) setSessionStatus('invalid')
+      } catch (err) {
+        console.error('[reset] establishSession failed', err)
+        if (active) setSessionStatus('invalid')
+      }
+    }
+
+    // Also listen for the PASSWORD_RECOVERY event as a fallback (some Supabase
+    // configs fire this instead of returning a code).
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        if (active) setSessionStatus('ready')
+      }
+    })
+
+    establishSession()
+
+    return () => {
+      active = false
+      authListener.subscription.unsubscribe()
+    }
+  }, [supabase])
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault()
@@ -65,7 +126,27 @@ export default function ResetPasswordPage() {
           <div style={s.card}>
             <div style={s.brandRow}><span style={s.brandMark}>TAPPED-IN</span></div>
 
-            {done ? (
+            {sessionStatus === 'verifying' ? (
+              <>
+                <h1 style={s.title}>Verifying link…</h1>
+                <p style={s.body}>One moment while we check your reset link.</p>
+                <div style={s.spinnerWrap}><div style={s.spinner}/></div>
+              </>
+            ) : sessionStatus === 'invalid' ? (
+              <>
+                <h1 style={s.title}>Link expired.</h1>
+                <p style={s.body}>
+                  This password reset link is invalid or has expired. Reset links can only be used once and expire after a short time.
+                </p>
+                <Link href="/forgot-password" className="ti-btn-primary" style={{ ...s.primaryBtn, display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+                  Request a new link
+                </Link>
+                <div style={s.divider}/>
+                <p style={s.switchText}>
+                  <Link href="/login" style={s.switchLink}>Back to sign in</Link>
+                </p>
+              </>
+            ) : done ? (
               <>
                 <h1 style={s.title}>Password updated.</h1>
                 <p style={s.body}>
@@ -173,6 +254,7 @@ const CSS = `
   .ti-btn-primary:active{transform:translateY(0)}
   .ti-eye{transition:color .18s}
   .ti-eye:hover{color:rgba(255,255,255,0.75) !important}
+  @keyframes ti-spin { to { transform: rotate(360deg); } }
 `
 
 const s: Record<string, CSSProperties> = {
@@ -197,5 +279,7 @@ const s: Record<string, CSSProperties> = {
   switchText:{fontSize:'0.78rem',color:'rgba(255,255,255,0.3)',textAlign:'center' as const,marginBottom:'1.5rem'},
   switchLink:{color:'rgba(255,255,255,0.65)',textDecoration:'none',fontWeight:500},
   backRow:{display:'block',textAlign:'center' as const,fontSize:'0.82rem',marginBottom:'1.5rem'},
+  spinnerWrap:{display:'flex',justifyContent:'center',marginBottom:'1.5rem'},
+  spinner:{width:'26px',height:'26px',borderRadius:'50%',border:'2px solid rgba(255,255,255,0.12)',borderTop:'2px solid rgba(255,255,255,0.7)',animation:'ti-spin 0.75s linear infinite'},
   footer:{fontSize:'0.58rem',color:'rgba(255,255,255,0.12)',letterSpacing:'0.04em',fontStyle:'italic' as const,textAlign:'center' as const,marginTop:'0.5rem'},
 }
