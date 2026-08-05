@@ -30,6 +30,7 @@ export default function MyNetwork() {
   const [pending, setPending] = useState<Connection[]>([])
   const [sent, setSent] = useState<Connection[]>([])
   const [busy, setBusy] = useState<string | null>(null)
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -54,6 +55,19 @@ export default function MyNetwork() {
     setBusy(userId)
     try {
       await supabase.rpc('save_connection', { target_user_id: userId })
+      await load()
+    } catch {
+      // ignore
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function removeConnection(userId: string) {
+    setBusy(userId)
+    try {
+      await supabase.rpc('remove_connection', { target_user_id: userId })
+      setConfirmRemove(null)
       await load()
     } catch {
       // ignore
@@ -122,10 +136,33 @@ export default function MyNetwork() {
                 <div style={nameText}>{c.display_name || c.username || 'Connection'}</div>
                 {c.role && <div style={roleText}>{c.role}</div>}
               </div>
-              {c.username && (
-                <Link href={`/u/${c.username}`} target="_blank" rel="noopener" style={viewLink}>
-                  View →
-                </Link>
+              {confirmRemove === c.user_id ? (
+                <div style={{ display: 'flex', gap: spacing[2], flexShrink: 0, alignItems: 'center' }}>
+                  <button
+                    onClick={() => removeConnection(c.user_id)}
+                    disabled={busy === c.user_id}
+                    style={confirmRemoveBtn}
+                  >
+                    {busy === c.user_id ? 'Removing…' : 'Remove'}
+                  </button>
+                  <button onClick={() => setConfirmRemove(null)} style={cancelBtn}>Cancel</button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: spacing[3], flexShrink: 0, alignItems: 'center' }}>
+                  {c.username && (
+                    <Link href={`/u/${c.username}`} target="_blank" rel="noopener" style={viewLink}>
+                      View →
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => setConfirmRemove(c.user_id)}
+                    style={removeIconBtn}
+                    title="Remove connection"
+                    aria-label="Remove connection"
+                  >
+                    ×
+                  </button>
+                </div>
               )}
             </div>
           ))}
@@ -297,6 +334,50 @@ const viewLink: CSSProperties = {
   textDecoration: 'none',
   flexShrink: 0,
   transition: transitions.base,
+}
+
+const removeIconBtn: CSSProperties = {
+  width: '24px',
+  height: '24px',
+  borderRadius: radius.full,
+  border: `1px solid ${colors.border.subtle}`,
+  background: 'transparent',
+  color: colors.text.muted,
+  fontSize: '16px',
+  lineHeight: 1,
+  cursor: 'pointer',
+  flexShrink: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 0,
+  transition: transitions.base,
+}
+
+const confirmRemoveBtn: CSSProperties = {
+  padding: '5px 12px',
+  borderRadius: radius.full,
+  border: `1px solid ${colors.accent.errorBorder}`,
+  background: colors.accent.errorBg,
+  color: colors.accent.error,
+  fontFamily: font.sans,
+  fontSize: font.size.xs,
+  fontWeight: font.weight.bold,
+  cursor: 'pointer',
+  flexShrink: 0,
+}
+
+const cancelBtn: CSSProperties = {
+  padding: '5px 12px',
+  borderRadius: radius.full,
+  border: `1px solid ${colors.border.subtle}`,
+  background: 'transparent',
+  color: colors.text.muted,
+  fontFamily: font.sans,
+  fontSize: font.size.xs,
+  fontWeight: font.weight.semibold,
+  cursor: 'pointer',
+  flexShrink: 0,
 }
 
 const waitingTag: CSSProperties = {
