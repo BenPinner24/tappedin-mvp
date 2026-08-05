@@ -34,17 +34,40 @@ export default function ResetPasswordPage() {
 
     async function establishSession() {
       try {
-        // 1. If a session already exists (Supabase may auto-detect the URL), use it.
+        const url = new URL(window.location.href)
+        const tokenHash = url.searchParams.get('token_hash')
+        const type = url.searchParams.get('type')
+
+        // 1. New (cross-browser) flow: verify the token_hash from the email link.
+        // verifyOtp does NOT need a code-verifier stored in this browser, so it
+        // works even when the link opens in a different browser than the request.
+        if (tokenHash) {
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: (type === 'recovery' ? 'recovery' : 'recovery'),
+          })
+          if (!active) return
+          if (verifyError) {
+            console.error('[reset] verifyOtp error', verifyError)
+            setSessionStatus('invalid')
+            return
+          }
+          // clean the token out of the URL so a refresh doesn't re-run it
+          window.history.replaceState({}, '', '/reset-password')
+          setSessionStatus('ready')
+          return
+        }
+
+        // 2. Fallback: a session may already exist (e.g. Supabase auto-detected it).
         const { data: { session: existing } } = await supabase.auth.getSession()
         if (existing) {
           if (active) setSessionStatus('ready')
           return
         }
 
-        // 2. Otherwise, exchange the ?code= from the URL for a session.
-        const url = new URL(window.location.href)
+        // 3. Legacy fallback: older ?code= links (PKCE). Kept so any in-flight
+        // links still work; new emails use token_hash above.
         const code = url.searchParams.get('code')
-
         if (code) {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
           if (!active) return
@@ -53,13 +76,12 @@ export default function ResetPasswordPage() {
             setSessionStatus('invalid')
             return
           }
-          // clean the code out of the URL so a refresh doesn't re-run it
           window.history.replaceState({}, '', '/reset-password')
           setSessionStatus('ready')
           return
         }
 
-        // 3. No session and no code → the link is invalid or expired.
+        // 4. Nothing usable → invalid or expired.
         if (active) setSessionStatus('invalid')
       } catch (err) {
         console.error('[reset] establishSession failed', err)
