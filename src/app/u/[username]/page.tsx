@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import SaveToNetworkButton from '@/components/SaveToNetworkButton'
 import { notFound }     from 'next/navigation'
 import type { CSSProperties } from 'react'
 export const dynamic = 'force-dynamic'
@@ -521,6 +522,8 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
               <IconSaveContact />
               Save contact
             </a>
+            
+            <SaveToNetworkButton profileUserId={profile.id} profileName={displayName} />
 
             {/* ── Website ── */}
             {profile.website && (

@@ -2,6 +2,7 @@
 
 import BrandStudio from '@/components/BrandStudio'
 import TeamDashboardLink from '@/components/TeamDashboardLink'
+import MyNetwork from '@/components/MyNetwork'
 import Link from 'next/link'
 import {
   useCallback,
@@ -1316,6 +1317,7 @@ accent_color: profile.accent_color,
             .ti-review-cta-arrow { transition: transform 0.18s ease; }
           `}</style>
           <TeamDashboardLink />
+          <MyNetwork />
           <Link href="/review" className="ti-review-cta" style={{
             display: 'flex', alignItems: 'center', gap: '14px',
             background: 'linear-gradient(135deg, rgba(232,201,160,0.05) 0%, rgba(255,255,255,0.02) 100%)',
