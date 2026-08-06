@@ -3,6 +3,8 @@
 import BrandStudio from '@/components/BrandStudio'
 import TeamDashboardLink from '@/components/TeamDashboardLink'
 import MyNetwork from '@/components/MyNetwork'
+import LockOverlay from '@/components/LockOverlay'
+import { isCardDormant } from '@/lib/tiers'
 import Link from 'next/link'
 import {
   useCallback,
@@ -550,6 +552,7 @@ export default function DashboardPage() {
   const [linkErrors, setLinkErrors]         = useState<(string | null)[]>([])
   const [activeTab, setActiveTab]           = useState<ActiveTab>('profile')
   const [userId, setUserId]                 = useState<string | null>(null)
+  const [dormant, setDormant]               = useState(false)
   const [uploading, setUploading]           = useState(false)
   const [avatarPreview, setAvatarPreview]   = useState<string | null>(null)
   const [uploadError, setUploadError]       = useState<string | null>(null)
@@ -603,6 +606,18 @@ export default function DashboardPage() {
         .eq('owner_user_id', userId).limit(1).maybeSingle()
       if (cardData) setCard(cardData)
 
+      // Subscription status → dormant check (no billing row = active/grandfathered)
+      const { data: billingRow } = await supabase
+        .from('user_billing')
+        .select('subscription_tier, subscription_status')
+        .eq('user_id', userId)
+        .maybeSingle()
+      setDormant(isCardDormant(
+        billingRow?.subscription_tier,
+        billingRow?.subscription_status,
+        !!billingRow,
+      ))
+
       const { data: tapEvents } = await supabase
         .from('tap_events').select('tapped_at, event_type')
         .eq('profile_id', userId)
@@ -647,6 +662,7 @@ return () => window.clearTimeout(timer)
   // ─── Save profile ──────────────────────────────────────────────────────────
 
   async function saveProfile() {
+    if (dormant) return
     if (!profile) return
     setUsernameError(null)
 
@@ -693,6 +709,7 @@ return () => window.clearTimeout(timer)
   // ─── Save links ────────────────────────────────────────────────────────────
 
   async function saveLinks() {
+    if (dormant) return
     setSaveError(null)
     const { data: { session } } = await supabase.auth.getSession()
     const uid = session?.user?.id ?? userId
@@ -826,6 +843,7 @@ is_active: l.is_active ?? true,
   // ─── Save style ────────────────────────────────────────────────────────────
 
   async function saveStyle() {
+    if (dormant) return
     if (!profile) return
     try {
       setStyleSave('saving')
@@ -848,6 +866,7 @@ accent_color: profile.accent_color,
   // ─── Save gallery ──────────────────────────────────────────────────────────
 
   async function saveGallery() {
+    if (dormant) return
     if (!profile) return
     setGallerySaveError(null)
     setGallerySave('saving')
@@ -889,6 +908,7 @@ accent_color: profile.accent_color,
   async function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     event.target.value = ''
+    if (dormant) return
     if (!file || !profile) return
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
     const MAX_BYTES     = 5 * 1024 * 1024
@@ -1348,6 +1368,14 @@ accent_color: profile.accent_color,
             </span>
           </Link>
 
+          <LockOverlay
+            enabled={dormant}
+            variant="dormant"
+            title="Your card is paused"
+            message="Your profile and everything on it is safe. Reactivate your membership to edit and bring your card back to life."
+            ctaLabel="Reactivate your card"
+            ctaHref="/billing"
+          >
           <div
             className="ti-editor-card"
             style={isMobile ? { ...s.editorCard, width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowX: 'hidden' } : s.editorCard}
@@ -1900,6 +1928,7 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
             )}
 
           </div>
+          </LockOverlay>
 
           {(userId === 'f16d9181-fe6c-4b2a-8bd2-46b1bb8d736a' || userId === '32407af9-ec4d-4d71-a582-d4b6405b9857') && (
             <Link href="/admin/reviews" className="ti-admin-link" style={{

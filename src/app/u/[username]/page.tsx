@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isCardDormant } from '@/lib/tiers'
 import SaveToNetworkButton from '@/components/SaveToNetworkButton'
 import { notFound }     from 'next/navigation'
 import type { CSSProperties } from 'react'
@@ -300,6 +301,20 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
   // Public NFC profiles should be viewable
   // if (profile.is_public === false) notFound()
 
+  // ── Subscription status (dormant check) ──────────────────────────────────
+  // No billing row → grandfathered → active (protects existing cardholders).
+  const { data: billing } = await supabase
+    .from('user_billing')
+    .select('subscription_tier, subscription_status')
+    .eq('user_id', profile.id)
+    .maybeSingle()
+
+  const dormant = isCardDormant(
+    billing?.subscription_tier,
+    billing?.subscription_status,
+    !!billing,
+  )
+
   const { data: links } = await supabase
     .from('profile_links')
     .select('id, label, url, link_type, custom_label, position, is_active')
@@ -371,6 +386,32 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
       : publicTheme === 'minimal'
         ? '#111'
         : '#0a0a0a'
+
+  // ── Dormant profile screen ───────────────────────────────────────────────
+  // Shown when the owner's subscription has lapsed. Visitors see an on-brand
+  // "inactive" state with a reactivate prompt instead of the live profile.
+  if (dormant) {
+    return (
+      <>
+        <style>{`
+          *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+          html, body { background: #030303; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+        `}</style>
+        <main style={{ minHeight: '100vh', background: '#030303', color: '#fff', fontFamily: FF, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.25rem', textAlign: 'center' }}>
+          <div style={{ maxWidth: 380, width: '100%' }}>
+            <div style={{ fontFamily: DISPLAY, fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.3em', color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase', marginBottom: '2rem' }}>TAPPED-IN</div>
+            <div style={{ width: 56, height: 56, borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.6" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+            <h1 style={{ fontFamily: DISPLAY, fontSize: '1.6rem', fontWeight: 600, color: '#fff', letterSpacing: '0.01em', marginBottom: '0.75rem', lineHeight: 1.15 }}>This profile is currently inactive</h1>
+            <p style={{ fontFamily: FF, fontSize: '0.92rem', fontWeight: 400, color: 'rgba(255,255,255,0.4)', lineHeight: 1.65, marginBottom: '2rem' }}>This Tapped-In card is paused. If it&apos;s yours, reactivate your membership to bring your profile back to life.</p>
+            <a href="/billing" style={{ display: 'inline-block', padding: '0.9rem 2rem', borderRadius: '12px', background: '#fff', color: '#000', fontFamily: FF, fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', marginBottom: '1rem' }}>Reactivate your card</a>
+            <div><a href="/" style={{ fontFamily: FF, fontSize: '0.8rem', fontWeight: 500, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>Get your own Tapped-In card →</a></div>
+          </div>
+        </main>
+      </>
+    )
+  }
 
   return (
     <>
