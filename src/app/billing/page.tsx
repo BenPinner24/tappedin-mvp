@@ -4,16 +4,15 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-type PlanKey = 'bronze' | 'silver' | 'gold' | 'platinum'
+type PlanKey = 'bronze' | 'silver' | 'gold'
 
 const PLANS: { key: PlanKey; name: string; price: string; forWho: string; features: string[] }[] = [
-  { key: 'bronze',   name: 'Bronze',   price: '£1',     forWho: 'Keep your card live',     features: ['Live profile & unlimited links', 'Save Contact + QR code', 'Basic analytics (taps & clicks)', '3 profile images'] },
-  { key: 'silver',   name: 'Silver',   price: '£3.99',  forWho: 'Creators & freelancers',  features: ['Everything in Bronze', 'Detailed analytics dashboard', 'Profile themes & customisation', 'Portfolio page (~12 images, 1 GB)'] },
-  { key: 'gold',     name: 'Gold',     price: '£7.99',  forWho: 'Professionals & brands',  features: ['Everything in Silver', 'Lead capture — see who taps', 'Video uploads', '30 GB storage', 'Priority support'] },
-  { key: 'platinum', name: 'Platinum', price: '£16.99', forWho: 'Teams & agencies',        features: ['Everything in Gold', 'Multiple cards on one account', 'Team management', 'Pooled team analytics', '80 GB storage', 'Dedicated support'] },
+  { key: 'bronze', name: 'Bronze', price: '£3.99', forWho: 'Individuals',      features: ['Live NFC card & digital profile', 'Core links + Save Contact & QR', 'Basic tap analytics', 'Connect with other members'] },
+  { key: 'silver', name: 'Silver', price: '£7.99', forWho: 'Creators',         features: ['Everything in Bronze', 'Full analytics dashboard', 'Portfolio gallery + 1GB storage', 'Custom themes & styling', 'Priority support'] },
+  { key: 'gold',   name: 'Gold',   price: '£4.99', forWho: 'Teams — per member', features: ['Everything in Silver, per member', 'Manager dashboard & team analytics', 'Team management & branding', '5-seat minimum'] },
 ]
 
-const RANK: Record<PlanKey, number> = { bronze: 1, silver: 2, gold: 3, platinum: 4 }
+const RANK: Record<PlanKey, number> = { bronze: 1, silver: 2, gold: 3 }
 
 export default function BillingPage() {
   const [loading, setLoading] = useState(true)
@@ -91,7 +90,7 @@ export default function BillingPage() {
 
           <h1 style={s.h1}>Your plan</h1>
           <p style={s.sub}>
-            Choose a monthly plan to keep your card live and unlock more. Change or cancel anytime.
+            Choose a membership to keep your card live and unlock more. Change or cancel anytime. Founders and early cardholders keep their special status.
           </p>
 
           {loading ? (
@@ -147,7 +146,7 @@ export default function BillingPage() {
               </div>
 
               <p style={s.foot}>
-                Payments are handled securely by Stripe. Cancelling pauses your public profile; your data is kept.
+                Payments are handled securely by Stripe. Your card stays live while your membership is active — cancel anytime and your card pauses, but your data is always kept and you can reactivate whenever you like.
               </p>
             </>
           )}

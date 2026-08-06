@@ -30,9 +30,9 @@ type Card = {
 }
 
 const CARDS: Card[] = [
-  { name: 'The Tapped-In Card', price: '£34.99', material: 'Premium PVC', blurb: 'The everyday card, engineered for the strongest, most reliable tap on any phone. No app needed.', url: PVC_STRIPE_URL, cta: 'Buy now', sub: '3 months included, then £1/mo' },
+  { name: 'The Tapped-In Card', price: '£34.99', material: 'Premium PVC', blurb: 'The everyday card, engineered for the strongest, most reliable tap on any phone. No app needed.', url: PVC_STRIPE_URL, cta: 'Buy now', sub: 'Card + first month included' },
   { name: 'Tapped-In Metal', price: '£49.99', material: 'Brushed metal', blurb: 'A heavier premium metal finish. Same instant digital profile, more presence.', url: METAL_STRIPE_URL },
-  { name: 'Founders Edition', price: '£49.99', material: 'Matte black · numbered', tag: '100 only', blurb: 'A numbered collector’s piece. 1 of 100 of the first metal cards we ever made. Owning it is the point: a permanent asset, held by only 100 people, ever. Tap it to reveal your number and show you hold one of the original 100. For everyday networking, the Tapped-In Card gives the strongest, most reliable tap.', url: FOUNDERS_STRIPE_URL, cta: 'Order now', founder: true, sub: 'A numbered collector’s asset · Live for life' },
+  { name: 'Founders Edition', price: '£49.99', material: 'Matte black · numbered', tag: '100 only', blurb: 'A numbered collector’s piece. 1 of 100 of the first metal cards we ever made. Owning it is the point: a permanent asset, held by only 100 people, ever. Tap it to reveal your number and show you hold one of the original 100. For everyday networking, the Tapped-In Card gives the strongest, most reliable tap.', url: FOUNDERS_STRIPE_URL, cta: 'Order now', founder: true, sub: 'A numbered collector’s asset · Permanent discount' },
 ]
 
 type Pack = {
@@ -61,15 +61,15 @@ type Tier = {
 }
 
 const TIERS: Tier[] = [
-  { name: 'Bronze', price: '£1', forWho: 'Keep your card live', features: ['Live profile & unlimited links', 'Save Contact + QR code', 'Basic analytics (taps & clicks)'] },
-  { name: 'Silver', price: '£3.99', forWho: 'Creators & freelancers', features: ['Everything in Bronze', 'Detailed analytics dashboard', 'Profile themes & customisation'] },
-  { name: 'Gold', price: '£7.99', forWho: 'Professionals & brands', features: ['Everything in Silver', 'Lead capture — see who taps', 'Video uploads', 'Priority support'] },
+  { name: 'Bronze', price: '£3.99', forWho: 'Individuals', features: ['Live NFC card & digital profile', 'Core links + Save Contact & QR', 'Basic tap analytics', 'Connect with other members'] },
+  { name: 'Silver', price: '£7.99', forWho: 'Creators', features: ['Everything in Bronze', 'Full analytics dashboard', 'Portfolio gallery + 1GB storage', 'Custom themes & styling', 'Priority support'], highlight: true },
+  { name: 'Gold', price: '£4.99', forWho: 'Teams — per member', features: ['Everything in Silver, per member', 'Manager dashboard & team analytics', 'Team management & branding', '5-seat minimum'] },
 ]
 
 const STEPS = [
-  { n: '01', h: 'Get your card', b: 'A single one-time payment — the card is yours to keep, with no contract and no surprises.' },
-  { n: '02', h: 'Everything included', b: 'Every feature we\u2019ve built is yours the moment you activate — nothing locked behind extra fees.' },
-  { n: '03', h: 'Stay live for £1 — soon', b: 'A simple monthly plan to keep your card live long-term is on the way. Founders Edition stays free for life.' },
+  { n: '01', h: 'Get your card', b: 'Order your premium Tapped-In card today and make it yours — set up your profile in minutes.' },
+  { n: '02', h: 'Tap to share', b: 'One tap shares your profile, links and contact details with anyone — no app needed, on either side.' },
+  { n: '03', h: 'Membership from September', b: 'Tailored plans for individuals, creators and teams launch in September. Early cardholders keep special status.' },
 ]
 
 const FAQS = [
@@ -104,8 +104,8 @@ export default function PricingPage() {
           {/* hero */}
           <section style={s.hero} className={reveal ? 'r show' : 'r'}>
             <p style={s.eyebrow}>Pricing</p>
-            <h1 style={s.h1}>Everything included.<br /><span style={s.h1dim}>Yours for just £1 a month.</span></h1>
-            <p style={s.sub}>Your TAPPED-IN card comes with full access to everything we&apos;ve built — nothing locked away, nothing extra to unlock. A simple £1/month plan to keep it live long-term is launching soon, with optional upgrades if you ever want more.</p>
+            <h1 style={s.h1}>One tap.<br /><span style={s.h1dim}>Your whole world.</span></h1>
+            <p style={s.sub}>A premium NFC card and a digital profile that shares everything about you in a single tap. Get your card today — and from September, unlock membership plans tailored to individuals, creators, and teams.</p>
           </section>
 
           {/* how it works */}
@@ -145,42 +145,20 @@ export default function PricingPage() {
                 )
               })}
             </div>
-            <p style={s.cardsNote}>Every card comes with full access to everything we&apos;ve built. A £1/month plan to keep it live is coming soon — Founders Edition stays free for life.</p>
+            <p style={s.cardsNote}>Get your card today. Membership plans tailored to individuals, creators and teams launch in September — early cardholders keep special status.</p>
           </section>
 
-          {/* multi-pack */}
-          <section style={s.section}>
-            <p style={s.eyebrowCenter}>Buy in packs</p>
-            <h2 style={s.h2}>One profile. Every pocket.</h2>
-            <p style={s.subCenter}>Keep a Tapped-In Card everywhere — wallet, phone case, desk. Every card in a pack opens the same profile with one tap, always in sync. The more you add, the less you pay per card.</p>
-            <div style={s.packsGrid} className="packs">
-              {PACKS.map((p) => {
-                const best = !!p.best
-                return (
-                  <div key={p.name} style={{ ...s.card, ...(best ? s.cardFounder : {}) }} className={reveal ? 'r show' : 'r'}>
-                    {best && <span style={{ ...s.tag, ...s.tagFounder }}>Best value</span>}
-                    <h3 style={s.cardName}>{p.name}</h3>
-                    <p style={s.cardMaterial}>{p.qty} PVC cards · one profile</p>
-                    <p style={s.cardPrice}>{p.price}</p>
-                    <p style={s.packMeta}><span style={s.packRrp}>{p.rrp}</span><span style={s.packSave}>{p.save}</span><span>{p.per}</span></p>
-                    <p style={s.cardBlurb}>{p.blurb}</p>
-                    <a href={p.url} target="_blank" rel="noopener noreferrer" style={best ? s.buyPrimary : s.buy}>Order {p.name}</a>
-                  </div>
-                )
-              })}
-            </div>
-            <p style={s.cardsNote}>Multi-Packs are PVC. All cards share one profile — so when the £1/month plan launches, that&apos;s one plan, never a fee per card. Need cards for a team, each with their own profile? Team Packs coming soon.</p>
-          </section>
+          {/* multi-pack section removed — superseded by Gold Teams plan */}
 
           {/* tiers */}
           <section style={s.section}>
-            <p style={s.eyebrowCenter}>What&apos;s next</p>
-            <h2 style={s.h2}>Monthly plans are coming</h2>
-            <p style={s.subCenter}>Right now, every card includes full access to everything we&apos;ve built — your profile, unlimited links, QR, Save Contact, analytics and gallery, all included. These optional monthly plans are simply what&apos;s coming next.</p>
+            <p style={s.eyebrowCenter}>Membership plans</p>
+            <h2 style={s.h2}>Launching September</h2>
+            <p style={s.subCenter}>Tapped-In is moving to membership. From September, your card comes with a membership tailored to how you use it — with a plan for individuals, creators, and teams. Choose the one that fits when they go live.</p>
             <div style={s.tiersGrid} className="tiers">
               {TIERS.map((t, i) => (
                 <div key={t.name} style={{ ...s.tier, ...(t.highlight ? s.tierHighlight : {}), transitionDelay: `${i * 0.06}s` }} className={reveal ? 'r show' : 'r'}>
-                  <span style={s.tierBadge}>Soon</span>
+                  <span style={s.tierBadge}>From Sept</span>
                   <h3 style={s.tierName}>{t.name}</h3>
                   <p style={s.tierFor}>{t.forWho}</p>
                   <p style={s.tierPrice}>{t.price}<span style={s.tierPer}>/mo</span></p>
@@ -208,7 +186,7 @@ export default function PricingPage() {
               </div>
             </div>
  
-            <p style={s.cardsNote}>Plans, prices and features shown here are planned and may change before launch.</p>
+            <p style={s.cardsNote}>Membership plans launch September. Existing cardholders will be looked after — early supporters keep special status. Full details before launch.</p>
           </section>
 
           {/* terms */}
@@ -216,7 +194,7 @@ export default function PricingPage() {
             <div style={s.terms}>
               <p style={s.eyebrow}>How billing works</p>
               <p style={s.termsBody}>
-                Your card is a one-time purchase, and it unlocks <strong style={s.strong}>full access to everything we&apos;ve built</strong> — yours from the moment you activate. We&apos;re rolling out a simple <strong style={s.strong}>£1/month plan (Bronze)</strong> to keep cards live long-term, with optional Silver and Gold upgrades for more. Teams have their own dedicated package. <strong style={s.strong}>Founders Edition owners are set for life</strong> — Bronze free, no monthly fee, ever. We&apos;ll share full details before any monthly billing begins.
+                From September, Tapped-In moves to <strong style={s.strong}>membership</strong>. Your first payment includes your card plus your first month; after that it&apos;s a simple monthly plan — <strong style={s.strong}>Bronze for individuals, Silver for creators, Gold for teams</strong>. Your card stays live while your membership is active, and you can change or cancel anytime. <strong style={s.strong}>Existing cardholders are looked after</strong> — early supporters keep special status, and Founders Edition owners get a permanent collector&apos;s discount. We&apos;ll share full details with every cardholder before anything begins.
               </p>
             </div>
           </section>
