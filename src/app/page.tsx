@@ -1397,7 +1397,7 @@ export default function HomePage() {
               </div>
 
               {/* Stats */}
-              <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.74rem' : '.8rem', fontWeight:300, color:'rgba(255,255,255,.4)', letterSpacing:'.01em', lineHeight:1.6, maxWidth:440, marginBottom: isMobile ? '1.4rem' : '2.5rem' }}>&pound;34.99 &mdash; includes 3 months of full access. After that, just &pound;1/month keeps your card live.</p>
+              <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.74rem' : '.8rem', fontWeight:300, color:'rgba(255,255,255,.4)', letterSpacing:'.01em', lineHeight:1.6, maxWidth:440, marginBottom: isMobile ? '1.4rem' : '2.5rem' }}>&pound;34.99 &mdash; includes your card and first month of membership. Full membership plans launch September.</p>
               <div style={{ animation:'fadeIn 1.2s ease .55s both' }}>
                 <div style={{ ...DIVIDER, marginBottom: isMobile ? '.9rem' : '1.25rem' }} />
                 <div className="hero-stats" style={{ display:'flex', gap:'2.75rem', flexWrap:'wrap' }}>
@@ -1459,7 +1459,7 @@ export default function HomePage() {
                 { l:'Material',   v:'Premium PVC', s:'Unobstructed antenna, strongest tap' },
                 { l:'Finish', v:'Matte black', s:'Metal finish coming soon' },
                 { l:'Technology', v:'NFC + Digital Profile', s:'Tap-to-profile, no app needed' },
-                { l:'Price', v:'£34.99', s:'3 months included, then £1/mo' },
+                { l:'Price', v:'£34.99', s:'Card + first month included' },
               ].map((d,i)=>(
                 <div key={i} style={{ background:'#080808', padding: isMobile ? '1rem .9rem' : 'clamp(1.25rem,2.5vw,1.75rem)', display:'flex', flexDirection:'column', gap:8, minWidth:0 }}>
                   <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, color:'rgba(255,255,255,.22)', letterSpacing:'.22em', textTransform:'uppercase' }}>{d.l}</div>
@@ -1483,7 +1483,7 @@ export default function HomePage() {
             <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(1.75rem,5vw,2.5rem)' : 'clamp(3.5rem,7vw,5rem)' }}>
               <div style={EB}>Choose your card</div>
               <h2 style={H2}>Three editions.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.32)' }}>One platform.</span></h2>
-              <p style={SUB}>Buy the card once with 3 months of full access included, then just £1/month keeps it live. <Link href="/pricing" style={{ color:'#fff', textDecoration:'underline', textUnderlineOffset:'3px' }}>See all plans &amp; tiers →</Link></p>
+              <p style={SUB}>Your card includes your first month of membership. Full membership plans launch September. <Link href="/pricing" style={{ color:'#fff', textDecoration:'underline', textUnderlineOffset:'3px' }}>See all plans &amp; tiers →</Link></p>
             </div>
 
             <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', maxWidth:720, margin:'0 auto' }}>
@@ -1543,7 +1543,7 @@ export default function HomePage() {
                   <h3 style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'clamp(1.4rem,3vw,1.9rem)', fontWeight:600, color:'#fff', letterSpacing:'0.01em', lineHeight:1.1, marginBottom:'.75rem' }}>The Tapped-In Card</h3>
                   <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.9rem', fontWeight:300, color:'rgba(255,255,255,.4)', lineHeight:1.7, letterSpacing:'0.01em', marginBottom:'1.5rem' }}>Your own premium NFC card and live profile. Perfect for creators, freelancers and professionals who want to network like the future.</p>
                   <div style={{ display:'flex', flexDirection:'column', gap:'.6rem', marginBottom:'1.75rem' }}>
-                    {['One tap to share everything','Your own live dashboard','3 months full access included'].map((f,i)=>(
+                    {['One tap to share everything','Your own live dashboard','First month of membership included'].map((f,i)=>(
                       <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
                         <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,.35)', flexShrink:0 }} />
                         <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.86rem', fontWeight:300, color:'rgba(255,255,255,.5)', letterSpacing:'0.01em' }}>{f}</span>
@@ -1552,7 +1552,7 @@ export default function HomePage() {
                   </div>
                   <div style={{ marginTop:'auto', display:'flex', alignItems:'baseline', gap:'.5rem', marginBottom:'1.25rem' }}>
                     <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.75rem', fontWeight:600, color:'#fff', letterSpacing:'0.02em' }}>£34.99</span>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>then £1/mo</span>
+                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>membership from Sept</span>
                   </div>
                   <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.85rem', padding:'14px 28px' }}>Get Tapped-In</Link>
                 </div>
@@ -1689,7 +1689,7 @@ export default function HomePage() {
             <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? '2rem' : '3rem' }}>
               <div style={EB}>Founding 100</div>
               <h2 style={H2}>Once it&apos;s claimed,<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>it&apos;s gone for good.</span></h2>
-              <p style={SUB}>The Founder Edition is a numbered metal collector&apos;s piece &mdash; 1 of 100, the first cards we ever made, never reproduced. Your card stays live for life with no monthly fee. Premium tiers stay optional, the same as any card.</p>
+              <p style={SUB}>The Founder Edition is a numbered metal collector&apos;s piece &mdash; 1 of 100, the first cards we ever made, never reproduced. Claim yours now and your card stays live for life with no monthly fee. From September, new Founders move to a member rate &mdash; so this free-for-life offer ends when the current run does.</p>
             </div>
 
             {/* Scarcity counter */}
