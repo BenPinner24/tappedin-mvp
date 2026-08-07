@@ -170,12 +170,13 @@ export async function POST(req: NextRequest) {
 
       // 3. Create the two-phase schedule.
       //    Phase 1 = £34.99 for 1 month · Phase 2 = tier price × seats, ongoing.
-      await stripe.subscriptionSchedules.create({
+      const schedule = await stripe.subscriptionSchedules.create({
         customer: customerId,
         start_date: 'now',
         end_behavior: 'release',
         default_settings: {
           default_payment_method: paymentMethodId,
+          collection_method: 'charge_automatically',
         },
         phases: [
           {
@@ -190,6 +191,33 @@ export async function POST(req: NextRequest) {
         ],
         metadata: { user_id: userId, tier, seats: String(seats) },
       })
+
+      // 3b. Charge the £34.99 first-month invoice IMMEDIATELY.
+      // The schedule's first invoice is created as a draft and would otherwise
+      // only auto-finalize (and charge) about an hour later. We finalize and pay
+      // it now so the customer is charged £34.99 at the moment they subscribe.
+      try {
+        const subId = typeof schedule.subscription === 'string'
+          ? schedule.subscription
+          : schedule.subscription?.id
+        if (subId) {
+          const sub = await stripe.subscriptions.retrieve(subId, { expand: ['latest_invoice'] })
+          const inv = sub.latest_invoice
+          const invId = typeof inv === 'string' ? inv : inv?.id
+          const invStatus = typeof inv === 'string' ? undefined : inv?.status
+          if (invId && invStatus !== 'paid') {
+            // Finalize if still draft, then pay.
+            if (invStatus === 'draft') {
+              await stripe.invoices.finalizeInvoice(invId)
+            }
+            await stripe.invoices.pay(invId)
+          }
+        }
+      } catch (payErr) {
+        // Don't fail the whole webhook if the immediate charge hiccups — Stripe
+        // will still auto-collect the invoice shortly. Log for visibility.
+        console.error('[stripe/webhook] immediate first-invoice pay failed:', payErr)
+      }
 
       // The schedule creates a subscription, which fires
       // `customer.subscription.created` → the lifecycle handler above syncs
