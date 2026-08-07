@@ -6,12 +6,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // The tiers a user can be on.
-//  - 'basic'   = grandfathered free users (existing PVC/Business holders)
+//  - 'basic'   = new free users (total tap count only, no premium features)
+//  - 'legacy'  = grandfathered existing users: keep analytics + styling, NO storage
 //  - 'bronze'  = £3.99  individuals
 //  - 'silver'  = £7.99  creators
 //  - 'gold'    = £4.99/seat  teams
 //  - 'founder' = collector: pays £3.99 but gets SILVER-level access
-export type Tier = 'basic' | 'bronze' | 'silver' | 'gold' | 'founder'
+export type Tier = 'basic' | 'legacy' | 'bronze' | 'silver' | 'gold' | 'founder'
 
 // The features we gate. Add new premium features here as they're built.
 export type Feature =
@@ -29,6 +30,7 @@ export type Feature =
 // Founder is deliberately mapped to Silver's rank (full access at a low price).
 const RANK: Record<Tier, number> = {
   basic:   1,
+  legacy:  2, // grandfathered; real access set by LEGACY_ALLOW below, not the ladder
   bronze:  2,
   silver:  3,
   founder: 3, // same access level as Silver
@@ -53,6 +55,19 @@ const FEATURE_MIN_RANK: Record<Feature, number> = {
 // specifically the team/manager capability. Kept explicit so intent is clear.
 const GOLD_ONLY: Feature[] = ['manager_dashboard']
 
+// Grandfathered legacy users keep the CHEAP premium features they already had
+// (analytics, styling, connections) but NOT storage/gallery — the real cost
+// driver — which stays gated to Silver. Explicit allow-list, checked before the
+// ladder, because 'legacy' is a custom mix that doesn't fit a simple rank.
+const LEGACY_ALLOW: Feature[] = [
+  'basic_analytics',
+  'full_analytics',
+  'styling',
+  'connections_taste',
+  'connections_full',
+  // NOT gallery, NOT storage (locked → Silver), NOT manager_dashboard (Gold)
+]
+
 // ── Normalise whatever comes out of the DB into a valid Tier ─────────────────
 // user_billing.subscription_tier may be null, 'legacy_basic', a live tier, etc.
 // Anything unrecognised falls back to 'basic' (safe: least access).
@@ -63,8 +78,9 @@ export function normaliseTier(raw: string | null | undefined): Tier {
   if (t === 'gold') return 'gold'
   if (t === 'silver') return 'silver'
   if (t === 'bronze') return 'bronze'
-  // grandfathered / legacy labels all resolve to basic
-  if (t === 'legacy_basic' || t === 'legacy' || t === 'basic') return 'basic'
+  // grandfathered labels resolve to the dedicated 'legacy' tier
+  if (t === 'legacy_basic' || t === 'legacy') return 'legacy'
+  if (t === 'basic') return 'basic'
   return 'basic'
 }
 
@@ -72,7 +88,7 @@ export function normaliseTier(raw: string | null | undefined): Tier {
 // A cancelled/lapsed card is dormant regardless of tier. 'basic' and 'founder'
 // are grandfathered and always considered active (no ongoing payment to lapse).
 export function isActive(tier: Tier, status: string | null | undefined): boolean {
-  if (tier === 'basic' || tier === 'founder') return true
+  if (tier === 'basic' || tier === 'legacy' || tier === 'founder') return true
   const s = (status ?? '').toLowerCase()
   // Stripe active-ish statuses
   return s === 'active' || s === 'trialing' || s === 'past_due'
@@ -93,8 +109,8 @@ export function isCardDormant(
   if (!hasBillingRow) return false
 
   const tier = normaliseTier(rawTier)
-  // Grandfathered basic + collector founders never lapse.
-  if (tier === 'basic' || tier === 'founder') return false
+  // Grandfathered basic/legacy + collector founders never lapse.
+  if (tier === 'basic' || tier === 'legacy' || tier === 'founder') return false
 
   const s = (status ?? '').toLowerCase()
   // Dead statuses → dormant. Everything else (active/trialing/past_due) → live.
@@ -121,6 +137,11 @@ export function canAccess(
     return tier === 'gold'
   }
 
+  // Legacy (grandfathered): explicit allow-list, not the ladder.
+  if (tier === 'legacy') {
+    return LEGACY_ALLOW.includes(feature)
+  }
+
   // Everything else: ladder comparison.
   return RANK[tier] >= FEATURE_MIN_RANK[feature]
 }
@@ -138,6 +159,7 @@ export function requiredTierLabel(feature: Feature): string {
 // ── Display helpers ──────────────────────────────────────────────────────────
 export const TIER_LABEL: Record<Tier, string> = {
   basic:   'Basic',
+  legacy:  'Legacy',
   bronze:  'Bronze',
   silver:  'Silver',
   gold:    'Gold',
@@ -146,6 +168,7 @@ export const TIER_LABEL: Record<Tier, string> = {
 
 export const TIER_PRICE: Record<Tier, string> = {
   basic:   'Free',
+  legacy:  'Free',
   bronze:  '£3.99/mo',
   silver:  '£7.99/mo',
   gold:    '£4.99/seat',

@@ -4,7 +4,7 @@ import BrandStudio from '@/components/BrandStudio'
 import TeamDashboardLink from '@/components/TeamDashboardLink'
 import MyNetwork from '@/components/MyNetwork'
 import LockOverlay from '@/components/LockOverlay'
-import { isCardDormant } from '@/lib/tiers'
+import { isCardDormant, canAccess } from '@/lib/tiers'
 import Link from 'next/link'
 import {
   useCallback,
@@ -553,6 +553,8 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab]           = useState<ActiveTab>('profile')
   const [userId, setUserId]                 = useState<string | null>(null)
   const [dormant, setDormant]               = useState(false)
+  const [canUseStorage, setCanUseStorage]   = useState(true)
+  const [canUseStyling, setCanUseStyling]   = useState(true)
   const [uploading, setUploading]           = useState(false)
   const [avatarPreview, setAvatarPreview]   = useState<string | null>(null)
   const [uploadError, setUploadError]       = useState<string | null>(null)
@@ -616,6 +618,19 @@ export default function DashboardPage() {
         billingRow?.subscription_tier,
         billingRow?.subscription_status,
         !!billingRow,
+      ))
+      // Storage (gallery uploads) is the real cost driver — gated to Silver+.
+      // Basic AND legacy users don't get it; only Silver/Gold/Founder do.
+      setCanUseStorage(canAccess(
+        billingRow?.subscription_tier,
+        'storage',
+        billingRow?.subscription_status,
+      ))
+      // Custom styling — legacy + Silver+ keep it; only new basic users are gated.
+      setCanUseStyling(canAccess(
+        billingRow?.subscription_tier,
+        'styling',
+        billingRow?.subscription_status,
       ))
 
       const { data: tapEvents } = await supabase
@@ -844,6 +859,7 @@ is_active: l.is_active ?? true,
 
   async function saveStyle() {
     if (dormant) return
+    if (!canUseStyling) return
     if (!profile) return
     try {
       setStyleSave('saving')
@@ -867,6 +883,7 @@ accent_color: profile.accent_color,
 
   async function saveGallery() {
     if (dormant) return
+    if (!canUseStorage) return
     if (!profile) return
     setGallerySaveError(null)
     setGallerySave('saving')
@@ -1723,6 +1740,15 @@ link.url.startsWith('tel:')
 
             {/* -------- STYLE TAB -------- */}
 {activeTab === 'style' && (
+<LockOverlay
+  enabled={!canUseStyling && !dormant}
+  variant="locked"
+  title="Styling is a Silver feature"
+  message="Customise your profile with themes, colours and button styles. Upgrade to Silver to make your profile truly yours."
+  ctaLabel="Unlock with Silver"
+  ctaHref="/billing"
+  minHeight={340}
+>
 <BrandStudio
 profile={profile}
 patch={patchProfile}
@@ -1731,10 +1757,20 @@ saveState={styleSave}
 isMobile={isMobile}
 previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
 />
+</LockOverlay>
 )}
 
             {/* ────── GALLERY TAB ────── */}
             {activeTab === 'gallery' && (
+              <LockOverlay
+                enabled={!canUseStorage && !dormant}
+                variant="locked"
+                title="Gallery is a Silver feature"
+                message="Showcase your work with an image gallery on your profile. Upgrade to Silver to upload and display your featured work."
+                ctaLabel="Unlock with Silver"
+                ctaHref="/billing"
+                minHeight={340}
+              >
               <div style={isMobile ? { ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.tabContent}>
                 <div style={s.linksHeader}>
                   <p style={s.linksSubtitle}>
@@ -1781,6 +1817,7 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
                   )}
                 </div>
               </div>
+              </LockOverlay>
             )}
 
             {/* ────── CARD TAB ────── */}

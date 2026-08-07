@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import LockOverlay from '@/components/LockOverlay'
+import { canAccess } from '@/lib/tiers'
 import {
   colors,
   font,
@@ -516,6 +518,7 @@ function EmptyState({ icon, title, body }: { icon: React.ReactNode; title: strin
 
 export default function AnalyticsPage() {
   const [allEvents, setAllEvents] = useState<TapEvent[]>([])
+  const [canSeeFull, setCanSeeFull] = useState(true)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [range, setRange] = useState<RangeKey>('30d')
@@ -533,8 +536,19 @@ export default function AnalyticsPage() {
         .select('*')
         .eq('profile_id', session.user.id)
         .order('tapped_at', { ascending: false })
-      if (!data) return
-      setAllEvents(data)
+      if (data) setAllEvents(data)
+
+      // Tier → can this user see the full analytics, or just the KPI headline?
+      const { data: billingRow } = await supabase
+        .from('user_billing')
+        .select('subscription_tier, subscription_status')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+      setCanSeeFull(canAccess(
+        billingRow?.subscription_tier,
+        'full_analytics',
+        billingRow?.subscription_status,
+      ))
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -651,6 +665,16 @@ export default function AnalyticsPage() {
               <StatCard label="Tap-to-click rate" value={a.ctr} suffix="%" delta={a.dCtr} allTime={range === 'all'} spark={a.sparkClicks} sparkColor="rgba(255,255,255,0.6)" />
               <StatCard label="Avg taps / day" value={a.avg} raw delta={a.dAvg} allTime={range === 'all'} spark={a.sparkTaps} sparkColor="rgba(255,255,255,0.6)" />
             </div>
+
+            {/* GATED ANALYTICS (Chart onwards) */}
+            <LockOverlay
+              enabled={!canSeeFull}
+              variant="locked"
+              title="Unlock full analytics"
+              message="See your trends over time, top links, device breakdown, peak activity and live feed. Upgrade to Silver to unlock the full picture."
+              ctaLabel="Unlock with Silver"
+              ctaHref="/billing"
+            >
 
             {/* CHART */}
             <div style={s.panel}>
@@ -774,6 +798,8 @@ export default function AnalyticsPage() {
                 </div>
               )}
             </div>
+
+            </LockOverlay>
 
             {/* FOOTER */}
             <div style={s.footerBrand}>
