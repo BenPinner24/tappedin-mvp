@@ -18,11 +18,28 @@ const PACK_PRODUCTS: Record<string, { packName: string; quantity: number }> = {
 }
 
 // Subscription products → tier.
+// Includes BOTH the old membership products AND the new schedule tier products,
+// so the lifecycle handler resolves a tier correctly for scheduled subscriptions.
 const PRODUCT_TIERS: Record<string, string> = {
-  prod_Ui0fOuIDHiNshg: 'bronze',
-  prod_Ui0g7f43Sy5AF8: 'silver',
-  prod_Ui0icn6ymBMyNX: 'gold',
-  prod_Ui0iODipZ768Wq: 'platinum',
+  // old membership products
+  prod_V1VjARhjAxCeWJ: 'bronze',
+  prod_V1WoYYoJZn487E: 'silver',
+  prod_V1Wqbuu3IJgqhG: 'gold',
+  prod_V1WrzUsVIIMDVo: 'founder',
+  // new schedule tier products (LIVE MODE)
+  prod_V1vYRD2yT6sfdE: 'bronze', // Bronze £3.99
+  prod_V1vZCRT1fAnjvW: 'silver', // Silver £7.99
+  prod_V1vZfKEjWVwApK: 'gold',   // Gold £4.99
+}
+
+// ── SUBSCRIPTION SCHEDULE PRICES (the £34.99-first-month model) — TEST MODE ──
+// Phase 1 = £34.99 recurring monthly (bills once in month 1).
+const FIRST_MONTH_PRICE = 'price_1U1rh6PjlQmJd4De9vcVJC4l' // £34.99/mo recurring (LIVE)
+// tier → the recurring monthly price for phase 2 (ongoing).
+const TIER_PRICE: Record<string, string> = {
+  bronze: 'price_1U1rhYPjlQmJd4DeZwwdes01', // £3.99/mo (LIVE)
+  silver: 'price_1U1rhtPjlQmJd4De9zQHCHAe', // £7.99/mo (LIVE)
+  gold:   'price_1U1riXPjlQmJd4DeiPe9kdHq', // £4.99/mo per seat (LIVE)
 }
 
 let _stripe: Stripe | null = null
@@ -76,14 +93,20 @@ export async function POST(req: NextRequest) {
   if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
     const sub = event.data.object as Stripe.Subscription
     const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
+    const resolvedTier = tierFromSubscription(sub)
     const admin = createAdminClient()
+
+    // Only overwrite the tier if we could resolve one — never clobber a good
+    // tier with null (e.g. if the product map ever misses).
+    const update: Record<string, unknown> = {
+      subscription_status: sub.status,
+      subscription_current_period_end: periodEndIso(sub),
+    }
+    if (resolvedTier) update.subscription_tier = resolvedTier
+
     await admin
       .from('user_billing')
-      .update({
-        subscription_tier: tierFromSubscription(sub),
-        subscription_status: sub.status,
-        subscription_current_period_end: periodEndIso(sub),
-      })
+      .update(update)
       .eq('stripe_customer_id', customerId)
     return NextResponse.json({ received: true, type: 'subscription_sync', status: sub.status })
   }
@@ -105,7 +128,90 @@ export async function POST(req: NextRequest) {
 
   const session = event.data.object as Stripe.Checkout.Session
 
-  // ── SUBSCRIPTION CHECKOUT (first time someone subscribes) ───────────────────
+  // ── NEW SUBSCRIPTION SIGNUP (setup mode → build the schedule) ───────────────
+  // Our membership checkout runs in `mode: 'setup'` (saves the card, charges
+  // nothing). Here we read the tier/seats, attach the saved card, and create the
+  // subscription schedule: £34.99 for month 1, then the tier rate from month 2.
+  if (session.mode === 'setup') {
+    const stripe = getStripe()
+    const admin = createAdminClient()
+
+    const userId = session.client_reference_id || session.metadata?.user_id || null
+    const customerId = typeof session.customer === 'string'
+      ? session.customer
+      : session.customer?.id ?? null
+    const tier = session.metadata?.tier ?? null
+    const seats = Math.max(1, Number(session.metadata?.seats) || 1)
+
+    if (!userId || !customerId || !tier || !TIER_PRICE[tier]) {
+      console.error('[stripe/webhook] setup session missing data', {
+        userId, customerId, tier, session: session.id,
+      })
+      return NextResponse.json({ received: true, error: 'setup session missing data' })
+    }
+
+    try {
+      // 1. Get the saved payment method from the completed setup intent.
+      const setupIntentId = typeof session.setup_intent === 'string'
+        ? session.setup_intent
+        : session.setup_intent?.id
+      if (!setupIntentId) throw new Error('no setup_intent on session')
+
+      const setupIntent = await stripe.setupIntents.retrieve(setupIntentId)
+      const paymentMethodId = typeof setupIntent.payment_method === 'string'
+        ? setupIntent.payment_method
+        : setupIntent.payment_method?.id
+      if (!paymentMethodId) throw new Error('no payment_method on setup intent')
+
+      // 2. Make it the customer's default for invoices.
+      await stripe.customers.update(customerId, {
+        invoice_settings: { default_payment_method: paymentMethodId },
+      })
+
+      // 3. Create the two-phase schedule.
+      //    Phase 1 = £34.99 for 1 month · Phase 2 = tier price × seats, ongoing.
+      await stripe.subscriptionSchedules.create({
+        customer: customerId,
+        start_date: 'now',
+        end_behavior: 'release',
+        default_settings: {
+          default_payment_method: paymentMethodId,
+        },
+        phases: [
+          {
+            items: [{ price: FIRST_MONTH_PRICE, quantity: 1 }],
+            duration: { interval: 'month', interval_count: 1 },
+            proration_behavior: 'none',
+          },
+          {
+            items: [{ price: TIER_PRICE[tier], quantity: seats }],
+            proration_behavior: 'none',
+          },
+        ],
+        metadata: { user_id: userId, tier, seats: String(seats) },
+      })
+
+      // The schedule creates a subscription, which fires
+      // `customer.subscription.created` → the lifecycle handler above syncs
+      // user_billing. We also set it here so the row is correct immediately.
+      await admin
+        .from('user_billing')
+        .upsert({
+          user_id: userId,
+          stripe_customer_id: customerId,
+          subscription_tier: tier,
+          subscription_status: 'active',
+        }, { onConflict: 'user_id' })
+
+      return NextResponse.json({ received: true, type: 'schedule_created', tier })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'schedule creation failed'
+      console.error('[stripe/webhook] schedule creation failed:', msg)
+      return NextResponse.json({ received: true, error: msg }, { status: 500 })
+    }
+  }
+
+  // ── SUBSCRIPTION CHECKOUT (legacy path — kept for safety) ───────────────────
   if (session.mode === 'subscription') {
     const userId = session.client_reference_id || session.metadata?.user_id || null
     const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null

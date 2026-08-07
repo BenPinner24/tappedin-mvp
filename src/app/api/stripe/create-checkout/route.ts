@@ -6,13 +6,28 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// tier → Stripe Product ID (the four membership products)
-const TIER_PRODUCTS: Record<string, string> = {
-  bronze:   'prod_Ui0fOuIDHiNshg',
-  silver:   'prod_Ui0g7f43Sy5AF8',
-  gold:     'prod_Ui0icn6ymBMyNX',
-  platinum: 'prod_Ui0iODipZ768Wq',
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// PRICING: "First month £34.99, then the tier rate."
+//
+// Because the £34.99-then-drop model uses a Stripe SUBSCRIPTION SCHEDULE (which
+// can't be created directly by a hosted Checkout Session), we split it in two:
+//
+//   1. Here: open a Checkout Session in `mode: 'setup'`. Stripe's hosted page
+//      collects and saves the customer's card. Nothing is charged yet. We carry
+//      the chosen tier + seats in the setup intent metadata.
+//
+//   2. In the webhook (checkout.session.completed, mode=setup): we read that
+//      metadata, grab the saved card, and create the subscription schedule
+//      (phase 1 = £34.99 for 1 month → phase 2 = tier rate, ongoing). Stripe
+//      then charges £34.99 immediately and the tier rate from month two.
+//
+// Tiers here are Bronze / Silver / Gold only. Founder is separate.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Valid tiers a customer can choose. (Validation only — the actual price IDs
+// live in the webhook, where the schedule is built.)
+const VALID_TIERS = ['bronze', 'silver', 'gold'] as const
+const GOLD_MIN_SEATS = 5
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -25,11 +40,17 @@ function getStripe(): Stripe {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as { tier?: string }
+    const body = (await req.json()) as { tier?: string; seats?: number }
     const tier = body.tier
-    if (!tier || !TIER_PRODUCTS[tier]) {
+
+    if (!tier || !VALID_TIERS.includes(tier as typeof VALID_TIERS[number])) {
       return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
     }
+
+    // Gold is per-seat (min 5); everyone else is a single seat.
+    const seats = tier === 'gold'
+      ? Math.max(GOLD_MIN_SEATS, Number(body.seats) || GOLD_MIN_SEATS)
+      : 1
 
     // Who is signed in?
     const supabase = await createClient()
@@ -41,14 +62,7 @@ export async function POST(req: NextRequest) {
     const stripe = getStripe()
     const admin = createAdminClient()
 
-    // Find the active monthly price for this tier's product
-    const prices = await stripe.prices.list({ product: TIER_PRODUCTS[tier], active: true, limit: 1 })
-    const price = prices.data[0]
-    if (!price) {
-      return NextResponse.json({ error: 'No active price found for this plan.' }, { status: 500 })
-    }
-
-    // Reuse the user's Stripe customer, or create one and store it
+    // Reuse the user's Stripe customer, or create one and store it.
     const { data: billing } = await admin
       .from('user_billing')
       .select('stripe_customer_id')
@@ -62,21 +76,28 @@ export async function POST(req: NextRequest) {
         metadata: { user_id: user.id },
       })
       customerId = customer.id
-      await admin.from('user_billing').upsert({ user_id: user.id, stripe_customer_id: customerId }, { onConflict: 'user_id' })
+      await admin
+        .from('user_billing')
+        .upsert({ user_id: user.id, stripe_customer_id: customerId }, { onConflict: 'user_id' })
     }
 
     const origin = req.headers.get('origin') ?? 'https://tappedin.uk'
 
+    // Setup-mode Checkout Session: hosted Stripe page saves the card, charges
+    // nothing now. The webhook builds the schedule from this metadata.
     const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
+      mode: 'setup',
+      currency: 'gbp',
       customer: customerId,
-      line_items: [{ price: price.id, quantity: 1 }],
       client_reference_id: user.id,
-      metadata: { user_id: user.id, tier },
-      subscription_data: { metadata: { user_id: user.id, tier } },
+      // metadata on the SESSION (handy) …
+      metadata: { user_id: user.id, tier, seats: String(seats) },
+      // …and on the SETUP INTENT, which is what the webhook reads back.
+      setup_intent_data: {
+        metadata: { user_id: user.id, tier, seats: String(seats) },
+      },
       success_url: `${origin}/billing?status=success`,
       cancel_url: `${origin}/billing?status=cancelled`,
-      allow_promotion_codes: true,
     })
 
     return NextResponse.json({ url: session.url })
