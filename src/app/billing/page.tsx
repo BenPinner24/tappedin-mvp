@@ -134,11 +134,11 @@ export default function BillingPage() {
                         ))}
                       </ul>
                       <button
-                        disabled
-                        style={s.btnCurrent}
-                        title="Membership upgrades are launching soon"
+                        onClick={() => choosePlan(p.key)}
+                        disabled={isCurrent || busy === p.key}
+                        style={isCurrent ? s.btnCurrent : s.btn}
                       >
-                        Coming soon
+                        {busy === p.key ? 'Loading…' : label}
                       </button>
                     </div>
                   )
