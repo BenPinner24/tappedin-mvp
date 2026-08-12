@@ -1397,7 +1397,7 @@ export default function HomePage() {
               </div>
 
               {/* Stats */}
-              <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.74rem' : '.8rem', fontWeight:300, color:'rgba(255,255,255,.4)', letterSpacing:'.01em', lineHeight:1.6, maxWidth:440, marginBottom: isMobile ? '1.4rem' : '2.5rem' }}>&pound;34.99 &mdash; includes your card and first month of membership. Full membership plans launch September.</p>
+              <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.74rem' : '.8rem', fontWeight:300, color:'rgba(255,255,255,.4)', letterSpacing:'.01em', lineHeight:1.6, maxWidth:440, marginBottom: isMobile ? '1.4rem' : '2.5rem' }}>&pound;34.99 &mdash; includes your card and first month of membership. Choose your membership tier when you join.</p>
               <div style={{ animation:'fadeIn 1.2s ease .55s both' }}>
                 <div style={{ ...DIVIDER, marginBottom: isMobile ? '.9rem' : '1.25rem' }} />
                 <div className="hero-stats" style={{ display:'flex', gap:'2.75rem', flexWrap:'wrap' }}>
@@ -1476,6 +1476,38 @@ export default function HomePage() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════
+            2.2 HOW MEMBERSHIP WORKS — the core reframe
+            Card is included · Membership unlocks the platform · Tier sets perks
+        ════════════════════════════════════════════════════════════ */}
+        <section id="membership" style={{ padding: SP }}>
+          <div style={{ maxWidth:1160, margin:'0 auto' }}>
+            <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(2rem,5vw,3rem)' : 'clamp(3.5rem,7vw,5rem)' }}>
+              <div style={EB}>How membership works</div>
+              <h2 style={H2}>One membership.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>Everything included.</span></h2>
+              <p style={SUB}>Tapped-In is a platform, not a purchase. Your card is how you tap in. Your membership is what brings it to life.</p>
+            </div>
+
+            <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap:2, background:'rgba(255,255,255,0.05)', borderRadius:3, overflow:'hidden', maxWidth:1000, margin:'0 auto' }}>
+              {[
+                { n:'01', h:'Your card is included', b:'Every membership comes with your Tapped-In card. Premium, ready to tap, yours from day one. The card was never the product. It\u2019s the key.' },
+                { n:'02', h:'Membership unlocks the platform', b:'Your live profile, real-time analytics, and everything that makes Tapped-In work. This is what you\u2019re really joining, and it only gets better over time.' },
+                { n:'03', h:'Your tier sets your perks', b:'Choose the level that fits how you network. Every tier is a complete experience in its own right, from the essentials to the full suite. You decide how far it goes.' },
+              ].map((d,i)=>(
+                <div key={i} style={{ background:'#070707', padding: isMobile ? '1.5rem 1.25rem' : 'clamp(1.75rem,3vw,2.25rem)', display:'flex', flexDirection:'column', gap:'.75rem', minWidth:0 }}>
+                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '2rem' : '2.4rem', fontWeight:600, color:'rgba(255,255,255,.28)', lineHeight:1, letterSpacing:'0.02em', marginBottom:'.25rem' }}>{d.n}</div>
+                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '1rem' : '1.15rem', fontWeight:500, color:'#fff', letterSpacing:'0.02em', textTransform:'uppercase', lineHeight:1.2 }}>{d.h}</div>
+                  <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.88rem', fontWeight:300, color:'rgba(255,255,255,.35)', lineHeight:1.75, letterSpacing:'0.01em' }}>{d.b}</p>
+                </div>
+              ))}
+            </div>
+
+            <p className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '2.5rem', fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.9rem' : '1rem', fontWeight:300, color:'rgba(255,255,255,.5)', letterSpacing:'0.02em' }}>
+              First month £34.99. Everything, from the first tap.
+            </p>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════
             2.5 CHOOSE YOUR CARD (moved up)
         ════════════════════════════════════════════════════════════ */}
         <section id="editions" style={{ padding: SP }}>
@@ -1483,7 +1515,7 @@ export default function HomePage() {
             <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(1.75rem,5vw,2.5rem)' : 'clamp(3.5rem,7vw,5rem)' }}>
               <div style={EB}>Choose your card</div>
               <h2 style={H2}>Three editions.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.32)' }}>One platform.</span></h2>
-              <p style={SUB}>Your card includes your first month of membership. Full membership plans launch September. <Link href="/pricing" style={{ color:'#fff', textDecoration:'underline', textUnderlineOffset:'3px' }}>See all plans &amp; tiers →</Link></p>
+              <p style={SUB}>Your card is included with your membership. Choose the tier that fits how you network. <Link href="/pricing" style={{ color:'#fff', textDecoration:'underline', textUnderlineOffset:'3px' }}>See all plans &amp; tiers →</Link></p>
             </div>
 
             <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', maxWidth:720, margin:'0 auto' }}>
@@ -1552,7 +1584,7 @@ export default function HomePage() {
                   </div>
                   <div style={{ marginTop:'auto', display:'flex', alignItems:'baseline', gap:'.5rem', marginBottom:'1.25rem' }}>
                     <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.75rem', fontWeight:600, color:'#fff', letterSpacing:'0.02em' }}>£34.99</span>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>membership from Sept</span>
+                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>then your membership tier</span>
                   </div>
                   <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.85rem', padding:'14px 28px' }}>Get Tapped-In</Link>
                 </div>
@@ -1689,7 +1721,7 @@ export default function HomePage() {
             <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? '2rem' : '3rem' }}>
               <div style={EB}>Founding 100</div>
               <h2 style={H2}>Once it&apos;s claimed,<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>it&apos;s gone for good.</span></h2>
-              <p style={SUB}>The Founder Edition is a numbered metal collector&apos;s piece &mdash; 1 of 100, the first cards we ever made, never reproduced. Claim yours now and your card stays live for life with no monthly fee. From September, new Founders move to a member rate &mdash; so this free-for-life offer ends when the current run does.</p>
+              <p style={SUB}>The Founder Edition is a numbered metal collector&apos;s piece &mdash; 1 of 100, the first cards we ever made, never reproduced. Claim yours now and your card stays live for life with no monthly fee. Once this run sells out, new Founders move to a member rate &mdash; so this free-for-life offer ends when the current run does.</p>
             </div>
 
             {/* Scarcity counter */}
