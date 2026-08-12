@@ -206,33 +206,63 @@ export async function POST(req: NextRequest) {
         metadata: { user_id: userId, tier, seats: String(seats) },
       })
 
-      // 3b. Charge the £34.99 first-month invoice IMMEDIATELY.
-      // The schedule's first invoice is created as a draft and would otherwise
-      // only auto-finalize (and charge) about an hour later. We finalize and pay
-      // it now so the customer is charged £34.99 at the moment they subscribe.
+      // 3b. Charge the £34.99 first-month invoice IMMEDIATELY, and track whether
+      // it actually succeeded. We only grant access if the payment goes through.
+      let firstPaymentPaid = false
+      let subIdForCleanup: string | undefined
       try {
         const subId = typeof schedule.subscription === 'string'
           ? schedule.subscription
           : schedule.subscription?.id
+        subIdForCleanup = subId
         if (subId) {
           const sub = await stripe.subscriptions.retrieve(subId, { expand: ['latest_invoice'] })
           const inv = sub.latest_invoice
           const invId = typeof inv === 'string' ? inv : inv?.id
-          const invStatus = typeof inv === 'string' ? undefined : inv?.status
+          let invStatus = typeof inv === 'string' ? undefined : inv?.status
           if (invId && invStatus !== 'paid') {
-            // Finalize if still draft, then pay.
             if (invStatus === 'draft') {
               await stripe.invoices.finalizeInvoice(invId)
             }
-            await stripe.invoices.pay(invId)
+            const paid = await stripe.invoices.pay(invId)
+            invStatus = paid.status
           }
+          firstPaymentPaid = invStatus === 'paid'
         }
       } catch (payErr) {
-        // Don't fail the whole webhook if the immediate charge hiccups — Stripe
-        // will still auto-collect the invoice shortly. Log for visibility.
-        console.error('[stripe/webhook] immediate first-invoice pay failed:', payErr)
+        // Payment failed (declined, etc.). firstPaymentPaid stays false.
+        console.error('[stripe/webhook] first-invoice payment failed:', payErr)
       }
 
+      // ── PAYMENT FAILED → grant NO access, clean up the dangling subscription ──
+      if (!firstPaymentPaid) {
+        console.warn('[stripe/webhook] first payment not completed — not activating', {
+          userId, customerId, tier,
+        })
+        // Cancel the schedule + subscription so there's no unpaid sub left behind.
+        try {
+          await stripe.subscriptionSchedules.cancel(schedule.id)
+        } catch (cancelErr) {
+          console.error('[stripe/webhook] could not cancel schedule after failed payment:', cancelErr)
+        }
+        try {
+          if (subIdForCleanup) await stripe.subscriptions.cancel(subIdForCleanup)
+        } catch { /* schedule cancel usually removes it; ignore */ }
+
+        // Record the failed state — NOT active, no tier access.
+        await admin
+          .from('user_billing')
+          .upsert({
+            user_id: userId,
+            stripe_customer_id: customerId,
+            subscription_tier: null,
+            subscription_status: 'payment_failed',
+          }, { onConflict: 'user_id' })
+
+        return NextResponse.json({ received: true, type: 'payment_failed', tier })
+      }
+
+      // ── PAYMENT SUCCEEDED → activate + welcome email ─────────────────────────
       // The schedule creates a subscription, which fires
       // `customer.subscription.created` → the lifecycle handler above syncs
       // user_billing. We also set it here so the row is correct immediately.
