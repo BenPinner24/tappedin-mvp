@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { sendFounderConfirmation } from '@/lib/email/sendFounderConfirmation'
 import { sendStandardConfirmation } from '@/lib/email/sendStandardConfirmation'
 import { sendMultipackConfirmation } from '@/lib/email/sendMultipackConfirmation'
+import { sendSubscriptionWelcome } from '@/lib/email/sendSubscriptionWelcome'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
@@ -26,21 +27,34 @@ const PRODUCT_TIERS: Record<string, string> = {
   prod_V1WoYYoJZn487E: 'silver',
   prod_V1Wqbuu3IJgqhG: 'gold',
   prod_V1WrzUsVIIMDVo: 'founder',
-  // new schedule tier products (LIVE MODE)
-  prod_V1vYRD2yT6sfdE: 'bronze', // Bronze £3.99
-  prod_V1vZCRT1fAnjvW: 'silver', // Silver £7.99
-  prod_V1vZfKEjWVwApK: 'gold',   // Gold £4.99
+  // new schedule tier products — LIVE
+  prod_V1vYRD2yT6sfdE: 'bronze',
+  prod_V1vZCRT1fAnjvW: 'silver',
+  prod_V1vZfKEjWVwApK: 'gold',
+  // new schedule tier products — TEST
+  prod_V1uSn6OaGAscev: 'bronze',
+  prod_V1uS9Ez7SSdTpB: 'silver',
+  prod_V1uTWK2HVOVq2H: 'gold',
 }
 
-// ── SUBSCRIPTION SCHEDULE PRICES (the £34.99-first-month model) — TEST MODE ──
-// Phase 1 = £34.99 recurring monthly (bills once in month 1).
-const FIRST_MONTH_PRICE = 'price_1U1rh6PjlQmJd4De9vcVJC4l' // £34.99/mo recurring (LIVE)
-// tier → the recurring monthly price for phase 2 (ongoing).
-const TIER_PRICE: Record<string, string> = {
-  bronze: 'price_1U1rhYPjlQmJd4DeZwwdes01', // £3.99/mo (LIVE)
-  silver: 'price_1U1rhtPjlQmJd4De9zQHCHAe', // £7.99/mo (LIVE)
-  gold:   'price_1U1riXPjlQmJd4DeiPe9kdHq', // £4.99/mo per seat (LIVE)
-}
+// ── SUBSCRIPTION PRICES — auto-selected by mode (test vs live) ──────────────
+// Uses the Stripe secret key to pick the matching IDs: sk_test_ → test prices,
+// sk_live_ → live prices. Same file works locally and in production.
+const STRIPE_IS_TEST = (process.env.STRIPE_SECRET_KEY ?? '').startsWith('sk_test_')
+const FIRST_MONTH_PRICE = STRIPE_IS_TEST
+  ? 'price_1U1qpMPjlQmJd4DejPmumeQF'  // TEST £34.99
+  : 'price_1U1rh6PjlQmJd4De9vcVJC4l'  // LIVE £34.99
+const TIER_PRICE: Record<string, string> = STRIPE_IS_TEST
+  ? {
+      bronze: 'price_1U1qdFPjlQmJd4DetCcCKSC3', // TEST £3.99
+      silver: 'price_1U1qdoPjlQmJd4DeiNLhyn8I', // TEST £7.99
+      gold:   'price_1U1qePPjlQmJd4Dekcqtlej9', // TEST £4.99
+    }
+  : {
+      bronze: 'price_1U1rhYPjlQmJd4DeZwwdes01', // LIVE £3.99
+      silver: 'price_1U1rhtPjlQmJd4De9zQHCHAe', // LIVE £7.99
+      gold:   'price_1U1riXPjlQmJd4DeiPe9kdHq', // LIVE £4.99
+    }
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -230,6 +244,28 @@ export async function POST(req: NextRequest) {
           subscription_tier: tier,
           subscription_status: 'active',
         }, { onConflict: 'user_id' })
+
+      // Send the tier-aware welcome email. Wrapped so an email hiccup never
+      // fails the webhook (the subscription itself is already done).
+      try {
+        const email =
+          session.customer_details?.email ||
+          session.customer_email ||
+          undefined
+        if (email && (tier === 'bronze' || tier === 'silver' || tier === 'gold')) {
+          const name = session.customer_details?.name?.trim().split(' ')[0] || undefined
+          await sendSubscriptionWelcome({
+            to: email,
+            customerName: name,
+            tier,
+            seats,
+          })
+        } else {
+          console.warn('[stripe/webhook] no email or bad tier for welcome:', { email, tier })
+        }
+      } catch (mailErr) {
+        console.error('[stripe/webhook] welcome email failed:', mailErr)
+      }
 
       return NextResponse.json({ received: true, type: 'schedule_created', tier })
     } catch (e) {
