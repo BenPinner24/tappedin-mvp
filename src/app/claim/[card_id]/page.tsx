@@ -12,6 +12,7 @@
 //   card claimed, other user  → <StateScreen claimed />
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect }     from 'next/navigation'
 import type { CSSProperties } from 'react'
 
@@ -124,6 +125,40 @@ export default async function ClaimCardPage({ params }: ClaimPageProps) {
           cta={{ label: 'Go to dashboard', href: '/dashboard' }}
         />
       )
+    }
+
+    // ── FOUNDER EDITION: grant free Bronze-for-life status ────────────────────
+    // If the claimed card is a Founder Edition card, mark the user as a Founder
+    // and give them the free Bronze baseline. Uses the admin client so the
+    // billing write is reliable regardless of row-level security. Only sets the
+    // tier to bronze if they don't already have a paid tier (never downgrades).
+    if (card.card_id.toLowerCase().startsWith('founders-edition-')) {
+      try {
+        const admin = createAdminClient()
+        const { data: existing } = await admin
+          .from('user_billing')
+          .select('subscription_tier, subscription_status')
+          .eq('user_id', user.id)
+          .maybeSingle<{ subscription_tier: string | null; subscription_status: string | null }>()
+
+        // Keep an existing paid tier (silver/gold active); otherwise Bronze baseline.
+        const paidTiers = ['silver', 'gold']
+        const hasActivePaid =
+          existing?.subscription_tier &&
+          paidTiers.includes(existing.subscription_tier.toLowerCase()) &&
+          existing.subscription_status === 'active'
+
+        await admin
+          .from('user_billing')
+          .upsert({
+            user_id: user.id,
+            is_founder: true,
+            ...(hasActivePaid ? {} : { subscription_tier: 'bronze' }),
+          }, { onConflict: 'user_id' })
+      } catch (founderErr) {
+        // Never block the claim on a billing write — log and continue.
+        console.error('[claim] founder billing write failed:', founderErr)
+      }
     }
 
     // Card is now claimed — send to dashboard
