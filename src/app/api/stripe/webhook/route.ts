@@ -129,11 +129,23 @@ export async function POST(req: NextRequest) {
     const sub = event.data.object as Stripe.Subscription
     const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
     const admin = createAdminClient()
+
+    // Founder owners keep their free Bronze baseline for life. If a Founder
+    // cancels a paid upgrade (Silver/Gold), fall them back to bronze rather than
+    // stripping access to null. Non-founders cancel to null as before.
+    const { data: billing } = await admin
+      .from('user_billing')
+      .select('is_founder')
+      .eq('stripe_customer_id', customerId)
+      .maybeSingle<{ is_founder: boolean | null }>()
+
+    const fallbackTier = billing?.is_founder ? 'bronze' : null
+
     await admin
       .from('user_billing')
-      .update({ subscription_status: 'canceled', subscription_tier: null })
+      .update({ subscription_status: 'canceled', subscription_tier: fallbackTier })
       .eq('stripe_customer_id', customerId)
-    return NextResponse.json({ received: true, type: 'subscription_deleted' })
+    return NextResponse.json({ received: true, type: 'subscription_deleted', founder: !!billing?.is_founder })
   }
 
   if (event.type !== 'checkout.session.completed') {
