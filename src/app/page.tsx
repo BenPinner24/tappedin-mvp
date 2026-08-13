@@ -6,8 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import { ReviewProfileModal } from './_components/ReviewProfileModal'
 
 const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
-const STANDARD_STRIPE_URL = 'https://buy.stripe.com/dRm14pc1H16F9N7et1cfK03'
-
 // ── EDIT ME ───────────────────────────────────────────────────────────────────
 // Real number of Founder cards already claimed (0–100). Drives the
 // "X / 100 claimed" counter + progress bar in the Founding section below.
@@ -1238,7 +1236,7 @@ export default function HomePage() {
           <div style={{ marginTop:'auto', paddingTop:'2rem', display:'flex', flexDirection:'column', gap:'.6rem' }}>
             <Link href="/login" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Sign in</Link>
             <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Dashboard</Link>
-            <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="btn-primary" style={{ width:'100%', padding:'15px' }}>GET TAPPED-IN</Link>
+            <Link href="/billing" onClick={() => setMenuOpen(false)} className="btn-primary" style={{ width:'100%', padding:'15px' }}>Become a member</Link>
           </div>
         </div>
       )}
@@ -1325,7 +1323,7 @@ export default function HomePage() {
                 marginBottom: isMobile ? '1.4rem' : '2.75rem',
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) .26s both',
               }}>
-                <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">GET TAPPED-IN</Link>
+                <Link href="/billing" className="btn-primary">Become a member</Link>
                 <a href="#founding" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Explore the Founder Edition</a>
                 <a href="#product" className="btn-ghost">View the card</a>
                 <a
@@ -1470,7 +1468,7 @@ export default function HomePage() {
             </div>
 
                         <div className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '3rem' }}>
-              <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Order The Tapped-In Card</Link>
+              <Link href="/billing" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Become a member</Link>
             </div>
           </div>
         </section>
@@ -1586,7 +1584,7 @@ export default function HomePage() {
                     <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.75rem', fontWeight:600, color:'#fff', letterSpacing:'0.02em' }}>£34.99</span>
                     <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>then your membership tier</span>
                   </div>
-                  <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.85rem', padding:'14px 28px' }}>Get Tapped-In</Link>
+                  <Link href="/billing" className="btn-primary" style={{ fontSize:'.85rem', padding:'14px 28px' }}>Become a member</Link>
                 </div>
               </div>
 
@@ -2105,7 +2103,7 @@ export default function HomePage() {
               Limited to 100 individually numbered cards. Founder Edition pre-orders are live now.
             </p>
             <div className="reveal d3 final-cta-btns" style={{ display:'flex', gap:'.75rem', justifyContent:'center', flexWrap:'wrap' }}>
-              <Link href={STANDARD_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Get Tapped-In</Link>
+              <Link href="/billing" className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Become a member</Link>
               <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Or claim a Founder card</Link>
               <Link href="/demo" className="btn-ghost">View demo profile</Link>
             </div>
