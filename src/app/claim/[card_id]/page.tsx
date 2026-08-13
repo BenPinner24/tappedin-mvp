@@ -141,7 +141,10 @@ export default async function ClaimCardPage({ params }: ClaimPageProps) {
           .eq('user_id', user.id)
           .maybeSingle<{ subscription_tier: string | null; subscription_status: string | null }>()
 
-        // Keep an existing paid tier (silver/gold active); otherwise Bronze baseline.
+        // Keep an existing paid tier (silver/gold active); otherwise the Founder
+        // baseline of 'legacy' — full perks EXCEPT gallery/storage (which stay a
+        // paid upgrade). We reuse the 'legacy' tier here because it already grants
+        // exactly that access set; it's shared with grandfathered users.
         const paidTiers = ['silver', 'gold']
         const hasActivePaid =
           existing?.subscription_tier &&
@@ -153,7 +156,7 @@ export default async function ClaimCardPage({ params }: ClaimPageProps) {
           .upsert({
             user_id: user.id,
             is_founder: true,
-            ...(hasActivePaid ? {} : { subscription_tier: 'bronze' }),
+            ...(hasActivePaid ? {} : { subscription_tier: 'legacy' }),
           }, { onConflict: 'user_id' })
       } catch (founderErr) {
         // Never block the claim on a billing write — log and continue.

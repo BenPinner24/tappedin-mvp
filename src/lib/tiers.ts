@@ -100,11 +100,14 @@ function effectiveTier(
   if (!isFounder) return tier
 
   // Founder with an active paid subscription → use whichever is higher.
-  if (isActive(tier, status) && RANK[tier] > RANK['bronze']) {
+  // (silver rank 3 / gold rank 4 both beat the legacy baseline at rank 2.)
+  if (isActive(tier, status) && RANK[tier] > RANK['legacy']) {
     return tier
   }
-  // Founder otherwise → free Bronze baseline (covers no-sub, or a lapsed sub).
-  return 'bronze'
+  // Founder otherwise → free 'legacy' baseline: full perks EXCEPT gallery/storage
+  // (covers no-sub, or a lapsed paid sub). 'legacy' is reused as the Founder
+  // perk level because it already grants exactly that access set.
+  return 'legacy'
 }
 
 // ── Is a subscription actually live? ─────────────────────────────────────────
