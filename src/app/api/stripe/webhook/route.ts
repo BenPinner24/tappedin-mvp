@@ -130,8 +130,8 @@ export async function POST(req: NextRequest) {
     const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
     const admin = createAdminClient()
 
-    // Founder owners keep their free Bronze baseline for life. If a Founder
-    // cancels a paid upgrade (Silver/Gold), fall them back to bronze rather than
+    // Founder owners keep their free legacy baseline for life. If a Founder
+    // cancels a paid upgrade (Silver/Gold), fall them back to legacy rather than
     // stripping access to null. Non-founders cancel to null as before.
     const { data: billing } = await admin
       .from('user_billing')
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
       .eq('stripe_customer_id', customerId)
       .maybeSingle<{ is_founder: boolean | null }>()
 
-    const fallbackTier = billing?.is_founder ? 'bronze' : null
+    const fallbackTier = billing?.is_founder ? 'legacy' : null
 
     await admin
       .from('user_billing')
