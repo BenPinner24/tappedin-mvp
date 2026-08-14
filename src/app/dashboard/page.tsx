@@ -1772,49 +1772,37 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
                 minHeight={340}
               >
               <div style={isMobile ? { ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.tabContent}>
-                <div style={s.linksHeader}>
-                  <p style={s.linksSubtitle}>
-                    Upload up to 3 images for your Featured Work section. Any aspect ratio — displayed in a 4:5 frame on your profile.
+                <div style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  textAlign: 'center', padding: `${spacing[10]} ${spacing[4]}`, gap: spacing[3],
+                }}>
+                  <div style={{
+                    width: '52px', height: '52px', borderRadius: radius.xl,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(232,201,160,0.08)', border: '1px solid rgba(232,201,160,0.22)',
+                    marginBottom: spacing[2],
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E8C9A0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                  </div>
+                  <p style={{
+                    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase',
+                    color: '#E8C9A0', border: '1px solid rgba(232,201,160,0.4)', borderRadius: radius.full,
+                    padding: '3px 12px',
+                  }}>Coming soon</p>
+                  <h3 style={{
+                    fontSize: font.size.lg, fontWeight: font.weight.bold, color: colors.text.primary,
+                    letterSpacing: font.tracking.snug, marginTop: spacing[1],
+                  }}>Portfolio gallery</h3>
+                  <p style={{
+                    fontSize: font.size.sm, fontWeight: font.weight.light, color: colors.text.faint,
+                    lineHeight: font.leading.relaxed, maxWidth: '340px',
+                  }}>
+                    Showcase your work with images, video and audio, backed by 1GB of media storage. We are putting the final touches to it and it will be available here soon, included with your Silver membership.
                   </p>
-                </div>
-
-                <div
-                  className="ti-gallery-grid"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-                    gap: spacing[4],
-                    marginBottom: spacing[5],
-                  }}
-                >
-                  {gallerySlots.map((slot, i) => (
-                    <GallerySlot
-                      key={i}
-                      slot={slot}
-                      index={i}
-                      profileId={profile?.id ?? ''}
-                      supabase={supabase}
-                      onChange={(patch) => patchGallerySlot(i, patch)}
-                      onRemove={() => removeGallerySlot(i)}
-                    />
-                  ))}
-                </div>
-
-                <div style={s.tabFooter}>
-                  <p style={s.tabFooterHint}>
-                    JPG, PNG or WebP · max 10 MB each · captions optional, max 80 characters.
-                  </p>
-                  <button
-                    onClick={saveGallery}
-                    disabled={gallerySave === 'saving' || anySlotUploading}
-                    className="ti-save-btn"
-                    style={saveBtnCx(gallerySave)}
-                  >
-                    {anySlotUploading ? 'Uploading…' : saveBtnLabel(gallerySave, 'Save gallery')}
-                  </button>
-                  {gallerySave === 'error' && gallerySaveError && (
-                    <p style={s.saveErrorDetail}>{gallerySaveError}</p>
-                  )}
                 </div>
               </div>
               </LockOverlay>
