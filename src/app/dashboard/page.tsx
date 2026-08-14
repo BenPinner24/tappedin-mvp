@@ -1762,15 +1762,6 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
 
             {/* ────── GALLERY TAB ────── */}
             {activeTab === 'gallery' && (
-              <LockOverlay
-                enabled={!canUseStorage && !dormant}
-                variant="locked"
-                title="Gallery is a Silver feature"
-                message="Showcase your work with an image gallery on your profile. Upgrade to Silver to upload and display your featured work."
-                ctaLabel="Unlock with Silver"
-                ctaHref="/billing"
-                minHeight={340}
-              >
               <div style={isMobile ? { ...s.tabContent, padding: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' } : s.tabContent}>
                 <div style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -1805,7 +1796,6 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
                   </p>
                 </div>
               </div>
-              </LockOverlay>
             )}
 
             {/* ────── CARD TAB ────── */}
