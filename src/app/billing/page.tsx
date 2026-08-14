@@ -8,8 +8,8 @@ type PlanKey = 'bronze' | 'silver' | 'gold'
 
 const PLANS: { key: PlanKey; name: string; price: string; forWho: string; features: string[] }[] = [
   { key: 'bronze', name: 'Bronze', price: '£3.99', forWho: 'Individuals',      features: ['Live NFC card & digital profile', 'Core links + Save Contact & QR', 'Basic tap analytics', 'Connect with other members'] },
-  { key: 'silver', name: 'Silver', price: '£7.99', forWho: 'Creators',         features: ['Everything in Bronze', 'Full analytics dashboard', 'Portfolio gallery + 1GB storage', 'Custom themes & styling', 'Priority support'] },
-  { key: 'gold',   name: 'Gold',   price: '£4.99', forWho: 'Teams — per member', features: ['Everything in Silver, per member', 'Manager dashboard & team analytics', 'Team management & branding', '5-seat minimum'] },
+  { key: 'silver', name: 'Silver', price: '£7.99', forWho: 'Creators',         features: ['Full analytics dashboard', 'Portfolio gallery + 1GB storage (coming soon)', 'Custom themes & styling', 'Priority support'] },
+  { key: 'gold',   name: 'Gold',   price: '£4.99', forWho: 'Teams — per member', features: ['Manager dashboard & team analytics', 'Team management & branding', '5-seat minimum'] },
 ]
 
 const RANK: Record<PlanKey, number> = { bronze: 1, silver: 2, gold: 3 }
@@ -125,7 +125,7 @@ export default function BillingPage() {
                   <div>
                     <span style={s.founderLabel}>Founder</span>
                     <p style={s.founderText}>
-                      You have Founder perks free for life. Upgrade to Silver to add the portfolio gallery and storage.
+                      You have Founder perks free for life. Silver adds the portfolio gallery and storage (coming soon).
                     </p>
                   </div>
                   <button
