@@ -307,8 +307,8 @@ export function StandardConfirmationEmail({
                         <p style={lead}>
                           Thank you for your order. Your {cardLabel} card is being
                           prepared and will be dispatched shortly. Your purchase
-                          includes 3 months of full premium access from the day you
-                          activate it.
+                          includes your first month of full membership access from
+                          the day you activate it.
                         </p>
                       </td>
                     </tr>
@@ -337,7 +337,7 @@ export function StandardConfirmationEmail({
                             ) : null}
                             <tr>
                               <td style={detailRowLabel}>Included</td>
-                              <td style={detailRowValue}>3 months full access</td>
+                              <td style={detailRowValue}>First month full access</td>
                             </tr>
                             <tr>
                               <td style={detailRowLabel}>Status</td>
@@ -373,11 +373,14 @@ export function StandardConfirmationEmail({
 
                         <div style={{ ...stepBlock, ...stepBlockLast }}>
                           <p style={stepNumber}>Step 03</p>
-                          <p style={stepTitle}>Your 3 months begin</p>
+                          <p style={stepTitle}>Your membership begins</p>
                           <p style={stepBody}>
-                            Full premium access starts the day you activate. After
-                            3 months, just £1/month (Bronze) keeps your card live and
-                            your data safe — cancel anytime.
+                            Full access starts the day you activate. After your first
+                            month, you&apos;ll choose the membership tier that fits how
+                            you network — Bronze at £3.99/month, or Silver at £7.99/month
+                            for creators. We&apos;ll be in touch to get you set up. Your
+                            card stays live while your membership is active, and you can
+                            cancel anytime.
                           </p>
                         </div>
                       </td>
