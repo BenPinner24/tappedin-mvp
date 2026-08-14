@@ -62,7 +62,7 @@ type Tier = {
 
 const TIERS: Tier[] = [
   { name: 'Bronze', price: '£3.99', forWho: 'Individuals', features: ['Live NFC card & digital profile', 'Core links, Save Contact & QR', 'Tap analytics', 'Connect with other members'] },
-  { name: 'Silver', price: '£7.99', forWho: 'Creators', features: ['Live NFC card & digital profile', 'Full analytics dashboard', 'Portfolio gallery with storage', 'Custom themes & styling', 'Priority support'], highlight: true },
+  { name: 'Silver', price: '£7.99', forWho: 'Creators', features: ['Live NFC card & digital profile', 'Full analytics dashboard', 'Portfolio gallery with storage (coming soon)', 'Custom themes & styling', 'Priority support'], highlight: true },
   { name: 'Gold', price: '£4.99', forWho: 'Teams — per member', features: ['Cards & profiles for your whole team', 'Manager dashboard & team analytics', 'Centralised team management & branding', '5-seat minimum'] },
 ]
 
