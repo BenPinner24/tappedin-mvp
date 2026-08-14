@@ -18,6 +18,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true)
   const [signedIn, setSignedIn] = useState(false)
   const [currentTier, setCurrentTier] = useState<string | null>(null)
+  const [isFounder, setIsFounder] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -31,11 +32,12 @@ export default function BillingPage() {
         setSignedIn(true)
         const { data: billing } = await supabase
           .from('user_billing')
-          .select('subscription_tier, subscription_status')
+          .select('subscription_tier, subscription_status, is_founder')
           .eq('user_id', session.user.id)
           .maybeSingle()
         setCurrentTier(billing?.subscription_tier ?? null)
         setStatus(billing?.subscription_status ?? null)
+        setIsFounder(billing?.is_founder === true)
       } catch {
         // ignore — treated as no active plan
       } finally {
@@ -44,14 +46,14 @@ export default function BillingPage() {
     })()
   }, [])
 
-  async function choosePlan(tier: PlanKey) {
+  async function choosePlan(tier: PlanKey, founderUpgrade = false) {
     setError(null)
-    setBusy(tier)
+    setBusy(founderUpgrade ? 'founder-upgrade' : tier)
     try {
       const res = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier }),
+        body: JSON.stringify({ tier, founderUpgrade }),
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout.')
@@ -118,6 +120,24 @@ export default function BillingPage() {
 
               {error && <p style={s.error}>{error}</p>}
 
+              {isFounder && (
+                <div style={s.founderBox}>
+                  <div>
+                    <span style={s.founderLabel}>Founder</span>
+                    <p style={s.founderText}>
+                      You have Founder perks free for life. Upgrade to Silver to add the portfolio gallery and storage.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => choosePlan('silver', true)}
+                    disabled={busy === 'founder-upgrade' || currentTier === 'silver'}
+                    style={s.founderBtn}
+                  >
+                    {busy === 'founder-upgrade' ? 'Loading…' : currentTier === 'silver' ? 'Silver active' : 'Upgrade to Silver · £7.99/mo'}
+                  </button>
+                </div>
+              )}
+
               <div style={s.grid}>
                 {PLANS.map((p) => {
                   const isCurrent = hasPlan && currentTier === p.key
@@ -134,11 +154,11 @@ export default function BillingPage() {
                         ))}
                       </ul>
                       <button
-                        disabled
-                        style={s.btnCurrent}
-                        title="Membership upgrades are launching soon"
+                        onClick={() => choosePlan(p.key)}
+                        disabled={isCurrent || busy === p.key}
+                        style={isCurrent ? s.btnCurrent : s.btn}
                       >
-                        Coming soon
+                        {busy === p.key ? 'Loading…' : label}
                       </button>
                     </div>
                   )
@@ -200,4 +220,9 @@ const s: Record<string, React.CSSProperties> = {
   btnCurrent: { padding: '12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,.5)', fontFamily: FF, fontSize: '.82rem', fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase', cursor: 'default' },
 
   foot: { fontSize: '.78rem', color: 'rgba(255,255,255,.32)', lineHeight: 1.6, textAlign: 'center' },
+
+  founderBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap', padding: '1.25rem 1.4rem', border: '1px solid rgba(232,201,160,0.3)', borderRadius: 14, background: 'linear-gradient(155deg, rgba(232,201,160,0.06), rgba(232,201,160,0.02))', marginBottom: '1.5rem' },
+  founderLabel: { display: 'inline-block', fontSize: '.6rem', fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#E8C9A0', border: '1px solid rgba(232,201,160,0.4)', borderRadius: 999, padding: '3px 10px', marginBottom: '.6rem' },
+  founderText: { fontSize: '.88rem', fontWeight: 300, color: 'rgba(255,255,255,.6)', lineHeight: 1.5, maxWidth: 420 },
+  founderBtn: { flexShrink: 0, padding: '12px 22px', borderRadius: 8, border: 'none', background: '#E8C9A0', color: '#1a1a1a', fontFamily: FF, fontSize: '.82rem', fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer', transition: 'opacity .18s' },
 }

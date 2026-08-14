@@ -22,12 +22,25 @@ export const dynamic = 'force-dynamic'
 //      then charges £34.99 immediately and the tier rate from month two.
 //
 // Tiers here are Bronze / Silver / Gold only. Founder is separate.
+//
+// FOUNDER UPGRADE (separate path, see below): a Founder already paid their
+// £49.99 entry and holds free legacy perks. If they choose gallery/storage they
+// upgrade to Silver at the plain tier rate (£7.99/mo) with NO £34.99 first month.
+// That is a normal `mode: 'subscription'` checkout (no schedule needed).
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Valid tiers a customer can choose. (Validation only — the actual price IDs
 // live in the webhook, where the schedule is built.)
 const VALID_TIERS = ['bronze', 'silver', 'gold'] as const
 const GOLD_MIN_SEATS = 5
+
+// Silver price ID for the Founder upgrade path (direct subscription, no schedule).
+// NOTE: duplicated from the webhook for now — post-launch housekeeping is to
+// centralise all price IDs into one shared file (src/lib/stripe/prices.ts).
+const STRIPE_IS_TEST = (process.env.STRIPE_SECRET_KEY ?? '').startsWith('sk_test_')
+const SILVER_PRICE = STRIPE_IS_TEST
+  ? 'price_1U1qdoPjlQmJd4DeiNLhyn8I' // TEST £7.99
+  : 'price_1U1rhtPjlQmJd4De9zQHCHAe' // LIVE £7.99
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -40,8 +53,9 @@ function getStripe(): Stripe {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as { tier?: string; seats?: number }
+    const body = (await req.json()) as { tier?: string; seats?: number; founderUpgrade?: boolean }
     const tier = body.tier
+    const founderUpgrade = body.founderUpgrade === true
 
     if (!tier || !VALID_TIERS.includes(tier as typeof VALID_TIERS[number])) {
       return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
@@ -65,7 +79,7 @@ export async function POST(req: NextRequest) {
     // Reuse the user's Stripe customer, or create one and store it.
     const { data: billing } = await admin
       .from('user_billing')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, is_founder')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -83,8 +97,40 @@ export async function POST(req: NextRequest) {
 
     const origin = req.headers.get('origin') ?? 'https://tappedin.uk'
 
-    // Setup-mode Checkout Session: hosted Stripe page saves the card, charges
-    // nothing now. The webhook builds the schedule from this metadata.
+    // ─────────────────────────────────────────────────────────────────────────
+    // FOUNDER UPGRADE → straight Silver subscription, tier rate only, no £34.99.
+    // We verify is_founder SERVER-SIDE (never trust the client flag), and only
+    // allow the Silver target (Gold is a separate teams product, not a personal
+    // upgrade). A Founder is upgrading an existing free account, so this is a
+    // plain subscription — no setup schedule.
+    // ─────────────────────────────────────────────────────────────────────────
+    if (founderUpgrade) {
+      if (!billing?.is_founder) {
+        return NextResponse.json({ error: 'Not eligible for a Founder upgrade.' }, { status: 403 })
+      }
+      if (tier !== 'silver') {
+        return NextResponse.json({ error: 'Founders can upgrade to Silver only.' }, { status: 400 })
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer: customerId,
+        client_reference_id: user.id,
+        line_items: [{ price: SILVER_PRICE, quantity: 1 }],
+        metadata: { user_id: user.id, tier: 'silver', founder_upgrade: 'true' },
+        subscription_data: {
+          metadata: { user_id: user.id, tier: 'silver', founder_upgrade: 'true' },
+        },
+        success_url: `${origin}/billing?status=success`,
+        cancel_url: `${origin}/billing?status=cancelled`,
+      })
+
+      return NextResponse.json({ url: session.url })
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // NORMAL MEMBERSHIP → setup-mode session; webhook builds the £34.99 schedule.
+    // ─────────────────────────────────────────────────────────────────────────
     const session = await stripe.checkout.sessions.create({
       mode: 'setup',
       currency: 'gbp',
