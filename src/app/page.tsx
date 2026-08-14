@@ -6,6 +6,27 @@ import { createClient } from '@/lib/supabase/client'
 import { ReviewProfileModal } from './_components/ReviewProfileModal'
 
 const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
+// ── INTERIM MEMBERSHIP MODE ──────────────────────────────────────────────────
+// 'onetime'     = "Become a member" buttons go to the £34.99 one-time card link
+//                 (grandfather buyers to legacy manually) while the full
+//                 subscription billing flow is rebuilt.
+// 'subscription' = original behaviour — buttons go to /billing.
+// Flip this ONE value back to 'subscription' when the billing flow is ready.
+const MEMBERSHIP_MODE: 'onetime' | 'subscription' = 'onetime'
+const STANDARD_ONETIME_URL = 'https://buy.stripe.com/dRm14pc1H16F9N7et1cfK03'
+// Where every "Become a member" button points, based on the mode above.
+const MEMBER_CTA_HREF = MEMBERSHIP_MODE === 'onetime' ? STANDARD_ONETIME_URL : '/billing'
+const MEMBER_CTA_EXTERNAL = MEMBERSHIP_MODE === 'onetime'
+// Honest pricing copy per mode. One-time: £34.99 for card + membership, no auto-recurring yet.
+const HERO_PRICE_LINE = MEMBERSHIP_MODE === 'onetime'
+  ? '\u00a334.99 \u2014 includes your card and your membership. We\u2019ll be in touch to set up your profile once your card is on the way.'
+  : '\u00a334.99 \u2014 includes your card and first month of membership. Choose your membership tier when you join.'
+const MEMBERSHIP_TAGLINE = MEMBERSHIP_MODE === 'onetime'
+  ? '\u00a334.99 for your card and membership. Everything, from the first tap.'
+  : 'First month \u00a334.99. Everything, from the first tap.'
+const INDIVIDUAL_PRICE_SUFFIX = MEMBERSHIP_MODE === 'onetime'
+  ? 'card and membership included'
+  : 'then your membership tier'
 // ── EDIT ME ───────────────────────────────────────────────────────────────────
 // Real number of Founder cards already claimed (0–100). Drives the
 // "X / 100 claimed" counter + progress bar in the Founding section below.
@@ -1047,6 +1068,21 @@ function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role:
   )
 }
 
+function MemberCTA({ className, style, children }: { className?: string; style?: React.CSSProperties; children: React.ReactNode }) {
+  if (MEMBER_CTA_EXTERNAL) {
+    return (
+      <a href={MEMBER_CTA_HREF} target="_blank" rel="noopener noreferrer" className={className} style={style}>
+        {children}
+      </a>
+    )
+  }
+  return (
+    <Link href={MEMBER_CTA_HREF} className={className} style={style}>
+      {children}
+    </Link>
+  )
+}
+
 export default function HomePage() {
   const [liveReviews, setLiveReviews] = useState<{ name: string; role: string; rating: number; quote: string; profile_username?: string | null; avatar_url?: string | null }[]>([])
   useEffect(() => {
@@ -1236,7 +1272,7 @@ export default function HomePage() {
           <div style={{ marginTop:'auto', paddingTop:'2rem', display:'flex', flexDirection:'column', gap:'.6rem' }}>
             <Link href="/login" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Sign in</Link>
             <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Dashboard</Link>
-            <Link href="/billing" onClick={() => setMenuOpen(false)} className="btn-primary" style={{ width:'100%', padding:'15px' }}>Become a member</Link>
+            <MemberCTA className="btn-primary" style={{ width:'100%', padding:'15px' }}>Become a member</MemberCTA>
           </div>
         </div>
       )}
@@ -1323,7 +1359,7 @@ export default function HomePage() {
                 marginBottom: isMobile ? '1.4rem' : '2.75rem',
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) .26s both',
               }}>
-                <Link href="/billing" className="btn-primary">Become a member</Link>
+                <MemberCTA className="btn-primary">Become a member</MemberCTA>
                 <a href="#founding" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Explore the Founder Edition</a>
                 <a href="#product" className="btn-ghost">View the card</a>
                 <a
@@ -1395,7 +1431,7 @@ export default function HomePage() {
               </div>
 
               {/* Stats */}
-              <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.74rem' : '.8rem', fontWeight:300, color:'rgba(255,255,255,.4)', letterSpacing:'.01em', lineHeight:1.6, maxWidth:440, marginBottom: isMobile ? '1.4rem' : '2.5rem' }}>&pound;34.99 &mdash; includes your card and first month of membership. Choose your membership tier when you join.</p>
+              <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.74rem' : '.8rem', fontWeight:300, color:'rgba(255,255,255,.4)', letterSpacing:'.01em', lineHeight:1.6, maxWidth:440, marginBottom: isMobile ? '1.4rem' : '2.5rem' }}>{HERO_PRICE_LINE}</p>
               <div style={{ animation:'fadeIn 1.2s ease .55s both' }}>
                 <div style={{ ...DIVIDER, marginBottom: isMobile ? '.9rem' : '1.25rem' }} />
                 <div className="hero-stats" style={{ display:'flex', gap:'2.75rem', flexWrap:'wrap' }}>
@@ -1468,7 +1504,7 @@ export default function HomePage() {
             </div>
 
                         <div className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '3rem' }}>
-              <Link href="/billing" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Become a member</Link>
+              <MemberCTA className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Become a member</MemberCTA>
             </div>
           </div>
         </section>
@@ -1500,7 +1536,7 @@ export default function HomePage() {
             </div>
 
             <p className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '2.5rem', fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.9rem' : '1rem', fontWeight:300, color:'rgba(255,255,255,.5)', letterSpacing:'0.02em' }}>
-              First month £34.99. Everything, from the first tap.
+              {MEMBERSHIP_TAGLINE}
             </p>
           </div>
         </section>
@@ -1582,9 +1618,9 @@ export default function HomePage() {
                   </div>
                   <div style={{ marginTop:'auto', display:'flex', alignItems:'baseline', gap:'.5rem', marginBottom:'1.25rem' }}>
                     <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.75rem', fontWeight:600, color:'#fff', letterSpacing:'0.02em' }}>£34.99</span>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>then your membership tier</span>
+                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>{INDIVIDUAL_PRICE_SUFFIX}</span>
                   </div>
-                  <Link href="/billing" className="btn-primary" style={{ fontSize:'.85rem', padding:'14px 28px' }}>Become a member</Link>
+                  <MemberCTA className="btn-primary" style={{ fontSize:'.85rem', padding:'14px 28px' }}>Become a member</MemberCTA>
                 </div>
               </div>
 
@@ -2103,7 +2139,7 @@ export default function HomePage() {
               Limited to 100 individually numbered cards. Founder Edition pre-orders are live now.
             </p>
             <div className="reveal d3 final-cta-btns" style={{ display:'flex', gap:'.75rem', justifyContent:'center', flexWrap:'wrap' }}>
-              <Link href="/billing" className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Become a member</Link>
+              <MemberCTA className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Become a member</MemberCTA>
               <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Or claim a Founder card</Link>
               <Link href="/demo" className="btn-ghost">View demo profile</Link>
             </div>

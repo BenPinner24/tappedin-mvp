@@ -10,6 +10,13 @@ import { useEffect, useState } from 'react'
 const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
 const PVC_STRIPE_URL = 'https://buy.stripe.com/dRm14pc1H16F9N7et1cfK03'
 const METAL_STRIPE_URL = ''
+// ── INTERIM MEMBERSHIP MODE (mirrors the landing page) ──────────────────────
+// 'onetime' routes "Become a member" to the £34.99 one-time card link and shows
+// honest one-time copy; grandfather buyers to legacy manually. Flip back to
+// 'subscription' when the full billing flow is ready.
+const MEMBERSHIP_MODE: 'onetime' | 'subscription' = 'onetime'
+const MEMBER_CTA_HREF = MEMBERSHIP_MODE === 'onetime' ? PVC_STRIPE_URL : '/billing'
+const MEMBER_CTA_EXTERNAL = MEMBERSHIP_MODE === 'onetime'
 
 // Multi-Pack (PVC bundles) — one person, one profile, several cards.
 const PACK_3_URL = 'https://buy.stripe.com/fZu14p9Tz2aJf7r1GfcfK05'
@@ -30,7 +37,7 @@ type Card = {
 }
 
 const CARDS: Card[] = [
-  { name: 'The Tapped-In Card', price: '£34.99', material: 'Premium PVC', blurb: 'The everyday card, engineered for the strongest, most reliable tap on any phone. No app needed.', url: '/billing', cta: 'Become a member', sub: 'Card + first month of membership included' },
+  { name: 'The Tapped-In Card', price: '£34.99', material: 'Premium PVC', blurb: 'The everyday card, engineered for the strongest, most reliable tap on any phone. No app needed.', url: MEMBER_CTA_HREF, cta: 'Become a member', sub: MEMBERSHIP_MODE === 'onetime' ? 'Card and membership included' : 'Card + first month of membership included' },
   { name: 'Tapped-In Metal', price: '£49.99', material: 'Brushed metal', blurb: 'A heavier premium metal finish. Same instant digital profile, more presence.', url: METAL_STRIPE_URL },
   { name: 'Founders Edition', price: '£49.99', material: 'Matte black · numbered', tag: '100 only', blurb: 'A numbered collector’s piece. 1 of 100 of the first metal cards we ever made. Owning it is the point: a permanent asset, held by only 100 people, ever. Tap it to reveal your number and show you hold one of the original 100. For everyday networking, the Tapped-In Card gives the strongest, most reliable tap.', url: FOUNDERS_STRIPE_URL, cta: 'Order now', founder: true, sub: 'A numbered collector’s asset · Permanent discount' },
 ]
@@ -61,7 +68,7 @@ type Tier = {
 }
 
 const TIERS: Tier[] = [
-  { name: 'Bronze', price: '£3.99', forWho: 'Individuals', features: ['Live NFC card & digital profile', 'Core links, Save Contact & QR', 'Tap analytics', 'Connect with other members'] },
+  { name: 'Bronze', price: '£3.99', forWho: 'Individuals', features: ['Live NFC card & digital profile', 'Core links, Save Contact & QR', 'Basic tap analytics', 'Connect with other members'] },
   { name: 'Silver', price: '£7.99', forWho: 'Creators', features: ['Live NFC card & digital profile', 'Full analytics dashboard', 'Portfolio gallery with storage (coming soon)', 'Custom themes & styling', 'Priority support'], highlight: true },
   { name: 'Gold', price: '£4.99', forWho: 'Teams — per member', features: ['Cards & profiles for your whole team', 'Manager dashboard & team analytics', 'Centralised team management & branding', '5-seat minimum'] },
 ]
@@ -175,7 +182,11 @@ export default function PricingPage() {
             </div>
  
             <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-              <Link href="/billing" style={s.buyPrimary}>Become a member</Link>
+              {MEMBER_CTA_EXTERNAL ? (
+                <a href={MEMBER_CTA_HREF} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Become a member</a>
+              ) : (
+                <Link href={MEMBER_CTA_HREF} style={s.buyPrimary}>Become a member</Link>
+              )}
             </div>
 
             {/* Teams call-out — links to the dedicated /business page */}
