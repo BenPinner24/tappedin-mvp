@@ -153,13 +153,19 @@ export default function BillingPage() {
                           <li key={f} style={s.feat}><span style={s.check}>✓</span>{f}</li>
                         ))}
                       </ul>
-                      <button
-                        onClick={() => choosePlan(p.key)}
-                        disabled={isCurrent || busy === p.key}
-                        style={isCurrent ? s.btnCurrent : s.btn}
-                      >
-                        {busy === p.key ? 'Loading…' : label}
-                      </button>
+                      {p.key === 'gold' ? (
+                        <Link href="/business" style={{ ...s.btn, display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+                          For Teams →
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => choosePlan(p.key)}
+                          disabled={isCurrent || busy === p.key}
+                          style={isCurrent ? s.btnCurrent : s.btn}
+                        >
+                          {busy === p.key ? 'Loading…' : label}
+                        </button>
+                      )}
                     </div>
                   )
                 })}
