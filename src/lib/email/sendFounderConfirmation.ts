@@ -28,22 +28,20 @@ export interface SendFounderConfirmationResult {
 
 const FROM = 'TAPPED-IN <contact@tappedin.uk>'
 const REPLY_TO = 'contact@tappedin.uk'
-const SUBJECT = 'Your TAPPED-IN Founders Edition is reserved'
+const SUBJECT = 'Welcome to the TAPPED-IN Founders Edition'
 
 export async function sendFounderConfirmation(
   params: SendFounderConfirmationParams
 ): Promise<SendFounderConfirmationResult> {
-  const { to, customerName, orderNumber, editionNumber, allocationTotal } = params
+  const { to, customerName, orderNumber, editionNumber } = params
 
   if (!to || !to.includes('@')) {
     return { success: false, error: 'Invalid recipient email address.' }
   }
 
-  // Build the allocation string e.g. "4 of 100" if both values present
-  const editionDisplay =
-    editionNumber != null && allocationTotal != null
-      ? `${editionNumber} of ${allocationTotal}`
-      : editionNumber
+  // Pass the raw edition number straight through — the email template formats it
+  // once as "N / 100". (allocationTotal stays in the params type for the caller
+  // but is no longer needed here.)
 
   try {
     const resend = getResend()
@@ -56,7 +54,7 @@ export async function sendFounderConfirmation(
       react: FounderConfirmationEmail({
         customerName,
         orderNumber,
-        editionNumber: editionDisplay,
+        editionNumber,
       }),
       headers: {
         'X-Entity-Ref-ID': orderNumber ?? `founders-${Date.now()}`,

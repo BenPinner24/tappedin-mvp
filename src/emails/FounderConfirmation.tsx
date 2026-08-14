@@ -130,6 +130,40 @@ export function FounderConfirmationEmail({
     margin: '0 0 18px 0',
   }
 
+  const perksCell: React.CSSProperties = {
+    padding: '0 32px 8px 32px',
+  }
+
+  const perkRow: React.CSSProperties = {
+    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    fontSize: '14px',
+    fontWeight: 400,
+    lineHeight: 1.6,
+    color: '#c8c8c8',
+    padding: '9px 0',
+    borderBottom: '1px solid #141414',
+  }
+
+  const perkRowLast: React.CSSProperties = {
+    ...perkRow,
+    borderBottom: 'none',
+  }
+
+  const perkCheck: React.CSSProperties = {
+    color: '#c9a86a',
+    fontWeight: 600,
+    paddingRight: '10px',
+  }
+
+  const upgradeNote: React.CSSProperties = {
+    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    fontSize: '13px',
+    fontWeight: 400,
+    lineHeight: 1.65,
+    color: '#888888',
+    margin: '18px 0 0 0',
+  }
+
   const stepsCell: React.CSSProperties = {
     padding: '0 32px 40px 32px',
   }
@@ -247,7 +281,7 @@ export function FounderConfirmationEmail({
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="color-scheme" content="dark" />
         <meta name="supported-color-schemes" content="dark" />
-        <title>Your TAPPED-IN Founders Edition is reserved</title>
+        <title>Welcome to the TAPPED-IN Founders Edition</title>
       </head>
       <body style={wrapper}>
         {/* Preheader — hidden preview text */}
@@ -263,7 +297,7 @@ export function FounderConfirmationEmail({
             color: '#050505',
           }}
         >
-          Your place among the first 100 is secured. Your numbered Founders Edition card is being prepared.
+          You are one of only 100. Your numbered Founders Edition card and lifetime perks are ready.
         </div>
 
         <table
@@ -296,16 +330,18 @@ export function FounderConfirmationEmail({
                     {/* HERO */}
                     <tr>
                       <td style={heroCell}>
-                        <p style={eyebrow}>Founders Edition · Reserved</p>
+                        <p style={eyebrow}>Founders Edition · 1 of 100</p>
                         <h1 style={heading}>
                           {greeting}
                           <br />
-                          <span style={headingLight}>Your place is secured.</span>
+                          <span style={headingLight}>You&apos;re one of the 100.</span>
                         </h1>
                         <p style={lead}>
-                          You are now among the first 100 to hold a TAPPED-IN card.
-                          Each one is individually numbered, hand-finished, and will
-                          never be reproduced. Your reservation has been confirmed.
+                          There are only 100 Founders Edition cards, and one of them
+                          is yours. Individually numbered, hand-finished, and never
+                          reproduced. Being a Founder isn&apos;t just a card, it&apos;s a
+                          permanent place at the start of something, with perks that
+                          stay with you for life.
                         </p>
                       </td>
                     </tr>
@@ -327,9 +363,9 @@ export function FounderConfirmationEmail({
                               <td style={detailRowValue}>Founders</td>
                             </tr>
                             <tr>
-                              <td style={detailRowLabel}>Allocation</td>
+                              <td style={detailRowLabel}>Your Number</td>
                               <td style={detailRowValue}>
-                                {editionNumber ? `${editionNumber} / 100` : '1 of 100'}
+                                {editionNumber ? `${editionNumber} / 100` : '— / 100'}
                               </td>
                             </tr>
                             {orderNumber ? (
@@ -347,37 +383,76 @@ export function FounderConfirmationEmail({
                       </td>
                     </tr>
 
+                    {/* PERKS */}
+                    <tr>
+                      <td style={perksCell}>
+                        <p style={sectionHeading}>Your Founder perks, free for life</p>
+
+                        <div style={perkRow}>
+                          <span style={perkCheck}>&#10003;</span>
+                          Full analytics, so you can see every tap, view, and click
+                        </div>
+                        <div style={perkRow}>
+                          <span style={perkCheck}>&#10003;</span>
+                          Custom styling to make your profile unmistakably yours
+                        </div>
+                        <div style={perkRowLast}>
+                          <span style={perkCheck}>&#10003;</span>
+                          Connections, to save and grow your network
+                        </div>
+
+                        <p style={upgradeNote}>
+                          Everything above is yours for life, at no ongoing cost. The
+                          only thing not included is the portfolio gallery and media
+                          storage, which you can add any time by upgrading to Silver
+                          (£7.99/month) from your billing page. No pressure, it&apos;s
+                          there if you ever want it.
+                        </p>
+                      </td>
+                    </tr>
+
+                    {/* DIVIDER */}
+                    <tr>
+                      <td style={dividerCell}>
+                        <div style={divider}>&nbsp;</div>
+                      </td>
+                    </tr>
+
                     {/* STEPS */}
                     <tr>
-                      <td style={stepsCell}>
-                        <p style={sectionHeading}>What to expect</p>
+                      <td style={{ ...stepsCell, paddingTop: '40px' }}>
+                        <p style={sectionHeading}>Activating your card</p>
 
                         <div style={stepBlock}>
                           <p style={stepNumber}>Step 01</p>
-                          <p style={stepTitle}>Production updates</p>
+                          <p style={stepTitle}>Tap the right way round</p>
                           <p style={stepBody}>
-                            We&apos;ll keep you informed by email as your numbered card
-                            moves through finishing and dispatch.
+                            Your card only taps from one side, and it&apos;s by design.
+                            Tap with the front (the TAPPED-IN logo) facing down, so the
+                            back, with your &ldquo;Founders Edition {editionNumber ? `${editionNumber}/100` : 'XXX/100'}&rdquo;,
+                            is the side on show. Your number is always what people see
+                            in the moment you connect.
                           </p>
                         </div>
 
                         <div style={stepBlock}>
                           <p style={stepNumber}>Step 02</p>
-                          <p style={stepTitle}>Activation, closer to launch</p>
+                          <p style={stepTitle}>Claim it to your profile</p>
                           <p style={stepBody}>
-                            Activation instructions will arrive nearer to delivery.
-                            Pairing your card to your profile takes seconds — no app
-                            required.
+                            The first tap opens a short claim page. Sign in or create
+                            your account and confirm, it takes seconds, no app required.
+                            Your card is then linked to you, and your Founder perks are
+                            applied automatically.
                           </p>
                         </div>
 
                         <div style={{ ...stepBlock, ...stepBlockLast }}>
                           <p style={stepNumber}>Step 03</p>
-                          <p style={stepTitle}>Your live profile</p>
+                          <p style={stepTitle}>Make it yours</p>
                           <p style={stepBody}>
-                            When the time comes, you&apos;ll be invited to set up your
-                            digital profile — links, portfolio, contact, and more —
-                            ready the moment your card is activated.
+                            Add your links, contact details, and styling from your
+                            dashboard. Every future tap instantly shows your live
+                            profile, ready whenever you are.
                           </p>
                         </div>
                       </td>
