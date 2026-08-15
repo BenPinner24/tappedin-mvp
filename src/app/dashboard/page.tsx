@@ -71,6 +71,7 @@ type CardRecord = {
   card_id: string
   status: string | null
   nfc_url: string | null
+  activated_at: string | null
 }
 
 type GalleryItem = {
@@ -555,6 +556,8 @@ export default function DashboardPage() {
   const [dormant, setDormant]               = useState(false)
   const [canUseStorage, setCanUseStorage]   = useState(true)
   const [canUseStyling, setCanUseStyling]   = useState(true)
+  const [canUseQr, setCanUseQr]             = useState(true)
+  const [canUseFullAnalytics, setCanUseFullAnalytics] = useState(true)
   const [uploading, setUploading]           = useState(false)
   const [avatarPreview, setAvatarPreview]   = useState<string | null>(null)
   const [uploadError, setUploadError]       = useState<string | null>(null)
@@ -604,33 +607,58 @@ export default function DashboardPage() {
       }
 
       const { data: cardData } = await supabase
-        .from('cards').select('card_id, status, nfc_url')
+        .from('cards').select('card_id, status, nfc_url, activated_at')
         .eq('owner_user_id', userId).limit(1).maybeSingle()
       if (cardData) setCard(cardData)
 
       // Subscription status → dormant check (no billing row = active/grandfathered)
       const { data: billingRow } = await supabase
         .from('user_billing')
-        .select('subscription_tier, subscription_status')
+        .select('subscription_tier, subscription_status, is_founder')
         .eq('user_id', userId)
         .maybeSingle()
       setDormant(isCardDormant(
         billingRow?.subscription_tier,
         billingRow?.subscription_status,
         !!billingRow,
+        !!billingRow?.is_founder,
       ))
-      // Storage (gallery uploads) is the real cost driver — gated to Silver+.
-      // Basic AND legacy users don't get it; only Silver/Gold/Founder do.
+      // Under the one-time model, access depends on the card's activation date
+      // (first-month full access) as well as tier/status. Legacy/founder are
+      // handled first in the engine and are unaffected by the first-month window.
+      const activatedAt = cardData?.activated_at ?? null
+      const founderFlag = !!billingRow?.is_founder
+      // Storage (gallery uploads) — Silver+ only (still "coming soon" in UI).
       setCanUseStorage(canAccess(
         billingRow?.subscription_tier,
         'storage',
         billingRow?.subscription_status,
+        founderFlag,
+        activatedAt,
       ))
-      // Custom styling — legacy + Silver+ keep it; only new basic users are gated.
+      // Advanced styling — legacy + Silver+ + first-month buyers; basic floor gated.
       setCanUseStyling(canAccess(
         billingRow?.subscription_tier,
         'styling_full',
         billingRow?.subscription_status,
+        founderFlag,
+        activatedAt,
+      ))
+      // QR / card feature — Silver+ and first-month; Bronze free floor gated.
+      setCanUseQr(canAccess(
+        billingRow?.subscription_tier,
+        'qr_code',
+        billingRow?.subscription_status,
+        founderFlag,
+        activatedAt,
+      ))
+      // Full analytics — Silver+ and first-month; Bronze floor gets basic only.
+      setCanUseFullAnalytics(canAccess(
+        billingRow?.subscription_tier,
+        'full_analytics',
+        billingRow?.subscription_status,
+        founderFlag,
+        activatedAt,
       ))
 
       const { data: tapEvents } = await supabase
@@ -1807,6 +1835,15 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
                   boxSizing: 'border-box', overflowX: 'hidden',
                 } : s.tabContent}
               >
+                <LockOverlay
+                  enabled={!canUseQr && !dormant}
+                  variant="locked"
+                  title="Your QR code is a Silver feature"
+                  message="Share your profile with a downloadable QR code. Upgrade to Silver to unlock it, or it's included free in your first month."
+                  ctaLabel="Unlock with Silver"
+                  ctaHref="/billing"
+                  minHeight={220}
+                >
                 {profile?.username ? (
                   <div
                     className="ti-qr-card"
@@ -1855,6 +1892,7 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
                     <p style={s.nfcEmptyText}>Your QR code will appear here once you have a public profile URL.</p>
                   </div>
                 )}
+                </LockOverlay>
 
                 {card ? (
                   <>
