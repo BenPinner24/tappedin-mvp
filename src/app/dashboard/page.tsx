@@ -629,7 +629,7 @@ export default function DashboardPage() {
       // Custom styling — legacy + Silver+ keep it; only new basic users are gated.
       setCanUseStyling(canAccess(
         billingRow?.subscription_tier,
-        'styling',
+        'styling_full',
         billingRow?.subscription_status,
       ))
 
