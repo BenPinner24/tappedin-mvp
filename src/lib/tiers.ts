@@ -92,7 +92,8 @@ const LEGACY_ALLOW: Feature[] = [
   'styling_full',
   'connections_taste',
   'connections_full',
-  // NOT gallery, NOT storage (locked → Silver), NOT qr_code,
+  'qr_code',
+  // NOT gallery, NOT storage (locked → Silver),
   // NOT manager_dashboard_* (Gold)
 ]
 
