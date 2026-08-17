@@ -188,10 +188,9 @@ export function SubscriptionWelcomeEmail({
                           <span style={headingLight}>You&apos;re on {t.label}.</span>
                         </h1>
                         <p style={lead}>
-                          Your Tapped-In membership is active and your card is live. Your
-                          first month gives you the complete Tapped-In system. From next
-                          month, your {t.label} membership continues at {t.monthly}/month —
-                          and your card stays live for as long as you&apos;re a member.
+                          Your Tapped-In {t.label} membership is active and your card is
+                          live. You now have the full {t.label} toolkit at {t.monthly}/month
+                          — and your card stays live for as long as you&apos;re a member.
                         </p>
                       </td>
                     </tr>
@@ -206,11 +205,7 @@ export function SubscriptionWelcomeEmail({
                               <td style={detailRowValue}>Tapped-In {t.label}</td>
                             </tr>
                             <tr>
-                              <td style={detailRowLabel}>First month</td>
-                              <td style={detailRowValue}>£34.99</td>
-                            </tr>
-                            <tr>
-                              <td style={detailRowLabel}>Then</td>
+                              <td style={detailRowLabel}>Monthly</td>
                               <td style={detailRowValue}>{ongoing}</td>
                             </tr>
                             {renewalDate ? (
@@ -260,20 +255,20 @@ export function SubscriptionWelcomeEmail({
 
                         <div style={stepBlock}>
                           <p style={stepNumber}>Step 02</p>
-                          <p style={stepTitle}>Your first month</p>
+                          <p style={stepTitle}>Everything is unlocked</p>
                           <p style={stepBody}>
-                            Your £34.99 first month gives you full access to the Tapped-In
-                            system while you set everything up exactly how you want it.
+                            Your {t.label} features are active now — set everything up
+                            exactly how you want it from your dashboard.
                           </p>
                         </div>
 
                         <div style={{ ...stepBlock, ...stepBlockLast }}>
                           <p style={stepNumber}>Step 03</p>
-                          <p style={stepTitle}>Then {t.label}, month to month</p>
+                          <p style={stepTitle}>{t.label}, month to month</p>
                           <p style={stepBody}>
-                            From next month your membership continues at {ongoing}. It keeps
-                            your card live and your profile active — manage or cancel anytime
-                            from your dashboard.
+                            Your membership continues at {ongoing}. It keeps your card live
+                            and your profile active — manage or cancel anytime from your
+                            dashboard.
                           </p>
                         </div>
                       </td>
