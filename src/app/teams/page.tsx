@@ -119,6 +119,38 @@ export default function TeamsPage() {
         if (!active) return
         setMyCompanyName(company?.name ?? 'Your company')
         setJoinCode(company?.join_code ?? '')
+
+        // Full team dashboard = the manager on Gold (or their first month).
+        // Basic managers still get summary stats + management tools.
+        const { data: mgrBilling } = await supabase
+          .from('user_billing')
+          .select('subscription_tier, subscription_status, is_founder')
+          .eq('user_id', user.id)
+          .maybeSingle()
+        const { data: mgrCard } = await supabase
+          .from('cards')
+          .select('activated_at')
+          .eq('owner_user_id', user.id)
+          .limit(1)
+          .maybeSingle()
+        if (!active) return
+        const _fullAccess = canAccess(
+          mgrBilling?.subscription_tier,
+          'manager_dashboard_full',
+          mgrBilling?.subscription_status,
+          !!mgrBilling?.is_founder,
+          mgrCard?.activated_at ?? null,
+          new Date(),
+          true,
+        )
+        console.log('[TEAMS DIAG]', {
+          tier: mgrBilling?.subscription_tier,
+          status: mgrBilling?.subscription_status,
+          activated_at: mgrCard?.activated_at,
+          canSeeFullTeam: _fullAccess,
+        })
+        setCanSeeFullTeam(_fullAccess)
+
         await loadDashboardData(30)
         if (!active) return
         setView('dashboard')
