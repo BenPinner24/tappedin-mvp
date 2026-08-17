@@ -148,12 +148,12 @@ export default function BillingPage() {
                 {PLANS.map((p) => {
                   const isCurrent = hasPlan && currentTier === p.key
                   const isUpgrade = hasPlan && currentTier ? RANK[p.key] > RANK[currentTier as PlanKey] : false
-                  const label = isCurrent ? 'Current plan' : isUpgrade ? 'Upgrade' : hasPlan ? 'Switch' : 'Choose'
+                  const label = isCurrent ? 'Current plan' : p.key === 'silver' ? 'Upgrade to Silver' : isUpgrade ? 'Upgrade' : 'Choose'
                   return (
                     <div key={p.key} style={{ ...s.card, ...(isCurrent ? s.cardCurrent : {}) }}>
                       <h3 style={s.cardName}>{p.name}</h3>
                       <p style={s.cardFor}>{p.forWho}</p>
-                      <p style={s.cardPrice}>{p.price}<span style={s.per}>/mo</span></p>
+                      <p style={s.cardPrice}>{p.price}{p.price !== 'Free' ? <span style={s.per}>/mo</span> : null}</p>
                       <ul style={s.feats}>
                         {p.features.map((f) => (
                           <li key={f} style={s.feat}><span style={s.check}>✓</span>{f}</li>
