@@ -7,9 +7,9 @@ import { createClient } from '@/lib/supabase/client'
 type PlanKey = 'bronze' | 'silver' | 'gold'
 
 const PLANS: { key: PlanKey; name: string; price: string; forWho: string; features: string[] }[] = [
-  { key: 'bronze', name: 'Bronze', price: '£3.99', forWho: 'Individuals',      features: ['Live NFC card & digital profile', 'Core links + Save Contact & QR', 'Basic tap analytics', 'Connect with other members'] },
-  { key: 'silver', name: 'Silver', price: '£7.99', forWho: 'Creators',         features: ['Full analytics dashboard', 'Portfolio gallery + 1GB storage (coming soon)', 'Custom themes & styling', 'Priority support'] },
-  { key: 'gold',   name: 'Gold',   price: '£4.99', forWho: 'Teams — per member', features: ['Manager dashboard & team analytics', 'Team management & branding', '5-seat minimum'] },
+  { key: 'bronze', name: 'Bronze', price: 'Free', forWho: 'Your plan after month one', features: ['Live NFC card & digital profile', 'Core links + Save Contact', 'Basic tap analytics', 'Connect with other members', 'Your card stays live — no subscription needed'] },
+  { key: 'silver', name: 'Silver', price: '£7.99', forWho: 'Optional upgrade',      features: ['Full analytics dashboard', 'Custom themes & advanced styling', 'Downloadable QR code', 'Portfolio gallery + storage (coming soon)', 'Priority support'] },
+  { key: 'gold',   name: 'Gold',   price: '£4.99', forWho: 'Teams — per member', features: ['Manager dashboard & team analytics', 'Team management & branding', 'Enquiry-first for teams'] },
 ]
 
 const RANK: Record<PlanKey, number> = { bronze: 1, silver: 2, gold: 3 }
@@ -50,10 +50,16 @@ export default function BillingPage() {
     setError(null)
     setBusy(founderUpgrade ? 'founder-upgrade' : tier)
     try {
+      // Silver is the one optional upgrade — use the clean subscription checkout
+      // (same path as the dashboard locks). Founder upgrades use the founder flag.
+      const payload: { tier: PlanKey; founderUpgrade?: boolean; silverUpgrade?: boolean } =
+        founderUpgrade
+          ? { tier, founderUpgrade: true }
+          : { tier, silverUpgrade: true }
       const res = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier, founderUpgrade }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout.')
@@ -92,7 +98,7 @@ export default function BillingPage() {
 
           <h1 style={s.h1}>Your plan</h1>
           <p style={s.sub}>
-            Choose a membership to keep your card live and unlock more. Change or cancel anytime. Founders and early cardholders keep their special status.
+            Your card is yours from your one-off purchase. Your first month includes full access to everything. After that you stay on Bronze — free, with your card live and the core features — for as long as you like. Silver is an optional upgrade whenever you want the full toolkit. No forced subscription, cancel anytime.
           </p>
 
           {loading ? (
@@ -157,6 +163,10 @@ export default function BillingPage() {
                         <Link href="/business" style={{ ...s.btn, display: 'block', textAlign: 'center', textDecoration: 'none' }}>
                           For Teams →
                         </Link>
+                      ) : p.key === 'bronze' ? (
+                        <div style={s.btnCurrent}>
+                          {hasPlan && currentTier !== 'bronze' ? 'Included free' : 'Your free plan'}
+                        </div>
                       ) : (
                         <button
                           onClick={() => choosePlan(p.key)}
