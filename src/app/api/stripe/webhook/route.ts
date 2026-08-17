@@ -348,6 +348,29 @@ export async function POST(req: NextRequest) {
           subscription_status: status,
           subscription_current_period_end: periodEnd,
         }, { onConflict: 'user_id' })
+
+      // Send the tier-aware welcome email (Silver/Gold upgrades, Founder upgrades).
+      // Wrapped so an email hiccup never fails the webhook — the subscription is
+      // already recorded above.
+      try {
+        const email =
+          session.customer_details?.email ||
+          session.customer_email ||
+          undefined
+        if (email && (resolvedTier === 'bronze' || resolvedTier === 'silver' || resolvedTier === 'gold')) {
+          const name = session.customer_details?.name?.trim().split(' ')[0] || undefined
+          await sendSubscriptionWelcome({
+            to: email,
+            customerName: name,
+            tier: resolvedTier,
+            seats: 1,
+          })
+        } else {
+          console.warn('[stripe/webhook] subscription checkout: no email or non-tier for welcome:', { email, resolvedTier })
+        }
+      } catch (mailErr) {
+        console.error('[stripe/webhook] subscription welcome email failed:', mailErr)
+      }
     } else {
       console.warn('[stripe/webhook] subscription checkout with no user id:', session.id)
     }
