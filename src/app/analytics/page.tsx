@@ -538,16 +538,27 @@ export default function AnalyticsPage() {
         .order('tapped_at', { ascending: false })
       if (data) setAllEvents(data)
 
+      // Card activation date — needed for the first-month full-access window.
+      const { data: cardRow } = await supabase
+        .from('cards')
+        .select('activated_at')
+        .eq('owner_user_id', session.user.id)
+        .limit(1)
+        .maybeSingle()
+
       // Tier → can this user see the full analytics, or just the KPI headline?
+      // Founder-safe + first-month-aware, matching the dashboard gating.
       const { data: billingRow } = await supabase
         .from('user_billing')
-        .select('subscription_tier, subscription_status')
+        .select('subscription_tier, subscription_status, is_founder')
         .eq('user_id', session.user.id)
         .maybeSingle()
       setCanSeeFull(canAccess(
         billingRow?.subscription_tier,
         'full_analytics',
         billingRow?.subscription_status,
+        !!billingRow?.is_founder,
+        cardRow?.activated_at ?? null,
       ))
     } finally {
       setLoading(false)
