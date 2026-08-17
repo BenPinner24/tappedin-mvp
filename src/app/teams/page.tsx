@@ -143,12 +143,6 @@ export default function TeamsPage() {
           new Date(),
           true,
         )
-        console.log('[TEAMS DIAG]', {
-          tier: mgrBilling?.subscription_tier,
-          status: mgrBilling?.subscription_status,
-          activated_at: mgrCard?.activated_at,
-          canSeeFullTeam: _fullAccess,
-        })
         setCanSeeFullTeam(_fullAccess)
 
         await loadDashboardData(30)
