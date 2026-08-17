@@ -519,6 +519,25 @@ function EmptyState({ icon, title, body }: { icon: React.ReactNode; title: strin
 export default function AnalyticsPage() {
   const [allEvents, setAllEvents] = useState<TapEvent[]>([])
   const [canSeeFull, setCanSeeFull] = useState(true)
+  const [upgradeBusy, setUpgradeBusy] = useState(false)
+
+  async function startSilverUpgrade() {
+    if (upgradeBusy) return
+    setUpgradeBusy(true)
+    try {
+      const res = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: 'silver', silverUpgrade: true }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout.')
+      window.location.href = data.url
+    } catch (err) {
+      console.error('[silver upgrade]', err)
+      setUpgradeBusy(false)
+    }
+  }
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [range, setRange] = useState<RangeKey>('30d')
@@ -684,7 +703,8 @@ export default function AnalyticsPage() {
               title="Unlock full analytics"
               message="See your trends over time, top links, device breakdown, peak activity and live feed. Upgrade to Silver to unlock the full picture."
               ctaLabel="Unlock with Silver"
-              ctaHref="/billing"
+              onCta={startSilverUpgrade}
+              ctaBusy={upgradeBusy}
             >
 
             {/* CHART */}

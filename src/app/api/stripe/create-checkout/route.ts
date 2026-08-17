@@ -53,9 +53,10 @@ function getStripe(): Stripe {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as { tier?: string; seats?: number; founderUpgrade?: boolean }
+    const body = (await req.json()) as { tier?: string; seats?: number; founderUpgrade?: boolean; silverUpgrade?: boolean }
     const tier = body.tier
     const founderUpgrade = body.founderUpgrade === true
+    const silverUpgrade = body.silverUpgrade === true
 
     if (!tier || !VALID_TIERS.includes(tier as typeof VALID_TIERS[number])) {
       return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
@@ -96,6 +97,29 @@ export async function POST(req: NextRequest) {
     }
 
     const origin = req.headers.get('origin') ?? 'https://tappedin.uk'
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SILVER UPGRADE (new model) → any logged-in user upgrades to Silver at the
+    // plain tier rate (£7.99/mo). A normal `mode: 'subscription'` checkout with a
+    // clearly shown price — no setup-mode, no £34.99 schedule. The webhook's
+    // subscription handler records silver/active on completion.
+    // ─────────────────────────────────────────────────────────────────────────
+    if (silverUpgrade) {
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer: customerId,
+        client_reference_id: user.id,
+        line_items: [{ price: SILVER_PRICE, quantity: 1 }],
+        metadata: { user_id: user.id, tier: 'silver', silver_upgrade: 'true' },
+        subscription_data: {
+          metadata: { user_id: user.id, tier: 'silver', silver_upgrade: 'true' },
+        },
+        success_url: `${origin}/dashboard?upgraded=silver`,
+        cancel_url: `${origin}/dashboard?upgrade=cancelled`,
+      })
+
+      return NextResponse.json({ url: session.url })
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // FOUNDER UPGRADE → straight Silver subscription, tier rate only, no £34.99.

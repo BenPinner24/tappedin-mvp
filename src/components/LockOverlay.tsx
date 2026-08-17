@@ -25,6 +25,12 @@ type LockOverlayProps = {
   message: string          // one plain sentence of direction
   ctaLabel: string         // e.g. "Reactivate your card"  /  "Unlock with Silver"
   ctaHref?: string         // defaults to /billing
+  // Optional: run an action on CTA click instead of navigating. When provided,
+  // the CTA becomes a button that calls this (e.g. start a Stripe checkout).
+  // When omitted, the CTA stays a normal link to ctaHref (unchanged behaviour).
+  onCta?: () => void
+  // Optional: disables the CTA + shows busy text while an action runs.
+  ctaBusy?: boolean
   // Optional: how tall the frosted area should be if the children are short.
   minHeight?: number | string
 }
@@ -39,6 +45,8 @@ export default function LockOverlay({
   message,
   ctaLabel,
   ctaHref = '/billing',
+  onCta,
+  ctaBusy = false,
   minHeight,
 }: LockOverlayProps) {
   // Pass-through: when not enabled, render children exactly as-is.
@@ -136,24 +144,48 @@ export default function LockOverlay({
           {message}
         </p>
 
-        <Link
-          href={ctaHref}
-          style={{
-            marginTop: '0.35rem',
-            display: 'inline-block',
-            padding: '0.7rem 1.5rem',
-            borderRadius: 10,
-            background: ACCENT,
-            color: '#1a1206',
-            fontFamily: `var(--font-dm-sans), 'DM Sans', system-ui, sans-serif`,
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            textDecoration: 'none',
-            letterSpacing: '0.01em',
-          }}
-        >
-          {ctaLabel}
-        </Link>
+        {onCta ? (
+          <button
+            onClick={onCta}
+            disabled={ctaBusy}
+            style={{
+              marginTop: '0.35rem',
+              display: 'inline-block',
+              padding: '0.7rem 1.5rem',
+              borderRadius: 10,
+              border: 'none',
+              background: ACCENT,
+              color: '#1a1206',
+              fontFamily: `var(--font-dm-sans), 'DM Sans', system-ui, sans-serif`,
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              letterSpacing: '0.01em',
+              cursor: ctaBusy ? 'not-allowed' : 'pointer',
+              opacity: ctaBusy ? 0.7 : 1,
+            }}
+          >
+            {ctaBusy ? 'Loading…' : ctaLabel}
+          </button>
+        ) : (
+          <Link
+            href={ctaHref}
+            style={{
+              marginTop: '0.35rem',
+              display: 'inline-block',
+              padding: '0.7rem 1.5rem',
+              borderRadius: 10,
+              background: ACCENT,
+              color: '#1a1206',
+              fontFamily: `var(--font-dm-sans), 'DM Sans', system-ui, sans-serif`,
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              textDecoration: 'none',
+              letterSpacing: '0.01em',
+            }}
+          >
+            {ctaLabel}
+          </Link>
+        )}
       </div>
     </div>
   )

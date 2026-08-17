@@ -558,6 +558,7 @@ export default function DashboardPage() {
   const [canUseStyling, setCanUseStyling]   = useState(true)
   const [canUseQr, setCanUseQr]             = useState(true)
   const [canUseFullAnalytics, setCanUseFullAnalytics] = useState(true)
+  const [upgradeBusy, setUpgradeBusy]       = useState(false)
   const [uploading, setUploading]           = useState(false)
   const [avatarPreview, setAvatarPreview]   = useState<string | null>(null)
   const [uploadError, setUploadError]       = useState<string | null>(null)
@@ -1015,6 +1016,25 @@ accent_color: profile.accent_color,
     link.download   = `tapped-in-qr-${profile?.username ?? 'profile'}.png`
     link.href       = canvas.toDataURL('image/png')
     link.click()
+  }
+
+  // Start a clean Silver upgrade checkout (normal subscription, price shown).
+  async function startSilverUpgrade() {
+    if (upgradeBusy) return
+    setUpgradeBusy(true)
+    try {
+      const res = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: 'silver', silverUpgrade: true }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout.')
+      window.location.href = data.url
+    } catch (err) {
+      console.error('[silver upgrade]', err)
+      setUpgradeBusy(false)
+    }
   }
 
   function patchProfile(fields: Partial<Profile>) {
@@ -1771,10 +1791,11 @@ link.url.startsWith('tel:')
 <LockOverlay
   enabled={!canUseStyling && !dormant}
   variant="locked"
-  title="Styling is a Silver feature"
-  message="Customise your profile with themes, colours and button styles. Upgrade to Silver to make your profile truly yours."
+  title="Advanced styling is a Silver feature"
+  message="Customise your profile with themes, colours and button styles. Included free in your first month, then upgrade to Silver to keep it."
   ctaLabel="Unlock with Silver"
-  ctaHref="/billing"
+  onCta={startSilverUpgrade}
+  ctaBusy={upgradeBusy}
   minHeight={340}
 >
 <BrandStudio
@@ -1841,7 +1862,8 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
                   title="Your QR code is a Silver feature"
                   message="Share your profile with a downloadable QR code. Upgrade to Silver to unlock it, or it's included free in your first month."
                   ctaLabel="Unlock with Silver"
-                  ctaHref="/billing"
+                  onCta={startSilverUpgrade}
+                  ctaBusy={upgradeBusy}
                   minHeight={220}
                 >
                 {profile?.username ? (
