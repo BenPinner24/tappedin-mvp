@@ -19,13 +19,10 @@ const MEMBER_CTA_HREF = MEMBERSHIP_MODE === 'onetime' ? STANDARD_ONETIME_URL : '
 const MEMBER_CTA_EXTERNAL = MEMBERSHIP_MODE === 'onetime'
 // Honest pricing copy per mode. One-time: £34.99 for card + membership, no auto-recurring yet.
 const HERO_PRICE_LINE = MEMBERSHIP_MODE === 'onetime'
-  ? '\u00a334.99 \u2014 includes your card and your membership. We\u2019ll be in touch to set up your profile once your card is on the way.'
+  ? '\u00a334.99 \u2014 includes your card and your first month of full access. We\u2019ll be in touch to set up your profile once your card is on the way.'
   : '\u00a334.99 \u2014 includes your card and first month of membership. Choose your membership tier when you join.'
-const MEMBERSHIP_TAGLINE = MEMBERSHIP_MODE === 'onetime'
-  ? '\u00a334.99 for your card and membership. Everything, from the first tap.'
-  : 'First month \u00a334.99. Everything, from the first tap.'
 const INDIVIDUAL_PRICE_SUFFIX = MEMBERSHIP_MODE === 'onetime'
-  ? 'card and membership included'
+  ? 'card + first month included'
   : 'then your membership tier'
 // ── EDIT ME ───────────────────────────────────────────────────────────────────
 // Real number of Founder cards already claimed (0–100). Drives the
@@ -1198,7 +1195,7 @@ export default function HomePage() {
           {/* Desktop nav links */}
           {!isMobile && (
             <nav style={{ display:'flex', alignItems:'center', gap:'1.75rem' }}>
-              {[['#product','The Card'],['#how-it-works','How it works'],['#profile','Profile'],['#editions','Editions'], ...(shownReviews.length > 0 ? [['#reviews','Reviews']] : [])].map(([h,l])=>(
+              {[['#product','The Card'],['#how-it-works','How it works'],['#profile','Profile'], ...(shownReviews.length > 0 ? [['#reviews','Reviews']] : [])].map(([h,l])=>(
                 <a key={h} href={h} className="nav-link">{l}</a>
               ))}
              <Link href="/pricing" className="nav-link">Pricing</Link>
@@ -1257,7 +1254,7 @@ export default function HomePage() {
           </div>
 
           <nav style={{ display:'flex', flexDirection:'column', gap:'.25rem', marginTop:'2rem' }}>
-            {[['#product','The Card'],['#how-it-works','How it works'],['#profile','Profile'],['#editions','Editions'], ...(shownReviews.length > 0 ? [['#reviews','Reviews']] : [])].map(([h,l])=>(
+            {[['#product','The Card'],['#how-it-works','How it works'],['#profile','Profile'], ...(shownReviews.length > 0 ? [['#reviews','Reviews']] : [])].map(([h,l])=>(
               <a key={h} href={h} onClick={() => setMenuOpen(false)}
                 style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>{l}</a>
             ))}
@@ -1272,7 +1269,7 @@ export default function HomePage() {
           <div style={{ marginTop:'auto', paddingTop:'2rem', display:'flex', flexDirection:'column', gap:'.6rem' }}>
             <Link href="/login" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Sign in</Link>
             <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Dashboard</Link>
-            <MemberCTA className="btn-primary" style={{ width:'100%', padding:'15px' }}>Become a member</MemberCTA>
+            <MemberCTA className="btn-primary" style={{ width:'100%', padding:'15px' }}>Get your card</MemberCTA>
           </div>
         </div>
       )}
@@ -1359,7 +1356,7 @@ export default function HomePage() {
                 marginBottom: isMobile ? '1.4rem' : '2.75rem',
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) .26s both',
               }}>
-                <MemberCTA className="btn-primary">Become a member</MemberCTA>
+                <MemberCTA className="btn-primary">Get your card</MemberCTA>
                 <a href="#founding" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Explore the Founder Edition</a>
                 <a href="#product" className="btn-ghost">View the card</a>
                 <a
@@ -1504,28 +1501,28 @@ export default function HomePage() {
             </div>
 
                         <div className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '3rem' }}>
-              <MemberCTA className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Become a member</MemberCTA>
+              <MemberCTA className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Get your card</MemberCTA>
             </div>
           </div>
         </section>
 
         {/* ════════════════════════════════════════════════════════════
-            2.2 HOW MEMBERSHIP WORKS — the core reframe
-            Card is included · Membership unlocks the platform · Tier sets perks
+            2.2 HOW IT WORKS — the deal, up front
+            You own the card · First month is everything · After that you choose
         ════════════════════════════════════════════════════════════ */}
         <section id="membership" style={{ padding: SP }}>
           <div style={{ maxWidth:1160, margin:'0 auto' }}>
             <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(2rem,5vw,3rem)' : 'clamp(3.5rem,7vw,5rem)' }}>
-              <div style={EB}>How membership works</div>
-              <h2 style={H2}>One membership.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>Everything included.</span></h2>
-              <p style={SUB}>Tapped-In is a platform, not a purchase. Your card is how you tap in. Your membership is what brings it to life.</p>
+              <div style={EB}>How your card works</div>
+              <h2 style={H2}>How your card works.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>Own your card. Upgrade only if you want.</span></h2>
+              <p style={SUB}>Your card is yours from one payment. Your first month is the full experience. After that it stays live, and you choose whether to keep the extras.</p>
             </div>
 
             <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap:2, background:'rgba(255,255,255,0.05)', borderRadius:3, overflow:'hidden', maxWidth:1000, margin:'0 auto' }}>
               {[
-                { n:'01', h:'Your card is included', b:'Every membership comes with your Tapped-In card. Premium, ready to tap, yours from day one. The card was never the product. It\u2019s the key.' },
-                { n:'02', h:'Membership unlocks the platform', b:'Your live profile, real-time analytics, and everything that makes Tapped-In work. This is what you\u2019re really joining, and it only gets better over time.' },
-                { n:'03', h:'Your tier sets your perks', b:'Choose the level that fits how you network. Every tier is a complete experience in its own right, from the essentials to the full suite. You decide how far it goes.' },
+                { n:'01', h:'You own your card', b:'One payment of \u00a334.99 and the card is yours. Premium, ready to tap, and it stays live for as long as you want. No forced subscription, ever.' },
+                { n:'02', h:'Your first month is everything', b:'From your first tap you get the full Tapped-In dashboard \u2014 every feature, analytics, styling and your QR code \u2014 free for a month. Try all of it.' },
+                { n:'03', h:'After month one, you choose', b:'Your card and profile stay live for free, and you keep the essentials for good. Want the full toolkit \u2014 advanced analytics, styling and your QR code \u2014 back? It\u2019s \u00a37.99 a month, whenever you want it. Never any pressure.' },
               ].map((d,i)=>(
                 <div key={i} style={{ background:'#070707', padding: isMobile ? '1.5rem 1.25rem' : 'clamp(1.75rem,3vw,2.25rem)', display:'flex', flexDirection:'column', gap:'.75rem', minWidth:0 }}>
                   <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '2rem' : '2.4rem', fontWeight:600, color:'rgba(255,255,255,.28)', lineHeight:1, letterSpacing:'0.02em', marginBottom:'.25rem' }}>{d.n}</div>
@@ -1536,130 +1533,8 @@ export default function HomePage() {
             </div>
 
             <p className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '2.5rem', fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.9rem' : '1rem', fontWeight:300, color:'rgba(255,255,255,.5)', letterSpacing:'0.02em' }}>
-              {MEMBERSHIP_TAGLINE}
+              £34.99 for your card and first month. Yours to keep.
             </p>
-          </div>
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════
-            2.5 CHOOSE YOUR CARD (moved up)
-        ════════════════════════════════════════════════════════════ */}
-        <section id="editions" style={{ padding: SP }}>
-          <div style={{ maxWidth:1160, margin:'0 auto' }}>
-            <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(1.75rem,5vw,2.5rem)' : 'clamp(3.5rem,7vw,5rem)' }}>
-              <div style={EB}>Choose your card</div>
-              <h2 style={H2}>Three editions.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.32)' }}>One platform.</span></h2>
-              <p style={SUB}>Your card is included with your membership. Choose the tier that fits how you network. <Link href="/pricing" style={{ color:'#fff', textDecoration:'underline', textUnderlineOffset:'3px' }}>See all plans &amp; tiers →</Link></p>
-            </div>
-
-            <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', maxWidth:720, margin:'0 auto' }}>
-              {[
-                { label:'The Tapped-In Card',   price:'£34.99', available:true,  note:'The everyday tap card. Premium matte finish — available now.' },
-                { label:'Tapped-In Metal', price:'£49.99', available:false, note:'Heavier premium metal finish. Coming soon.' },
-              ].map((ed,i)=>{
-                const inner = (
-                  <div style={{ background:'#070707', border:`1px solid rgba(255,255,255,${ed.available ? 0.08 : 0.04})`, borderRadius:3, padding: isMobile ? '1.1rem .9rem' : 'clamp(1.5rem,3vw,2rem)', opacity: ed.available ? 1 : .4, position:'relative', overflow:'hidden', height:'100%' }}>
-                    <div style={{ position:'absolute', top:12, right:12, background: ed.available ? '#fff' : 'rgba(255,255,255,0.06)', border:`1px solid ${ed.available ? '#fff' : 'rgba(255,255,255,0.07)'}`, borderRadius:2, padding:'3px 9px', fontFamily:'Oswald, Arial, sans-serif', fontSize:'.58rem', fontWeight:600, letterSpacing:'.2em', color: ed.available ? '#000' : 'rgba(255,255,255,.38)', textTransform:'uppercase' }}>{ed.available ? 'Available' : 'Locked'}</div>
-                    <div style={{ marginBottom:'1rem', pointerEvents:'none' }}>
-                      <CardFront size="sm" scale={isMobile ? 0.78 : 1} />
-                    </div>
-                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.62rem', fontWeight:400, color:'rgba(255,255,255,.4)', letterSpacing:'.22em', textTransform:'uppercase', marginBottom:'.5rem' }}>{ed.label}</div>
-                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight:600, color:'#fff', marginBottom:'.3rem', letterSpacing:'0.02em' }}>{ed.price}</div>
-                    <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.84rem', fontWeight:300, color:'rgba(255,255,255,.35)', lineHeight:1.65, letterSpacing:'0.01em' }}>{ed.note}</p>
-                  </div>
-                )
-                return ed.available
-                  ? <Link key={i} href="/pricing" style={{ textDecoration:'none', display:'block' }}>{inner}</Link>
-                  : <div key={i}>{inner}</div>
-              })}
-            </div>
-
-            <p className="reveal" style={{ textAlign:'center', marginTop:'1.5rem' }}>
-              <Link href="/pricing" style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.75rem', fontWeight:400, color:'rgba(255,255,255,.45)', letterSpacing:'.1em', textTransform:'uppercase', textDecoration:'none' }}>View all editions &amp; pricing →</Link>
-            </p>
-          </div>
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════
-            2.6 PERSONAL vs TEAMS
-        ════════════════════════════════════════════════════════════ */}
-        <section id="who-its-for" style={{ padding: SP, position:'relative', overflow:'hidden' }}>
-          <div style={{ position:'absolute', inset:0, pointerEvents:'none', backgroundImage:'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)', backgroundSize:'72px 72px', WebkitMaskImage:'radial-gradient(ellipse 80% 70% at 50% 42%, black 12%, transparent 72%)', maskImage:'radial-gradient(ellipse 80% 70% at 50% 42%, black 12%, transparent 72%)', opacity: isMobile ? 0.5 : 1 }} />
-          <div style={{ position:'absolute', top:'34%', left:'50%', transform:'translate(-50%,-50%)', width:760, height:460, background:'radial-gradient(ellipse, rgba(255,255,255,0.025) 0%, transparent 65%)', filter:'blur(8px)', pointerEvents:'none' }} />
-
-          <div style={{ maxWidth:1160, margin:'0 auto', position:'relative', zIndex:2 }}>
-            <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(2rem,5vw,3rem)' : 'clamp(3.5rem,7vw,5rem)' }}>
-              <div style={EB}>Who it&apos;s for</div>
-              <h2 style={H2}>One card for you.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>A whole platform for your team.</span></h2>
-              <p style={SUB}>Whether you&apos;re networking solo or equipping an entire team, Tapped-In scales with you.</p>
-            </div>
-
-            <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.25rem', maxWidth:940, margin:'0 auto' }}>
-
-              <div style={{ position:'relative', background:'linear-gradient(155deg, rgba(14,14,14,0.96) 0%, rgba(9,9,9,0.98) 55%, rgba(12,12,12,0.96) 100%)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, overflow:'hidden', display:'flex', flexDirection:'column' }}>
-                <div style={{ position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent)', pointerEvents:'none', zIndex:5 }} />
-                <div style={{ position:'relative', height:190, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.05) 0%, transparent 62%)', pointerEvents:'none' }} />
-                  <div style={{ animation:'cardFloat 7s ease-in-out infinite', transform:'rotate(-6deg)' }}>
-                    <CardFront size="sm" scale={0.82} />
-                  </div>
-                </div>
-                <div style={{ padding: isMobile ? '1.5rem 1.25rem' : 'clamp(1.5rem,3vw,2.25rem)', display:'flex', flexDirection:'column', flex:1 }}>
-                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, color:'rgba(255,255,255,.4)', letterSpacing:'.22em', textTransform:'uppercase', marginBottom:'.85rem' }}>For Individuals</div>
-                  <h3 style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'clamp(1.4rem,3vw,1.9rem)', fontWeight:600, color:'#fff', letterSpacing:'0.01em', lineHeight:1.1, marginBottom:'.75rem' }}>The Tapped-In Card</h3>
-                  <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.9rem', fontWeight:300, color:'rgba(255,255,255,.4)', lineHeight:1.7, letterSpacing:'0.01em', marginBottom:'1.5rem' }}>Your own premium NFC card and live profile. Perfect for creators, freelancers and professionals who want to network like the future.</p>
-                  <div style={{ display:'flex', flexDirection:'column', gap:'.6rem', marginBottom:'1.75rem' }}>
-                    {['One tap to share everything','Your own live dashboard','First month of membership included'].map((f,i)=>(
-                      <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
-                        <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,.35)', flexShrink:0 }} />
-                        <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.86rem', fontWeight:300, color:'rgba(255,255,255,.5)', letterSpacing:'0.01em' }}>{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginTop:'auto', display:'flex', alignItems:'baseline', gap:'.5rem', marginBottom:'1.25rem' }}>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.75rem', fontWeight:600, color:'#fff', letterSpacing:'0.02em' }}>£34.99</span>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>{INDIVIDUAL_PRICE_SUFFIX}</span>
-                  </div>
-                  <MemberCTA className="btn-primary" style={{ fontSize:'.85rem', padding:'14px 28px' }}>Become a member</MemberCTA>
-                </div>
-              </div>
-
-              <div style={{ position:'relative', background:'linear-gradient(155deg, rgba(15,15,15,0.96) 0%, rgba(10,10,10,0.98) 55%, rgba(13,13,13,0.96) 100%)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:6, overflow:'hidden', display:'flex', flexDirection:'column' }}>
-                <div style={{ position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.2) 50%, transparent)', pointerEvents:'none', zIndex:5 }} />
-                <div style={{ position:'relative', height:190, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.06) 0%, transparent 62%)', pointerEvents:'none' }} />
-                  <div style={{ position:'relative', width:220, height:150, animation:'cardFloat 7s ease-in-out infinite' }}>
-                    <div style={{ position:'absolute', top:24, left:6, transform:'rotate(-14deg)', opacity:.5 }}><CardFront size="sm" scale={0.62} /></div>
-                    <div style={{ position:'absolute', top:14, left:34, transform:'rotate(-2deg)', opacity:.8 }}><CardFront size="sm" scale={0.62} /></div>
-                    <div style={{ position:'absolute', top:4, left:64, transform:'rotate(9deg)' }}><CardFront size="sm" scale={0.62} /></div>
-                  </div>
-                </div>
-                <div style={{ padding: isMobile ? '1.5rem 1.25rem' : 'clamp(1.5rem,3vw,2.25rem)', display:'flex', flexDirection:'column', flex:1 }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'.85rem' }}>
-                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, color:'rgba(255,255,255,.4)', letterSpacing:'.22em', textTransform:'uppercase' }}>For Teams &amp; Companies</div>
-                    <div style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 8px 3px 7px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:2 }}>
-                      <div style={{ width:5, height:5, borderRadius:'50%', background:'#fff', animation:'dotBlink 2s ease-in-out infinite' }} />
-                      <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.55rem', fontWeight:500, color:'rgba(255,255,255,.55)', letterSpacing:'.16em', textTransform:'uppercase' }}>Popular</span>
-                    </div>
-                  </div>
-                  <h3 style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'clamp(1.4rem,3vw,1.9rem)', fontWeight:600, color:'#fff', letterSpacing:'0.01em', lineHeight:1.1, marginBottom:'.75rem' }}>Tapped-In for Teams</h3>
-                  <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.9rem', fontWeight:300, color:'rgba(255,255,255,.4)', lineHeight:1.7, letterSpacing:'0.01em', marginBottom:'1.5rem' }}>Equip your whole team with branded cards and a central dashboard. One consistent, premium identity across everyone.</p>
-                  <div style={{ display:'flex', flexDirection:'column', gap:'.6rem', marginBottom:'1.75rem' }}>
-                    {['Branded cards for every member','Central team dashboard','Volume pricing & free sample'].map((f,i)=>(
-                      <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
-                        <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,.35)', flexShrink:0 }} />
-                        <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.86rem', fontWeight:300, color:'rgba(255,255,255,.5)', letterSpacing:'0.01em' }}>{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginTop:'auto', display:'flex', alignItems:'baseline', gap:'.5rem', marginBottom:'1.25rem' }}>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.75rem', fontWeight:600, color:'#fff', letterSpacing:'0.02em' }}>Custom</span>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>tailored to your team</span>
-                  </div>
-                  <Link href="/business" className="btn-ghost" style={{ fontSize:'.85rem', padding:'14px 28px', borderColor:'rgba(255,255,255,.28)' }}>Explore For Teams →</Link>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -1712,8 +1587,131 @@ export default function HomePage() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════
-            3.5 FOUNDING — social proof via scarcity
+            4. DIGITAL PROFILE
         ════════════════════════════════════════════════════════════ */}
+        <section id="profile" style={{ padding: SP, background:'#030303' }}>
+          <div style={{ maxWidth:1160, margin:'0 auto' }}>
+            <div className="profile-cols" style={{ display:'flex', gap:'clamp(3rem,6vw,6rem)', alignItems:'center', flexWrap:'wrap' }}>
+
+              <div style={{ flex:'1 1 360px' }}>
+                <div className="reveal" style={EB}>Your digital identity</div>
+                <h2 className="reveal d1" style={{ ...H2, textAlign:'left', marginBottom:'1.25rem' }}>
+                  Every card unlocks<br />
+                  <span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>a premium profile.</span>
+                </h2>
+                <p className="reveal d2" style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.95rem', fontWeight:300, color:'rgba(255,255,255,.36)', lineHeight:1.75, letterSpacing:'0.01em', marginBottom:'2rem', maxWidth:390 }}>
+                  Your Founder Edition card opens a live digital profile — permanently linked, always up to date. Share links, contact details, portfolio, and more. Update it any time from your dashboard. No app needed.
+                </p>
+                <div className="reveal d3" style={{ display:'flex', flexDirection:'column', gap:'.65rem', marginBottom:'2.25rem' }}>
+                  {['Unlimited smart links','Real-time tap analytics','Custom public profile URL','QR code download','SEO-indexed — Google finds you'].map((f,i)=>(
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
+                      <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,.28)', flexShrink:0 }} />
+                      <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.9rem', fontWeight:400, color:'rgba(255,255,255,.44)', letterSpacing:'0.02em' }}>{f}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="reveal d4">
+                  <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer"
+ className="btn-primary" style={{ fontSize: '.84rem', padding: '13px 28px' }}>Order Founders Edition</Link>
+                </div>
+              </div>
+
+              {/* Profile QR access card */}
+              <div className="reveal d2" style={{
+                flex: isMobile ? '1 1 100%' : '1 1 320px',
+                maxWidth: isMobile ? 320 : 380,
+                width: '100%',
+                margin: isMobile ? '0 auto' : undefined,
+              }}>
+                <ProfileQR isMobile={isMobile} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════
+            2.6 PERSONAL vs TEAMS
+        ════════════════════════════════════════════════════════════ */}
+        <section id="who-its-for" style={{ padding: SP, position:'relative', overflow:'hidden' }}>
+          <div style={{ position:'absolute', inset:0, pointerEvents:'none', backgroundImage:'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)', backgroundSize:'72px 72px', WebkitMaskImage:'radial-gradient(ellipse 80% 70% at 50% 42%, black 12%, transparent 72%)', maskImage:'radial-gradient(ellipse 80% 70% at 50% 42%, black 12%, transparent 72%)', opacity: isMobile ? 0.5 : 1 }} />
+          <div style={{ position:'absolute', top:'34%', left:'50%', transform:'translate(-50%,-50%)', width:760, height:460, background:'radial-gradient(ellipse, rgba(255,255,255,0.025) 0%, transparent 65%)', filter:'blur(8px)', pointerEvents:'none' }} />
+
+          <div style={{ maxWidth:1160, margin:'0 auto', position:'relative', zIndex:2 }}>
+            <div className="reveal" style={{ textAlign:'center', marginBottom: isMobile ? 'clamp(2rem,5vw,3rem)' : 'clamp(3.5rem,7vw,5rem)' }}>
+              <div style={EB}>Who it&apos;s for</div>
+              <h2 style={H2}>One card for you.<br /><span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>A whole platform for your team.</span></h2>
+              <p style={SUB}>Whether you&apos;re networking solo or equipping an entire team, Tapped-In scales with you.</p>
+            </div>
+
+            <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.25rem', maxWidth:940, margin:'0 auto' }}>
+
+              <div style={{ position:'relative', background:'linear-gradient(155deg, rgba(14,14,14,0.96) 0%, rgba(9,9,9,0.98) 55%, rgba(12,12,12,0.96) 100%)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+                <div style={{ position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent)', pointerEvents:'none', zIndex:5 }} />
+                <div style={{ position:'relative', height:190, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.05) 0%, transparent 62%)', pointerEvents:'none' }} />
+                  <div style={{ animation:'cardFloat 7s ease-in-out infinite', transform:'rotate(-6deg)' }}>
+                    <CardFront size="sm" scale={0.82} />
+                  </div>
+                </div>
+                <div style={{ padding: isMobile ? '1.5rem 1.25rem' : 'clamp(1.5rem,3vw,2.25rem)', display:'flex', flexDirection:'column', flex:1 }}>
+                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, color:'rgba(255,255,255,.4)', letterSpacing:'.22em', textTransform:'uppercase', marginBottom:'.85rem' }}>For Individuals</div>
+                  <h3 style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'clamp(1.4rem,3vw,1.9rem)', fontWeight:600, color:'#fff', letterSpacing:'0.01em', lineHeight:1.1, marginBottom:'.75rem' }}>The Tapped-In Card</h3>
+                  <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.9rem', fontWeight:300, color:'rgba(255,255,255,.4)', lineHeight:1.7, letterSpacing:'0.01em', marginBottom:'1.5rem' }}>Your own premium NFC card and live profile. Perfect for creators, freelancers and professionals who want to network like the future.</p>
+                  <div style={{ display:'flex', flexDirection:'column', gap:'.6rem', marginBottom:'1.75rem' }}>
+                    {['One tap to share everything','Your own live dashboard','First month of full access included'].map((f,i)=>(
+                      <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,.35)', flexShrink:0 }} />
+                        <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.86rem', fontWeight:300, color:'rgba(255,255,255,.5)', letterSpacing:'0.01em' }}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop:'auto', display:'flex', alignItems:'baseline', gap:'.5rem', marginBottom:'1.25rem' }}>
+                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.75rem', fontWeight:600, color:'#fff', letterSpacing:'0.02em' }}>£34.99</span>
+                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>{INDIVIDUAL_PRICE_SUFFIX}</span>
+                  </div>
+                  <MemberCTA className="btn-primary" style={{ fontSize:'.85rem', padding:'14px 28px' }}>Get your card</MemberCTA>
+                </div>
+              </div>
+
+              <div style={{ position:'relative', background:'linear-gradient(155deg, rgba(15,15,15,0.96) 0%, rgba(10,10,10,0.98) 55%, rgba(13,13,13,0.96) 100%)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:6, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+                <div style={{ position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.2) 50%, transparent)', pointerEvents:'none', zIndex:5 }} />
+                <div style={{ position:'relative', height:190, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.06) 0%, transparent 62%)', pointerEvents:'none' }} />
+                  <div style={{ position:'relative', width:220, height:150, animation:'cardFloat 7s ease-in-out infinite' }}>
+                    <div style={{ position:'absolute', top:24, left:6, transform:'rotate(-14deg)', opacity:.5 }}><CardFront size="sm" scale={0.62} /></div>
+                    <div style={{ position:'absolute', top:14, left:34, transform:'rotate(-2deg)', opacity:.8 }}><CardFront size="sm" scale={0.62} /></div>
+                    <div style={{ position:'absolute', top:4, left:64, transform:'rotate(9deg)' }}><CardFront size="sm" scale={0.62} /></div>
+                  </div>
+                </div>
+                <div style={{ padding: isMobile ? '1.5rem 1.25rem' : 'clamp(1.5rem,3vw,2.25rem)', display:'flex', flexDirection:'column', flex:1 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'.85rem' }}>
+                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, color:'rgba(255,255,255,.4)', letterSpacing:'.22em', textTransform:'uppercase' }}>For Teams &amp; Companies</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 8px 3px 7px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:2 }}>
+                      <div style={{ width:5, height:5, borderRadius:'50%', background:'#fff', animation:'dotBlink 2s ease-in-out infinite' }} />
+                      <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.55rem', fontWeight:500, color:'rgba(255,255,255,.55)', letterSpacing:'.16em', textTransform:'uppercase' }}>Popular</span>
+                    </div>
+                  </div>
+                  <h3 style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'clamp(1.4rem,3vw,1.9rem)', fontWeight:600, color:'#fff', letterSpacing:'0.01em', lineHeight:1.1, marginBottom:'.75rem' }}>Tapped-In for Teams</h3>
+                  <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.9rem', fontWeight:300, color:'rgba(255,255,255,.4)', lineHeight:1.7, letterSpacing:'0.01em', marginBottom:'1.5rem' }}>Equip your whole team with branded cards and a central dashboard. One consistent, premium identity across everyone.</p>
+                  <div style={{ display:'flex', flexDirection:'column', gap:'.6rem', marginBottom:'1.75rem' }}>
+                    {['Branded cards for every member','Central team dashboard','Volume pricing & free sample'].map((f,i)=>(
+                      <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,.35)', flexShrink:0 }} />
+                        <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.86rem', fontWeight:300, color:'rgba(255,255,255,.5)', letterSpacing:'0.01em' }}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop:'auto', display:'flex', alignItems:'baseline', gap:'.5rem', marginBottom:'1.25rem' }}>
+                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.75rem', fontWeight:600, color:'#fff', letterSpacing:'0.02em' }}>Custom</span>
+                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>tailored to your team</span>
+                  </div>
+                  <Link href="/business" className="btn-ghost" style={{ fontSize:'.85rem', padding:'14px 28px', borderColor:'rgba(255,255,255,.28)' }}>Explore For Teams →</Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
 {/* ════════════════════════════════════════════════════════════
             ABOUT — Our Story
         ════════════════════════════════════════════════════════════ */}
@@ -1747,6 +1745,21 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Reviews — auto-hides until REVIEWS has entries (top of file) */}
+        {shownReviews.length > 0 && (
+        <section id="reviews" style={{ padding: SP, background:'#030303', position:'relative', overflow:'hidden' }}>
+          <div style={{ maxWidth: 780, margin:'0 auto', padding:'0 24px', textAlign:'center' }}>
+            <span style={{ display:'inline-block', fontFamily:'Oswald, Arial, sans-serif', fontWeight:500, textTransform:'uppercase', letterSpacing:'.34em', fontSize:12, color:'#7c7c85', marginBottom:22 }}>Reviews</span>
+            <h2 style={{ fontFamily:'Oswald, Arial, sans-serif', fontWeight:600, fontSize:'clamp(34px,6vw,54px)', lineHeight:1.06, letterSpacing:'-0.01em', margin:'0 0 18px', color:'#fff' }}>Don&apos;t take our word for it.</h2>
+            <p style={{ fontSize:'clamp(16px,2.3vw,18px)', lineHeight:1.6, color:'#9b9ba4', fontWeight:300, margin:'0 auto', maxWidth:'46ch' }}>Real members, real cards. Here&apos;s what happens when networking stops being paper.</p>
+          </div>
+          <ReviewsCarousel reviews={shownReviews} isMobile={isMobile} />
+        </section>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════
+            3.5 FOUNDING — social proof via scarcity
+        ════════════════════════════════════════════════════════════ */}
         <section id="founding" style={{ padding: SP, background:'#030303', position:'relative', overflow:'hidden' }}>
           {/* Soft glow */}
           <div style={{ position:'absolute', top:'30%', left:'50%', transform:'translate(-50%,-50%)', width:720, height:440, background:'radial-gradient(ellipse, rgba(255,255,255,0.022) 0%, transparent 65%)', filter:'blur(8px)', pointerEvents:'none' }} />
@@ -1813,49 +1826,6 @@ export default function HomePage() {
                 </div>
               </div>
             )}
-          </div>
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════
-            4. DIGITAL PROFILE
-        ════════════════════════════════════════════════════════════ */}
-        <section id="profile" style={{ padding: SP, background:'#030303' }}>
-          <div style={{ maxWidth:1160, margin:'0 auto' }}>
-            <div className="profile-cols" style={{ display:'flex', gap:'clamp(3rem,6vw,6rem)', alignItems:'center', flexWrap:'wrap' }}>
-
-              <div style={{ flex:'1 1 360px' }}>
-                <div className="reveal" style={EB}>Your digital identity</div>
-                <h2 className="reveal d1" style={{ ...H2, textAlign:'left', marginBottom:'1.25rem' }}>
-                  Every card unlocks<br />
-                  <span style={{ fontWeight:300, color:'rgba(255,255,255,.42)' }}>a premium profile.</span>
-                </h2>
-                <p className="reveal d2" style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.95rem', fontWeight:300, color:'rgba(255,255,255,.36)', lineHeight:1.75, letterSpacing:'0.01em', marginBottom:'2rem', maxWidth:390 }}>
-                  Your Founder Edition card opens a live digital profile — permanently linked, always up to date. Share links, contact details, portfolio, and more. Update it any time from your dashboard. No app needed.
-                </p>
-                <div className="reveal d3" style={{ display:'flex', flexDirection:'column', gap:'.65rem', marginBottom:'2.25rem' }}>
-                  {['Unlimited smart links','Real-time tap analytics','Custom public profile URL','QR code download','SEO-indexed — Google finds you'].map((f,i)=>(
-                    <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
-                      <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,.28)', flexShrink:0 }} />
-                      <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.9rem', fontWeight:400, color:'rgba(255,255,255,.44)', letterSpacing:'0.02em' }}>{f}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="reveal d4">
-                  <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer"
- className="btn-primary" style={{ fontSize: '.84rem', padding: '13px 28px' }}>Order Founders Edition</Link>
-                </div>
-              </div>
-
-              {/* Profile QR access card */}
-              <div className="reveal d2" style={{
-                flex: isMobile ? '1 1 100%' : '1 1 320px',
-                maxWidth: isMobile ? 320 : 380,
-                width: '100%',
-                margin: isMobile ? '0 auto' : undefined,
-              }}>
-                <ProfileQR isMobile={isMobile} />
-              </div>
-            </div>
           </div>
         </section>
 
@@ -2101,17 +2071,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-        {/* Reviews — auto-hides until REVIEWS has entries (top of file) */}
-        {shownReviews.length > 0 && (
-        <section id="reviews" style={{ padding: SP, background:'#030303', position:'relative', overflow:'hidden' }}>
-          <div style={{ maxWidth: 780, margin:'0 auto', padding:'0 24px', textAlign:'center' }}>
-            <span style={{ display:'inline-block', fontFamily:'Oswald, Arial, sans-serif', fontWeight:500, textTransform:'uppercase', letterSpacing:'.34em', fontSize:12, color:'#7c7c85', marginBottom:22 }}>Reviews</span>
-            <h2 style={{ fontFamily:'Oswald, Arial, sans-serif', fontWeight:600, fontSize:'clamp(34px,6vw,54px)', lineHeight:1.06, letterSpacing:'-0.01em', margin:'0 0 18px', color:'#fff' }}>Don&apos;t take our word for it.</h2>
-            <p style={{ fontSize:'clamp(16px,2.3vw,18px)', lineHeight:1.6, color:'#9b9ba4', fontWeight:300, margin:'0 auto', maxWidth:'46ch' }}>Real members, real cards. Here&apos;s what happens when networking stops being paper.</p>
-          </div>
-          <ReviewsCarousel reviews={shownReviews} isMobile={isMobile} />
-        </section>
-        )}
 
         {/* ════════════════════════════════════════════════════════════
             7. FINAL CTA
@@ -2139,7 +2098,7 @@ export default function HomePage() {
               Limited to 100 individually numbered cards. Founder Edition pre-orders are live now.
             </p>
             <div className="reveal d3 final-cta-btns" style={{ display:'flex', gap:'.75rem', justifyContent:'center', flexWrap:'wrap' }}>
-              <MemberCTA className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Become a member</MemberCTA>
+              <MemberCTA className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Get your card</MemberCTA>
               <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Or claim a Founder card</Link>
               <Link href="/demo" className="btn-ghost">View demo profile</Link>
             </div>
@@ -2193,7 +2152,7 @@ export default function HomePage() {
               </div>
               <div className="footer-links" style={{ display:'flex', gap:'4rem', flexWrap:'wrap' }}>
                 {[
-                  { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['#editions','Editions'],['/insights','Blogs'],['/demo','Demo profile']] },
+                  { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['/insights','Blogs'],['/demo','Demo profile']] },
                   { head:'Account', links:[['/signup','Order'],['/login','Sign in'],['/dashboard','Dashboard']] },
                   { head:'Connect', links:[['/contact','Contact us'],['/pricing','Pricing']] },
                 ].map(col=>(
