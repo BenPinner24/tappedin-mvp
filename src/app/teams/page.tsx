@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import LockOverlay from '@/components/LockOverlay'
+import { canAccess } from '@/lib/tiers'
 import {
   colors, font, radius, spacing,
   text, inputs, cards, buttons, layout, keyframes,
@@ -71,6 +73,7 @@ export default function TeamsPage() {
   const supabase = createClient()
 
   const [view, setView] = useState<ViewState>('loading')
+  const [canSeeFullTeam, setCanSeeFullTeam] = useState(true)
   const [companyName, setCompanyName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -316,6 +319,16 @@ export default function TeamsPage() {
                 </div>
               </div>
 
+              {/* ─── GATED: full team analytics (Gold / first month) ─── */}
+              <LockOverlay
+                enabled={!canSeeFullTeam}
+                variant="locked"
+                title="Unlock the full team dashboard"
+                message="See taps over time, engagement patterns and your team leaderboard. Upgrade to Gold to unlock the full picture for your whole team."
+                ctaLabel="Unlock with Gold"
+                ctaHref="/business"
+              >
+
               {/* ─── Daily taps bar chart ─── */}
               <div style={{ ...cards.glass, marginTop: spacing['5'] }}>
                 <div style={sectionHead}>
@@ -453,6 +466,8 @@ export default function TeamsPage() {
                   })
                 )}
               </div>
+
+              </LockOverlay>
 
               {/* ─── Manage team members (assign/unassign) ─── */}
               <div style={{ ...cards.glass, marginTop: spacing['5'] }}>
