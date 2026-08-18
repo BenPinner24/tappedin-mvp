@@ -1363,6 +1363,9 @@ accent_color: profile.accent_color,
                 View live profile →
               </Link>
             )}
+            <Link href="/billing" className="ti-view-link" style={s.viewProfileBtn}>
+              Manage billing →
+            </Link>
           </div>
 
           <div
