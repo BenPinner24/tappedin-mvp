@@ -267,8 +267,8 @@ export function SubscriptionWelcomeEmail({
                           <p style={stepTitle}>{t.label}, month to month</p>
                           <p style={stepBody}>
                             Your membership continues at {ongoing}. It keeps your card live
-                            and your profile active — manage or cancel anytime from your
-                            dashboard.
+                            and your profile active — manage or cancel anytime from the billing
+                            page in your account.
                           </p>
                         </div>
                       </td>
