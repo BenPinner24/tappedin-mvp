@@ -32,7 +32,6 @@ export const dynamic = 'force-dynamic'
 // Valid tiers a customer can choose. (Validation only — the actual price IDs
 // live in the webhook, where the schedule is built.)
 const VALID_TIERS = ['bronze', 'silver', 'gold'] as const
-const GOLD_MIN_SEATS = 5
 
 // Silver price ID for the Founder upgrade path (direct subscription, no schedule).
 // NOTE: duplicated from the webhook for now — post-launch housekeeping is to
@@ -53,7 +52,7 @@ function getStripe(): Stripe {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as { tier?: string; seats?: number; founderUpgrade?: boolean; silverUpgrade?: boolean }
+    const body = (await req.json()) as { tier?: string; founderUpgrade?: boolean; silverUpgrade?: boolean }
     const tier = body.tier
     const founderUpgrade = body.founderUpgrade === true
     const silverUpgrade = body.silverUpgrade === true
@@ -61,11 +60,6 @@ export async function POST(req: NextRequest) {
     if (!tier || !VALID_TIERS.includes(tier as typeof VALID_TIERS[number])) {
       return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
     }
-
-    // Gold is per-seat (min 5); everyone else is a single seat.
-    const seats = tier === 'gold'
-      ? Math.max(GOLD_MIN_SEATS, Number(body.seats) || GOLD_MIN_SEATS)
-      : 1
 
     // Who is signed in?
     const supabase = await createClient()
@@ -153,24 +147,12 @@ export async function POST(req: NextRequest) {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // NORMAL MEMBERSHIP → setup-mode session; webhook builds the £34.99 schedule.
+    // No recognised checkout path. The old setup-mode "£34.99 first month, then
+    // the tier rate" flow has been removed, so anything that is not a Silver or
+    // Founder upgrade is rejected here. Nothing is created and nothing is
+    // charged. The £34.99 card purchase is a separate Stripe payment link.
     // ─────────────────────────────────────────────────────────────────────────
-    const session = await stripe.checkout.sessions.create({
-      mode: 'setup',
-      currency: 'gbp',
-      customer: customerId,
-      client_reference_id: user.id,
-      // metadata on the SESSION (handy) …
-      metadata: { user_id: user.id, tier, seats: String(seats) },
-      // …and on the SETUP INTENT, which is what the webhook reads back.
-      setup_intent_data: {
-        metadata: { user_id: user.id, tier, seats: String(seats) },
-      },
-      success_url: `${origin}/billing?status=success`,
-      cancel_url: `${origin}/billing?status=cancelled`,
-    })
-
-    return NextResponse.json({ url: session.url })
+    return NextResponse.json({ error: 'Unsupported checkout request.' }, { status: 400 })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Checkout failed.'
     console.error('[create-checkout]', err)

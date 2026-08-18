@@ -23,16 +23,13 @@ const PACK_PRODUCTS: Record<string, { packName: string; quantity: number }> = {
 // so the lifecycle handler resolves a tier correctly for scheduled subscriptions.
 const PRODUCT_TIERS: Record<string, string> = {
   // old membership products
-  prod_V1VjARhjAxCeWJ: 'bronze',
   prod_V1WoYYoJZn487E: 'silver',
   prod_V1Wqbuu3IJgqhG: 'gold',
   prod_V1WrzUsVIIMDVo: 'founder',
   // new schedule tier products — LIVE
-  prod_V1vYRD2yT6sfdE: 'bronze',
   prod_V1vZCRT1fAnjvW: 'silver',
   prod_V1vZfKEjWVwApK: 'gold',
   // new schedule tier products — TEST
-  prod_V1uSn6OaGAscev: 'bronze',
   prod_V1uS9Ez7SSdTpB: 'silver',
   prod_V1uTWK2HVOVq2H: 'gold',
 }
@@ -41,20 +38,6 @@ const PRODUCT_TIERS: Record<string, string> = {
 // Uses the Stripe secret key to pick the matching IDs: sk_test_ → test prices,
 // sk_live_ → live prices. Same file works locally and in production.
 const STRIPE_IS_TEST = (process.env.STRIPE_SECRET_KEY ?? '').startsWith('sk_test_')
-const FIRST_MONTH_PRICE = STRIPE_IS_TEST
-  ? 'price_1U1qpMPjlQmJd4DejPmumeQF'  // TEST £34.99
-  : 'price_1U1rh6PjlQmJd4De9vcVJC4l'  // LIVE £34.99
-const TIER_PRICE: Record<string, string> = STRIPE_IS_TEST
-  ? {
-      bronze: 'price_1U1qdFPjlQmJd4DetCcCKSC3', // TEST £3.99
-      silver: 'price_1U1qdoPjlQmJd4DeiNLhyn8I', // TEST £7.99
-      gold:   'price_1U1qePPjlQmJd4Dekcqtlej9', // TEST £4.99
-    }
-  : {
-      bronze: 'price_1U1rhYPjlQmJd4DeZwwdes01', // LIVE £3.99
-      silver: 'price_1U1rhtPjlQmJd4De9zQHCHAe', // LIVE £7.99
-      gold:   'price_1U1riXPjlQmJd4DeiPe9kdHq', // LIVE £4.99
-    }
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -153,169 +136,6 @@ export async function POST(req: NextRequest) {
   }
 
   const session = event.data.object as Stripe.Checkout.Session
-
-  // ── NEW SUBSCRIPTION SIGNUP (setup mode → build the schedule) ───────────────
-  // Our membership checkout runs in `mode: 'setup'` (saves the card, charges
-  // nothing). Here we read the tier/seats, attach the saved card, and create the
-  // subscription schedule: £34.99 for month 1, then the tier rate from month 2.
-  if (session.mode === 'setup') {
-    const stripe = getStripe()
-    const admin = createAdminClient()
-
-    const userId = session.client_reference_id || session.metadata?.user_id || null
-    const customerId = typeof session.customer === 'string'
-      ? session.customer
-      : session.customer?.id ?? null
-    const tier = session.metadata?.tier ?? null
-    const seats = Math.max(1, Number(session.metadata?.seats) || 1)
-
-    if (!userId || !customerId || !tier || !TIER_PRICE[tier]) {
-      console.error('[stripe/webhook] setup session missing data', {
-        userId, customerId, tier, session: session.id,
-      })
-      return NextResponse.json({ received: true, error: 'setup session missing data' })
-    }
-
-    try {
-      // 1. Get the saved payment method from the completed setup intent.
-      const setupIntentId = typeof session.setup_intent === 'string'
-        ? session.setup_intent
-        : session.setup_intent?.id
-      if (!setupIntentId) throw new Error('no setup_intent on session')
-
-      const setupIntent = await stripe.setupIntents.retrieve(setupIntentId)
-      const paymentMethodId = typeof setupIntent.payment_method === 'string'
-        ? setupIntent.payment_method
-        : setupIntent.payment_method?.id
-      if (!paymentMethodId) throw new Error('no payment_method on setup intent')
-
-      // 2. Make it the customer's default for invoices.
-      await stripe.customers.update(customerId, {
-        invoice_settings: { default_payment_method: paymentMethodId },
-      })
-
-      // 3. Create the two-phase schedule.
-      //    Phase 1 = £34.99 for 1 month · Phase 2 = tier price × seats, ongoing.
-      const schedule = await stripe.subscriptionSchedules.create({
-        customer: customerId,
-        start_date: 'now',
-        end_behavior: 'release',
-        default_settings: {
-          default_payment_method: paymentMethodId,
-          collection_method: 'charge_automatically',
-        },
-        phases: [
-          {
-            items: [{ price: FIRST_MONTH_PRICE, quantity: 1 }],
-            duration: { interval: 'month', interval_count: 1 },
-            proration_behavior: 'none',
-          },
-          {
-            items: [{ price: TIER_PRICE[tier], quantity: seats }],
-            proration_behavior: 'none',
-          },
-        ],
-        metadata: { user_id: userId, tier, seats: String(seats) },
-      })
-
-      // 3b. Charge the £34.99 first-month invoice IMMEDIATELY, and track whether
-      // it actually succeeded. We only grant access if the payment goes through.
-      let firstPaymentPaid = false
-      let subIdForCleanup: string | undefined
-      try {
-        const subId = typeof schedule.subscription === 'string'
-          ? schedule.subscription
-          : schedule.subscription?.id
-        subIdForCleanup = subId
-        if (subId) {
-          const sub = await stripe.subscriptions.retrieve(subId, { expand: ['latest_invoice'] })
-          const inv = sub.latest_invoice
-          const invId = typeof inv === 'string' ? inv : inv?.id
-          let invStatus = typeof inv === 'string' ? undefined : inv?.status
-          if (invId && invStatus !== 'paid') {
-            if (invStatus === 'draft') {
-              await stripe.invoices.finalizeInvoice(invId)
-            }
-            const paid = await stripe.invoices.pay(invId)
-            invStatus = paid.status
-          }
-          firstPaymentPaid = invStatus === 'paid'
-        }
-      } catch (payErr) {
-        // Payment failed (declined, etc.). firstPaymentPaid stays false.
-        console.error('[stripe/webhook] first-invoice payment failed:', payErr)
-      }
-
-      // ── PAYMENT FAILED → grant NO access, clean up the dangling subscription ──
-      if (!firstPaymentPaid) {
-        console.warn('[stripe/webhook] first payment not completed — not activating', {
-          userId, customerId, tier,
-        })
-        // Cancel the schedule + subscription so there's no unpaid sub left behind.
-        try {
-          await stripe.subscriptionSchedules.cancel(schedule.id)
-        } catch (cancelErr) {
-          console.error('[stripe/webhook] could not cancel schedule after failed payment:', cancelErr)
-        }
-        try {
-          if (subIdForCleanup) await stripe.subscriptions.cancel(subIdForCleanup)
-        } catch { /* schedule cancel usually removes it; ignore */ }
-
-        // Record the failed state — NOT active, no tier access.
-        await admin
-          .from('user_billing')
-          .upsert({
-            user_id: userId,
-            stripe_customer_id: customerId,
-            subscription_tier: null,
-            subscription_status: 'payment_failed',
-          }, { onConflict: 'user_id' })
-
-        return NextResponse.json({ received: true, type: 'payment_failed', tier })
-      }
-
-      // ── PAYMENT SUCCEEDED → activate + welcome email ─────────────────────────
-      // The schedule creates a subscription, which fires
-      // `customer.subscription.created` → the lifecycle handler above syncs
-      // user_billing. We also set it here so the row is correct immediately.
-      await admin
-        .from('user_billing')
-        .upsert({
-          user_id: userId,
-          stripe_customer_id: customerId,
-          subscription_tier: tier,
-          subscription_status: 'active',
-        }, { onConflict: 'user_id' })
-
-      // Send the tier-aware welcome email. Wrapped so an email hiccup never
-      // fails the webhook (the subscription itself is already done).
-      try {
-        const email =
-          session.customer_details?.email ||
-          session.customer_email ||
-          undefined
-        if (email && (tier === 'bronze' || tier === 'silver' || tier === 'gold')) {
-          const name = session.customer_details?.name?.trim().split(' ')[0] || undefined
-          await sendSubscriptionWelcome({
-            to: email,
-            customerName: name,
-            tier,
-            seats,
-          })
-        } else {
-          console.warn('[stripe/webhook] no email or bad tier for welcome:', { email, tier })
-        }
-      } catch (mailErr) {
-        console.error('[stripe/webhook] welcome email failed:', mailErr)
-      }
-
-      return NextResponse.json({ received: true, type: 'schedule_created', tier })
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'schedule creation failed'
-      console.error('[stripe/webhook] schedule creation failed:', msg)
-      return NextResponse.json({ received: true, error: msg }, { status: 500 })
-    }
-  }
 
   // ── SUBSCRIPTION CHECKOUT (legacy path — kept for safety) ───────────────────
   if (session.mode === 'subscription') {
