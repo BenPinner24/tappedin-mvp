@@ -29,13 +29,11 @@ export const dynamic = 'force-dynamic'
 // That is a normal `mode: 'subscription'` checkout (no schedule needed).
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Valid tiers a customer can choose. (Validation only — the actual price IDs
-// live in the webhook, where the schedule is built.)
+// Valid tiers a customer can choose. (Validation only.)
 const VALID_TIERS = ['bronze', 'silver', 'gold'] as const
 
-// Silver price ID for the Founder upgrade path (direct subscription, no schedule).
-// NOTE: duplicated from the webhook for now — post-launch housekeeping is to
-// centralise all price IDs into one shared file (src/lib/stripe/prices.ts).
+// Silver £7.99 price ID (test/live auto-selected). Used by the Silver and
+// Founder subscription-upgrade checkouts below.
 const STRIPE_IS_TEST = (process.env.STRIPE_SECRET_KEY ?? '').startsWith('sk_test_')
 const SILVER_PRICE = STRIPE_IS_TEST
   ? 'price_1U1qdoPjlQmJd4DeiNLhyn8I' // TEST £7.99
