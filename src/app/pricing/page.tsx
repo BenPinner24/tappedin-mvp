@@ -10,13 +10,7 @@ import { useEffect, useState } from 'react'
 const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
 const PVC_STRIPE_URL = 'https://buy.stripe.com/dRm14pc1H16F9N7et1cfK03'
 const METAL_STRIPE_URL = ''
-// ── INTERIM MEMBERSHIP MODE (mirrors the landing page) ──────────────────────
-// 'onetime' routes "Become a member" to the £34.99 one-time card link and shows
-// honest one-time copy; grandfather buyers to legacy manually. Flip back to
-// 'subscription' when the full billing flow is ready.
-const MEMBERSHIP_MODE: 'onetime' | 'subscription' = 'onetime'
-const MEMBER_CTA_HREF = MEMBERSHIP_MODE === 'onetime' ? PVC_STRIPE_URL : '/billing'
-const MEMBER_CTA_EXTERNAL = MEMBERSHIP_MODE === 'onetime'
+const MEMBER_CTA_HREF = PVC_STRIPE_URL
 
 const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E")`
 
@@ -158,11 +152,7 @@ export default function PricingPage() {
             </div>
  
             <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-              {MEMBER_CTA_EXTERNAL ? (
-                <a href={MEMBER_CTA_HREF} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Get your card</a>
-              ) : (
-                <Link href={MEMBER_CTA_HREF} style={s.buyPrimary}>Get your card</Link>
-              )}
+              <a href={MEMBER_CTA_HREF} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Get your card</a>
             </div>
 
             {/* Teams call-out — links to the dedicated /business page */}
