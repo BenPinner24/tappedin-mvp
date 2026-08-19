@@ -19,25 +19,20 @@ const PACK_PRODUCTS: Record<string, { packName: string; quantity: number }> = {
 }
 
 // Subscription products → tier.
-// Includes BOTH the old membership products AND the new schedule tier products,
-// so the lifecycle handler resolves a tier correctly for scheduled subscriptions.
+// Includes BOTH the old membership products AND the newer tier products, so
+// the lifecycle handler resolves a tier for any subscription it sees.
 const PRODUCT_TIERS: Record<string, string> = {
   // old membership products
   prod_V1WoYYoJZn487E: 'silver',
   prod_V1Wqbuu3IJgqhG: 'gold',
   prod_V1WrzUsVIIMDVo: 'founder',
-  // new schedule tier products — LIVE
+  // newer tier products — LIVE
   prod_V1vZCRT1fAnjvW: 'silver',
   prod_V1vZfKEjWVwApK: 'gold',
-  // new schedule tier products — TEST
+  // newer tier products — TEST
   prod_V1uS9Ez7SSdTpB: 'silver',
   prod_V1uTWK2HVOVq2H: 'gold',
 }
-
-// ── SUBSCRIPTION PRICES — auto-selected by mode (test vs live) ──────────────
-// Uses the Stripe secret key to pick the matching IDs: sk_test_ → test prices,
-// sk_live_ → live prices. Same file works locally and in production.
-const STRIPE_IS_TEST = (process.env.STRIPE_SECRET_KEY ?? '').startsWith('sk_test_')
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -137,7 +132,7 @@ export async function POST(req: NextRequest) {
 
   const session = event.data.object as Stripe.Checkout.Session
 
-  // ── SUBSCRIPTION CHECKOUT (legacy path — kept for safety) ───────────────────
+  // ── SUBSCRIPTION CHECKOUT (Silver / Founder upgrades) ───────────────────────
   if (session.mode === 'subscription') {
     const userId = session.client_reference_id || session.metadata?.user_id || null
     const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
