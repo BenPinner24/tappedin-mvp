@@ -182,7 +182,7 @@ export default function BillingPage() {
               </div>
 
               <p style={s.foot}>
-                Payments are handled securely by Stripe. Your card stays live while your membership is active — cancel anytime and your card pauses, but your data is always kept and you can reactivate whenever you like.
+                Payments are handled securely by Stripe. Cancel Silver anytime — you'll simply move to the free Bronze plan, your card stays live, and your data is always kept.
               </p>
             </>
           )}
