@@ -592,7 +592,7 @@ export default function DashboardPage() {
 
       const { data: linksData } = await supabase
         .from('profile_links')
-        .select('id, label, url, link_type, position, is_active')
+        .select('id, label, url, link_type, custom_label, position, is_active')
         .eq('profile_id', userId)
         .order('position', { ascending: true })
       if (linksData) {
@@ -601,6 +601,7 @@ export default function DashboardPage() {
           label: l.label ?? '',
           url:   l.url   ?? '',
           link_type: l.link_type ?? null,
+          custom_label: l.custom_label ?? null,
           is_active: l.is_active ?? true,
         }))
         setLinks(mapped)
