@@ -167,7 +167,7 @@ export default function PricingPage() {
               </div>
             </div>
  
-            <p style={s.cardsNote}>Existing cardholders are looked after, and early supporters keep their special status. Founders Edition owners keep their permanent collector&apos;s status.</p>
+            <p style={s.cardsNote}>Existing cardholders are looked after, and Founders Edition owners keep their permanent collector&apos;s status.</p>
           </section>
 
           {/* terms */}
