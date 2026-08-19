@@ -72,9 +72,14 @@ export async function POST(req: NextRequest) {
     // Reuse the user's Stripe customer, or create one and store it.
     const { data: billing } = await admin
       .from('user_billing')
-      .select('stripe_customer_id, is_founder')
+      .select('stripe_customer_id, is_founder, subscription_tier, subscription_status')
       .eq('user_id', user.id)
       .maybeSingle()
+
+    // Already paying for Silver? Only tier 'silver' AND status 'active' counts.
+    // Anything else (null, canceled, payment_failed, other tiers) is NOT blocked.
+    const alreadyActiveSilver =
+      billing?.subscription_tier === 'silver' && billing?.subscription_status === 'active'
 
     let customerId: string | null = (billing?.stripe_customer_id as string | null) ?? null
     if (!customerId) {
@@ -97,6 +102,12 @@ export async function POST(req: NextRequest) {
     // subscription handler records silver/active on completion.
     // ─────────────────────────────────────────────────────────────────────────
     if (silverUpgrade) {
+      // Already on active Silver — don't start a second subscription. Send them
+      // to /billing to see and manage the plan they already have.
+      if (alreadyActiveSilver) {
+        return NextResponse.json({ url: `${origin}/billing` })
+      }
+
       const session = await stripe.checkout.sessions.create({
         mode: 'subscription',
         customer: customerId,
@@ -126,6 +137,12 @@ export async function POST(req: NextRequest) {
       }
       if (tier !== 'silver') {
         return NextResponse.json({ error: 'Founders can upgrade to Silver only.' }, { status: 400 })
+      }
+
+      // Already on active Silver — don't start a second subscription. Send them
+      // to /billing to see and manage the plan they already have.
+      if (alreadyActiveSilver) {
+        return NextResponse.json({ url: `${origin}/billing` })
       }
 
       const session = await stripe.checkout.sessions.create({
