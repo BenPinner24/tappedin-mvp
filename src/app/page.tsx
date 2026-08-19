@@ -6,24 +6,10 @@ import { createClient } from '@/lib/supabase/client'
 import { ReviewProfileModal } from './_components/ReviewProfileModal'
 
 const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
-// ── INTERIM MEMBERSHIP MODE ──────────────────────────────────────────────────
-// 'onetime'     = "Become a member" buttons go to the £34.99 one-time card link
-//                 (grandfather buyers to legacy manually) while the full
-//                 subscription billing flow is rebuilt.
-// 'subscription' = original behaviour — buttons go to /billing.
-// Flip this ONE value back to 'subscription' when the billing flow is ready.
-const MEMBERSHIP_MODE: 'onetime' | 'subscription' = 'onetime'
 const STANDARD_ONETIME_URL = 'https://buy.stripe.com/dRm14pc1H16F9N7et1cfK03'
-// Where every "Become a member" button points, based on the mode above.
-const MEMBER_CTA_HREF = MEMBERSHIP_MODE === 'onetime' ? STANDARD_ONETIME_URL : '/billing'
-const MEMBER_CTA_EXTERNAL = MEMBERSHIP_MODE === 'onetime'
-// Honest pricing copy per mode. One-time: £34.99 for card + membership, no auto-recurring yet.
-const HERO_PRICE_LINE = MEMBERSHIP_MODE === 'onetime'
-  ? '\u00a334.99 \u2014 includes your card and your first month of full access. We\u2019ll be in touch to set up your profile once your card is on the way.'
-  : '\u00a334.99 \u2014 includes your card and first month of membership. Choose your membership tier when you join.'
-const INDIVIDUAL_PRICE_SUFFIX = MEMBERSHIP_MODE === 'onetime'
-  ? 'card + first month included'
-  : 'then your membership tier'
+const MEMBER_CTA_HREF = STANDARD_ONETIME_URL
+const HERO_PRICE_LINE = '\u00a334.99 \u2014 includes your card and your first month of full access. We\u2019ll be in touch to set up your profile once your card is on the way.'
+const INDIVIDUAL_PRICE_SUFFIX = 'card + first month included'
 // ── EDIT ME ───────────────────────────────────────────────────────────────────
 // Real number of Founder cards already claimed (0–100). Drives the
 // "X / 100 claimed" counter + progress bar in the Founding section below.
@@ -1066,17 +1052,10 @@ function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role:
 }
 
 function MemberCTA({ className, style, children }: { className?: string; style?: React.CSSProperties; children: React.ReactNode }) {
-  if (MEMBER_CTA_EXTERNAL) {
-    return (
-      <a href={MEMBER_CTA_HREF} target="_blank" rel="noopener noreferrer" className={className} style={style}>
-        {children}
-      </a>
-    )
-  }
   return (
-    <Link href={MEMBER_CTA_HREF} className={className} style={style}>
+    <a href={MEMBER_CTA_HREF} target="_blank" rel="noopener noreferrer" className={className} style={style}>
       {children}
-    </Link>
+    </a>
   )
 }
 
