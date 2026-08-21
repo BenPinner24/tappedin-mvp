@@ -216,6 +216,7 @@ function EnquiryModal({ open, onClose, isMobile }: { open: boolean; onClose: () 
                 <div style={{ flex:1 }}>
                   <label className="enq-label" htmlFor="enq-email">Email *</label>
                   <input id="enq-email" className="enq-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+                  <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.72rem', fontWeight:300, color:'rgba(255,255,255,.34)', lineHeight:1.55, letterSpacing:'0.01em', marginTop:7 }}>This email will be used to set up your Team Manager account, which controls your team dashboard and analytics. Please use the email of the person who will manage the team.</p>
                 </div>
               </div>
               <div>
