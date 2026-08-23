@@ -126,18 +126,18 @@ export default function SuccessPage() {
   const steps = [
     {
       n: '01',
-      title: 'Production update by email',
-      body: 'You\u2019ll get a confirmation email within minutes, followed by production updates as your numbered Founders Edition card is finished and prepared for dispatch.',
+      title: 'Production & dispatch',
+      body: 'Your numbered Founders Edition card is being prepared and dispatched to the address you provided.',
     },
     {
       n: '02',
       title: 'Card activation',
-      body: 'When your card arrives, simple activation instructions will be included. Pair the card to your account in seconds \u2014 no app required.',
+      body: 'Setting up your card takes just a couple of minutes \u2014 our setup guide walks you through it when your card arrives.',
     },
     {
       n: '03',
-      title: 'Set up your profile',
-      body: 'Sign in to your dashboard to add links, portfolio, contact details and featured work. Your profile is live the moment your card is activated.',
+      title: 'It\u2019s yours to keep.',
+      body: 'Your Founders Edition card is yours for life \u2014 one purchase, no subscription. Your perks stay with you free, for life, and your card and profile stay live forever.',
     },
   ]
 
@@ -230,7 +230,7 @@ export default function SuccessPage() {
               letterSpacing: '.22em',
               textTransform: 'uppercase',
             }}>
-              Pre-order Confirmed
+              Order Confirmed
             </span>
           </div>
 
@@ -305,47 +305,18 @@ export default function SuccessPage() {
             margin: '0 auto',
             marginBottom: isMobile ? '1.5rem' : '2rem',
           }}>
-            Your pre-order has been received. You now hold one of only 100 individually
-            numbered TAPPED-IN Founders Edition cards. A confirmation email is on its way.
+            Your order has been received. You now hold one of only 100 individually
+            numbered Tapped-In Founders Edition cards. A confirmation email is on its way,
+            with everything you need to set up your card when it arrives.
           </p>
 
-          {/* Edition strip */}
+          {/* Primary CTA — first action the customer sees */}
           <div className="s-fade-up s-delay-4" style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: isMobile ? '1.25rem' : '2rem',
-            padding: isMobile ? '.85rem 1.1rem' : '1rem 1.5rem',
-            background: 'rgba(255,255,255,0.025)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 3,
             marginBottom: isMobile ? '2.25rem' : '3rem',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
           }}>
-            {[
-              { l: 'Edition', v: 'Founders' },
-              { l: 'Of',      v: '100' },
-              { l: 'Status',  v: 'Reserved' },
-            ].map((it, i) => (
-              <div key={i} style={{ textAlign: 'center', minWidth: 0 }}>
-                <div style={{
-                  fontFamily: 'Oswald, Arial, sans-serif',
-                  fontSize: '.58rem',
-                  fontWeight: 400,
-                  color: 'rgba(255,255,255,.25)',
-                  letterSpacing: '.24em',
-                  textTransform: 'uppercase',
-                  marginBottom: 4,
-                }}>{it.l}</div>
-                <div style={{
-                  fontFamily: 'Oswald, Arial, sans-serif',
-                  fontSize: isMobile ? '.95rem' : '1.1rem',
-                  fontWeight: 600,
-                  color: '#fff',
-                  letterSpacing: '0.02em',
-                }}>{it.v}</div>
-              </div>
-            ))}
+            <Link href="/setup" className="s-btn-primary">
+              View the setup guide
+            </Link>
           </div>
 
           {/* Next steps heading */}
@@ -442,7 +413,7 @@ export default function SuccessPage() {
             margin: '0 auto',
             marginBottom: isMobile ? '1.75rem' : '2.25rem',
           }}>
-            A confirmation email has been sent. If you don&apos;t see it within a few minutes,
+            If you don&apos;t see your confirmation email within a few minutes,
             please check your spam folder.
           </p>
 
@@ -455,9 +426,6 @@ export default function SuccessPage() {
             flexWrap: 'wrap',
             marginBottom: isMobile ? '1.5rem' : '2rem',
           }}>
-            <Link href="/login" className="s-btn-primary">
-              Sign in to your dashboard
-            </Link>
             <Link href="/" className="s-btn-ghost">
               Back to homepage
             </Link>
