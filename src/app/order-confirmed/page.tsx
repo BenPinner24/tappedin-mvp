@@ -127,17 +127,17 @@ export default function OrderConfirmedPage() {
     {
       n: '01',
       title: 'Production & dispatch',
-      body: 'You\u2019ll get a confirmation email within minutes, followed by an update when your card is dispatched and on its way to you.',
+      body: 'Your card is being prepared and dispatched to the address you provided.',
     },
     {
       n: '02',
       title: 'Card activation',
-      body: 'Simple activation instructions are included with your card. Pair it to your account in seconds \u2014 no app required.',
+      body: 'Setting it up takes just a couple of minutes \u2014 our setup guide walks you through it when your card arrives.',
     },
     {
       n: '03',
-      title: 'Your 3 months begin',
-      body: 'Full premium access starts the day you activate. After 3 months, just £1/month (Bronze) keeps your card live and your data safe \u2014 cancel anytime.',
+      title: 'It\u2019s yours to keep.',
+      body: 'Your card is yours \u2014 one purchase, no subscription. Full access to every feature to start, and your profile stays live forever on our free plan. Optional Silver upgrade if you ever want more \u2014 but you never have to.',
     },
   ]
 
@@ -305,48 +305,18 @@ export default function OrderConfirmedPage() {
             margin: '0 auto',
             marginBottom: isMobile ? '1.5rem' : '2rem',
           }}>
-            Your order has been received and your TAPPED-IN card is being prepared
-            for dispatch. Your purchase includes 3 months of full premium access.
-            A confirmation email is on its way.
+            Your order has been received and your Tapped-In card is being prepared
+            and dispatched. A confirmation email is on its way, with everything you
+            need to set up your card when it arrives.
           </p>
 
-          {/* Info strip */}
+          {/* Primary CTA — first action the customer sees */}
           <div className="s-fade-up s-delay-4" style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: isMobile ? '1.25rem' : '2rem',
-            padding: isMobile ? '.85rem 1.1rem' : '1rem 1.5rem',
-            background: 'rgba(255,255,255,0.025)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 3,
             marginBottom: isMobile ? '2.25rem' : '3rem',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
           }}>
-            {[
-              { l: 'Card',     v: 'Standard' },
-              { l: 'Included', v: '3 months' },
-              { l: 'Status',   v: 'Confirmed' },
-            ].map((it, i) => (
-              <div key={i} style={{ textAlign: 'center', minWidth: 0 }}>
-                <div style={{
-                  fontFamily: 'Oswald, Arial, sans-serif',
-                  fontSize: '.58rem',
-                  fontWeight: 400,
-                  color: 'rgba(255,255,255,.25)',
-                  letterSpacing: '.24em',
-                  textTransform: 'uppercase',
-                  marginBottom: 4,
-                }}>{it.l}</div>
-                <div style={{
-                  fontFamily: 'Oswald, Arial, sans-serif',
-                  fontSize: isMobile ? '.95rem' : '1.1rem',
-                  fontWeight: 600,
-                  color: '#fff',
-                  letterSpacing: '0.02em',
-                }}>{it.v}</div>
-              </div>
-            ))}
+            <Link href="/setup" className="s-btn-primary">
+              View the setup guide
+            </Link>
           </div>
 
           {/* Next steps heading */}
@@ -443,7 +413,7 @@ export default function OrderConfirmedPage() {
             margin: '0 auto',
             marginBottom: isMobile ? '1.75rem' : '2.25rem',
           }}>
-            A confirmation email has been sent. If you don&apos;t see it within a few minutes,
+            If you don&apos;t see your confirmation email within a few minutes,
             please check your spam folder.
           </p>
 
@@ -456,9 +426,6 @@ export default function OrderConfirmedPage() {
             flexWrap: 'wrap',
             marginBottom: isMobile ? '1.5rem' : '2rem',
           }}>
-            <Link href="/login" className="s-btn-primary">
-              Sign in to your dashboard
-            </Link>
             <Link href="/" className="s-btn-ghost">
               Back to homepage
             </Link>
