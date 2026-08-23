@@ -175,6 +175,37 @@ export function StandardConfirmationEmail({
     margin: 0,
   }
 
+  // ── Setup section ──────────────────────────────────────────────────────
+  // No panel, no border — presented like the other content sections: the
+  // shared sectionHeading eyebrow, body copy, then the standard bulletproof
+  // button. Same left-aligned rhythm and padding as the steps section.
+  const setupCell: React.CSSProperties = {
+    padding: '0 32px 40px 32px',
+  }
+
+  const setupLead: React.CSSProperties = {
+    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    fontSize: '15px',
+    fontWeight: 400,
+    lineHeight: 1.7,
+    color: '#a8a8a8',
+    margin: '0 0 24px 0',
+  }
+
+  const setupVideoLine: React.CSSProperties = {
+    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    fontSize: '13px',
+    fontWeight: 400,
+    lineHeight: 1.6,
+    color: '#7a7a7a',
+    margin: '20px 0 0 0',
+  }
+
+  const setupVideoLink: React.CSSProperties = {
+    color: '#ffffff',
+    textDecoration: 'underline',
+  }
+
   const ctaCell: React.CSSProperties = {
     padding: '8px 32px 56px 32px',
     textAlign: 'center',
@@ -307,8 +338,8 @@ export function StandardConfirmationEmail({
                         <p style={lead}>
                           Thank you for your order. Your {cardLabel} card is being
                           prepared and will be dispatched shortly. Your purchase
-                          includes your first month of full membership access from
-                          the day you activate it.
+                          includes full access to every feature from the moment you
+                          activate.
                         </p>
                       </td>
                     </tr>
@@ -348,6 +379,39 @@ export function StandardConfirmationEmail({
                       </td>
                     </tr>
 
+                    {/* SETTING UP YOUR CARD */}
+                    <tr>
+                      <td style={setupCell}>
+                        <p style={sectionHeading}>Setting up your card</p>
+
+                        <p style={setupLead}>
+                          When your card arrives, setting it up takes two minutes.
+                        </p>
+
+                        <table role="presentation" cellPadding={0} cellSpacing={0} border={0} style={{ ...ctaTable, margin: 0 }}>
+                          <tbody>
+                            <tr>
+                              <td align="center" style={{ backgroundColor: '#ffffff', borderRadius: '2px' }}>
+                                <a href="https://tappedin.uk/setup" style={ctaButton}>
+                                  View the setup guide
+                                </a>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        <p style={setupVideoLine}>
+                          Prefer to watch?{' '}
+                          <a
+                            href="https://youtube.com/shorts/Jr58Wntw25A"
+                            style={setupVideoLink}
+                          >
+                            See the setup video
+                          </a>
+                        </p>
+                      </td>
+                    </tr>
+
                     {/* STEPS */}
                     <tr>
                       <td style={stepsCell}>
@@ -357,8 +421,8 @@ export function StandardConfirmationEmail({
                           <p style={stepNumber}>Step 01</p>
                           <p style={stepTitle}>Production &amp; dispatch</p>
                           <p style={stepBody}>
-                            We&apos;ll keep you informed by email as your card is
-                            prepared and shipped to you.
+                            Your card is being prepared and dispatched to the address
+                            you provided.
                           </p>
                         </div>
 
@@ -366,21 +430,20 @@ export function StandardConfirmationEmail({
                           <p style={stepNumber}>Step 02</p>
                           <p style={stepTitle}>Activation</p>
                           <p style={stepBody}>
-                            Simple activation instructions arrive with your card.
-                            Pairing it to your profile takes seconds — no app required.
+                            Setting up your card takes just a couple of minutes — see
+                            the setup guide above whenever you&apos;re ready.
                           </p>
                         </div>
 
                         <div style={{ ...stepBlock, ...stepBlockLast }}>
                           <p style={stepNumber}>Step 03</p>
-                          <p style={stepTitle}>Your membership begins</p>
+                          <p style={stepTitle}>It&apos;s yours to keep.</p>
                           <p style={stepBody}>
-                            Full access starts the day you activate. After your first
-                            month, you&apos;ll choose the membership tier that fits how
-                            you network — Bronze at £3.99/month, or Silver at £7.99/month
-                            for creators. We&apos;ll be in touch to get you set up. Your
-                            card stays live while your membership is active, and you can
-                            cancel anytime.
+                            Your card is yours — one purchase, no subscription. You get
+                            full access to every feature to start, and your profile stays
+                            live forever on our free plan. If you ever want extra
+                            features, you can optionally upgrade to Silver — but you
+                            never have to. No monthly fees required, ever.
                           </p>
                         </div>
                       </td>
