@@ -402,11 +402,9 @@ export function FounderConfirmationEmail({
                         </div>
 
                         <p style={upgradeNote}>
-                          Everything above is yours for life, at no ongoing cost. The
-                          only thing not included is the portfolio gallery and media
-                          storage, which you can add any time by upgrading to Silver
-                          (£7.99/month) from your billing page. No pressure, it&apos;s
-                          there if you ever want it.
+                          Your Founders Edition card is yours for life — one purchase,
+                          no subscription, no monthly fees. Your card and profile stay
+                          live forever, at no ongoing cost.
                         </p>
                       </td>
                     </tr>
@@ -427,22 +425,20 @@ export function FounderConfirmationEmail({
                           <p style={stepNumber}>Step 01</p>
                           <p style={stepTitle}>Tap the right way round</p>
                           <p style={stepBody}>
-                            Your card only taps from one side, and it&apos;s by design.
-                            Tap with the front (the TAPPED-IN logo) facing down, so the
-                            back, with your &ldquo;Founders Edition {editionNumber ? `${editionNumber}/100` : 'XXX/100'}&rdquo;,
-                            is the side on show. Your number is always what people see
-                            in the moment you connect.
+                            Your card taps from one side only, by design — tap with the
+                            logo facing down so your &ldquo;Founders Edition {editionNumber ? `${editionNumber}/100` : 'XXX/100'}&rdquo;
+                            back is the side on show.
                           </p>
                         </div>
 
                         <div style={stepBlock}>
                           <p style={stepNumber}>Step 02</p>
-                          <p style={stepTitle}>Claim it to your profile</p>
+                          <p style={stepTitle}>Create your account &amp; activate</p>
                           <p style={stepBody}>
-                            The first tap opens a short claim page. Sign in or create
-                            your account and confirm, it takes seconds, no app required.
-                            Your card is then linked to you, and your Founder perks are
-                            applied automatically.
+                            The first tap opens a short activation page. Create your
+                            account, then — this part matters — set your username to
+                            finish activating your card. Without it, your card
+                            isn&apos;t live yet.
                           </p>
                         </div>
 
@@ -450,11 +446,17 @@ export function FounderConfirmationEmail({
                           <p style={stepNumber}>Step 03</p>
                           <p style={stepTitle}>Make it yours</p>
                           <p style={stepBody}>
-                            Add your links, contact details, and styling from your
-                            dashboard. Every future tap instantly shows your live
-                            profile, ready whenever you are.
+                            Add your links, contact details and styling from your
+                            dashboard anytime.
                           </p>
                         </div>
+
+                        <p style={upgradeNote}>
+                          Need a hand? See the full setup guide at{' '}
+                          <a href="https://tappedin.uk/setup" style={footerLink}>
+                            tappedin.uk/setup
+                          </a>
+                        </p>
                       </td>
                     </tr>
 
@@ -465,8 +467,8 @@ export function FounderConfirmationEmail({
                           <tbody>
                             <tr>
                               <td align="center" style={{ backgroundColor: '#ffffff', borderRadius: '2px' }}>
-                                <a href="https://tappedin.uk" style={ctaButton}>
-                                  Visit TAPPED-IN
+                                <a href="https://tappedin.uk/setup" style={ctaButton}>
+                                  View the setup guide
                                 </a>
                               </td>
                             </tr>
