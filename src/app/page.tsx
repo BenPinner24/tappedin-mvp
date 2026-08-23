@@ -4,6 +4,15 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ReviewProfileModal } from './_components/ReviewProfileModal'
+import WaitlistModal from '@/components/WaitlistModal'
+import { SOLD_OUT } from '@/lib/config'
+
+// ── SOLD-OUT TOGGLE ────────────────────────────────────────────────
+// false = normal: every "Get your card" button links to the £34.99 Stripe
+//         checkout in a new tab, exactly as before.
+// true  = sold out: those same buttons read "Join the waitlist" and open the
+//         waitlist modal instead. Nothing else on the page changes.
+
 
 const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
 const STANDARD_ONETIME_URL = 'https://buy.stripe.com/dRm14pc1H16F9N7et1cfK03'
@@ -1051,7 +1060,15 @@ function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role:
   )
 }
 
-function MemberCTA({ className, style, children }: { className?: string; style?: React.CSSProperties; children: React.ReactNode }) {
+function MemberCTA({ className, style, children, onWaitlist }: { className?: string; style?: React.CSSProperties; children: React.ReactNode; onWaitlist?: () => void }) {
+  // Sold out — same button, but it opens the waitlist instead of Stripe.
+  if (SOLD_OUT) {
+    return (
+      <button type="button" onClick={onWaitlist} className={className} style={style}>
+        Join the waitlist
+      </button>
+    )
+  }
   return (
     <a href={MEMBER_CTA_HREF} target="_blank" rel="noopener noreferrer" className={className} style={style}>
       {children}
@@ -1078,6 +1095,7 @@ export default function HomePage() {
   const [isMobile, setIsMobile]   = useState(false)
   const [menuOpen, setMenuOpen]   = useState(false)
   const [mockNonce, setMockNonce] = useState<Record<number, number>>({})
+  const [waitlistOpen, setWaitlistOpen] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -1248,7 +1266,7 @@ export default function HomePage() {
           <div style={{ marginTop:'auto', paddingTop:'2rem', display:'flex', flexDirection:'column', gap:'.6rem' }}>
             <Link href="/login" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Sign in</Link>
             <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="btn-ghost" style={{ width:'100%', padding:'14px' }}>Dashboard</Link>
-            <MemberCTA className="btn-primary" style={{ width:'100%', padding:'15px' }}>Get your card</MemberCTA>
+            <MemberCTA className="btn-primary" style={{ width:'100%', padding:'15px' }} onWaitlist={() => setWaitlistOpen(true)}>Get your card</MemberCTA>
           </div>
         </div>
       )}
@@ -1335,7 +1353,7 @@ export default function HomePage() {
                 marginBottom: isMobile ? '1.4rem' : '2.75rem',
                 animation:'fadeUp .75s cubic-bezier(0.16,1,0.3,1) .26s both',
               }}>
-                <MemberCTA className="btn-primary">Get your card</MemberCTA>
+                <MemberCTA className="btn-primary" onWaitlist={() => setWaitlistOpen(true)}>Get your card</MemberCTA>
                 <a href="#founding" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Explore the Founder Edition</a>
                 <a href="#product" className="btn-ghost">View the card</a>
                 <a
@@ -1480,7 +1498,7 @@ export default function HomePage() {
             </div>
 
                         <div className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '3rem' }}>
-              <MemberCTA className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Get your card</MemberCTA>
+              <MemberCTA className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }} onWaitlist={() => setWaitlistOpen(true)}>Get your card</MemberCTA>
             </div>
           </div>
         </section>
@@ -1648,7 +1666,7 @@ export default function HomePage() {
                     <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.75rem', fontWeight:600, color:'#fff', letterSpacing:'0.02em' }}>£34.99</span>
                     <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>{INDIVIDUAL_PRICE_SUFFIX}</span>
                   </div>
-                  <MemberCTA className="btn-primary" style={{ fontSize:'.85rem', padding:'14px 28px' }}>Get your card</MemberCTA>
+                  <MemberCTA className="btn-primary" style={{ fontSize:'.85rem', padding:'14px 28px' }} onWaitlist={() => setWaitlistOpen(true)}>Get your card</MemberCTA>
                 </div>
               </div>
 
@@ -2077,7 +2095,7 @@ export default function HomePage() {
               Limited to 100 individually numbered cards. Founder Edition pre-orders are live now.
             </p>
             <div className="reveal d3 final-cta-btns" style={{ display:'flex', gap:'.75rem', justifyContent:'center', flexWrap:'wrap' }}>
-              <MemberCTA className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }}>Get your card</MemberCTA>
+              <MemberCTA className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }} onWaitlist={() => setWaitlistOpen(true)}>Get your card</MemberCTA>
               <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Or claim a Founder card</Link>
               <Link href="/demo" className="btn-ghost">View demo profile</Link>
             </div>
@@ -2154,6 +2172,8 @@ export default function HomePage() {
         </footer>
 
       </main>
+
+      <WaitlistModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} isMobile={isMobile} />
     </>
   )
 }

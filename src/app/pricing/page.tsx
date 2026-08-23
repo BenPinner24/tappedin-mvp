@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { SOLD_OUT } from '@/lib/config'
+import WaitlistModal from '@/components/WaitlistModal'
 
 // ── Stripe checkout links ──────────────────────────────────────────────────
 // Founders link is live. PVC + Metal get filled in once you create those
@@ -63,6 +65,7 @@ const FAQS = [
 
 export default function PricingPage() {
   const [reveal, setReveal] = useState(false)
+  const [waitlistOpen, setWaitlistOpen] = useState(false)
   useEffect(() => { setReveal(true) }, [])
 
   return (
@@ -116,7 +119,11 @@ export default function PricingPage() {
                     {c.sub && <p style={s.cardSub}>{c.sub}</p>}
                     <p style={s.cardBlurb}>{c.blurb}</p>
                     {live ? (
-                      <a href={c.url} {...(c.url.startsWith('/') ? {} : { target: '_blank', rel: 'noopener noreferrer' })} style={c.founder ? s.buyPrimary : s.buy}>{c.cta || 'Order'}</a>
+                      SOLD_OUT && c.url === MEMBER_CTA_HREF ? (
+                        <button type="button" onClick={() => setWaitlistOpen(true)} style={c.founder ? s.buyPrimary : s.buy}>Join the waitlist</button>
+                      ) : (
+                        <a href={c.url} {...(c.url.startsWith('/') ? {} : { target: '_blank', rel: 'noopener noreferrer' })} style={c.founder ? s.buyPrimary : s.buy}>{c.cta || 'Order'}</a>
+                      )
                     ) : (
                       <span style={s.buyDisabled}>Coming soon</span>
                     )}
@@ -152,7 +159,11 @@ export default function PricingPage() {
             </div>
  
             <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-              <a href={MEMBER_CTA_HREF} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Get your card</a>
+              {SOLD_OUT ? (
+                <button type="button" onClick={() => setWaitlistOpen(true)} style={{ ...s.buyPrimary, width: '100%' }}>Join the waitlist</button>
+              ) : (
+                <a href={MEMBER_CTA_HREF} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Get your card</a>
+              )}
             </div>
 
             {/* Teams call-out — links to the dedicated /business page */}
@@ -197,7 +208,11 @@ export default function PricingPage() {
           <section style={s.finalCta}>
             <h2 style={s.h2}>Ready to tap in?</h2>
             <div style={s.ctaRow}>
-              <a href={PVC_STRIPE_URL} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Get your card</a>
+              {SOLD_OUT ? (
+                <button type="button" onClick={() => setWaitlistOpen(true)} style={s.buyPrimary}>Join the waitlist</button>
+              ) : (
+                <a href={PVC_STRIPE_URL} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Get your card</a>
+              )}
               <a href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" style={s.buy}>Order Founders Edition</a>
             </div>
           </section>
@@ -210,6 +225,8 @@ export default function PricingPage() {
 
         </div>
       </main>
+
+      <WaitlistModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} isMobile={false} />
     </>
   )
 }
