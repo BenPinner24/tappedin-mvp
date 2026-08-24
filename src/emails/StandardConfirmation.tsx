@@ -336,7 +336,7 @@ export function StandardConfirmationEmail({
                           <span style={headingLight}>Your card is on its way.</span>
                         </h1>
                         <p style={lead}>
-                          Thank you for your order. Your {cardLabel} card is being
+                          Thank you for your order. Your Tapped-In card is being
                           prepared and will be dispatched shortly. Your purchase
                           includes full access to every feature from the moment you
                           activate.
