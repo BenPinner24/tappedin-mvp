@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
       to: recipient,
       customerName,
       orderNumber,
-      cardName: 'Standard PVC',
+      cardName: 'The Tapped-In Card',
     })
 
     if (!standardResult.success) {

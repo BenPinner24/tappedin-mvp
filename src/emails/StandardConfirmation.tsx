@@ -271,7 +271,7 @@ export function StandardConfirmationEmail({
   }
 
   const greeting = customerName ? `Welcome, ${customerName}.` : 'Welcome.'
-  const cardLabel = cardName || 'Standard PVC'
+  const cardLabel = cardName || 'The Tapped-In Card'
 
   return (
     <html lang="en">
