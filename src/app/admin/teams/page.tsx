@@ -20,6 +20,23 @@ type ActionResult = {
   message: string
 }
 
+type Lookup = {
+  email: string
+  found: boolean
+  userId: string | null
+  alreadyInCompany: boolean
+  existingCompanyId: string | null
+  existingRole: string | null
+  bindable: boolean
+  message: string
+}
+
+type ManagerResult = {
+  action: 'bind_manager' | 'unbind_manager'
+  affectedCount: number
+  message: string
+}
+
 type Gate = 'loading' | 'signedout' | 'forbidden' | 'ok'
 
 const CHAMP = '#E8C9A0'
@@ -42,6 +59,15 @@ export default function AdminTeamsPage() {
   const [busy, setBusy]                   = useState(false)
   const [pending, setPending]             = useState<'assign' | 'unassign' | null>(null)
   const [result, setResult]               = useState<ActionResult | null>(null)
+
+  // ── Manager-binding tool: its own state throughout ──────────────────────
+  const [mgrCompanyId, setMgrCompanyId] = useState<string>('')
+  const [mgrEmail, setMgrEmail]         = useState<string>('')
+  const [lookup, setLookup]             = useState<Lookup | null>(null)
+  const [lookedUpEmail, setLookedUpEmail] = useState<string | null>(null)
+  const [mgrBusy, setMgrBusy]           = useState(false)
+  const [mgrPending, setMgrPending]     = useState<'bind_manager' | 'unbind_manager' | null>(null)
+  const [mgrResult, setMgrResult]       = useState<ManagerResult | null>(null)
 
   const fetchCompanies = useCallback(async (accessToken: string) => {
     try {
@@ -145,6 +171,70 @@ export default function AdminTeamsPage() {
     }
   }
 
+  // ── Manager lookup (preview only — writes nothing) ──────────────────────
+  async function runLookup() {
+    if (!token) return
+    const email = mgrEmail.trim()
+    if (!email) { setError('Enter an email to look up.'); return }
+    setMgrBusy(true)
+    setError(null)
+    setMgrResult(null)
+    setMgrPending(null)
+    try {
+      const res = await fetch(`/api/admin/teams?lookupEmail=${encodeURIComponent(email)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
+      if (res.status === 401) { setGate('signedout'); return }
+      if (res.status === 403) { setGate('forbidden'); return }
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setError(j.error || 'Lookup failed')
+        return
+      }
+      const j = await res.json()
+      setCompanies(j.companies ?? [])
+      setLookup(j.lookup ?? null)
+      setLookedUpEmail(email.toLowerCase())
+    } catch {
+      setError('Network error running lookup')
+    } finally {
+      setMgrBusy(false)
+    }
+  }
+
+  async function runManagerAction(action: 'bind_manager' | 'unbind_manager') {
+    if (!token) return
+    setMgrBusy(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action, companyId: mgrCompanyId, managerEmail: mgrEmail.trim() }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (res.status === 401) { setGate('signedout'); return }
+      if (res.status === 403) { setGate('forbidden'); return }
+      if (!res.ok) {
+        setError(j.error || 'Update failed')
+        return
+      }
+      setMgrResult({
+        action: j.action,
+        affectedCount: j.affectedCount ?? 0,
+        message: j.message ?? '',
+      })
+      setMgrPending(null)
+      // Re-read so the preview reflects the new state of that account.
+      await runLookup()
+    } catch {
+      setError('Network error')
+    } finally {
+      setMgrBusy(false)
+    }
+  }
+
   const selectedCompany = companies.find((c) => c.id === companyId) ?? null
   const batchIsPreviewed = previewedBatch !== null && previewedBatch === batchId.trim()
 
@@ -156,6 +246,11 @@ export default function AdminTeamsPage() {
   )
 
   const canAct = Boolean(token) && !busy && companyId !== '' && batchIsPreviewed
+
+  const mgrCompany = companies.find((c) => c.id === mgrCompanyId) ?? null
+  const emailIsLookedUp = lookedUpEmail !== null && lookedUpEmail === mgrEmail.trim().toLowerCase()
+  const canBind = Boolean(token) && !mgrBusy && mgrCompanyId !== '' && emailIsLookedUp && lookup !== null && lookup.bindable
+  const canUnbind = Boolean(token) && !mgrBusy && mgrCompanyId !== '' && emailIsLookedUp && lookup !== null && lookup.found
 
   return (
     <main style={st.page}>
@@ -398,6 +493,139 @@ export default function AdminTeamsPage() {
                 )}
               </div>
             </section>
+
+            {/* ══════════════════════════════════════════════════════════
+                SECOND TOOL — bind a team manager. Entirely separate state
+                from the card tool above; nothing here touches it.
+            ══════════════════════════════════════════════════════════ */}
+            <div style={st.toolDivider} />
+
+            <section style={st.section}>
+              <div style={st.sectionHead}>
+                <h2 style={st.sectionTitle}>Bind a team manager</h2>
+              </div>
+              <div style={st.sectionBody}>
+                <p style={st.hint}>
+                  Makes an existing account the manager of a company and switches on
+                  company_enabled. A user can only belong to one company.
+                </p>
+
+                <label style={st.label} htmlFor="adm-mgr-company">Company</label>
+                <select
+                  id="adm-mgr-company"
+                  className="adm-select"
+                  style={st.select}
+                  value={mgrCompanyId}
+                  onChange={(e) => { setMgrCompanyId(e.target.value); setMgrPending(null); setMgrResult(null) }}
+                >
+                  <option value="">Select a company…</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.card_count} card{c.card_count === 1 ? '' : 's'}
+                    </option>
+                  ))}
+                </select>
+
+                <label style={st.label} htmlFor="adm-mgr-email">Manager email</label>
+                <div style={st.row}>
+                  <input
+                    id="adm-mgr-email"
+                    style={st.input}
+                    type="email"
+                    value={mgrEmail}
+                    placeholder="manager@company.com"
+                    onChange={(e) => { setMgrEmail(e.target.value); setMgrPending(null); setMgrResult(null) }}
+                  />
+                  <button className="adm-btn" style={st.previewBtn} disabled={mgrBusy || !mgrEmail.trim()} onClick={runLookup}>
+                    {mgrBusy ? 'Working…' : 'Look up'}
+                  </button>
+                </div>
+
+                {lookup === null && (
+                  <p style={st.emptyNote}>Look up an email to see who it resolves to. Nothing is written by looking up.</p>
+                )}
+
+                {lookup !== null && (
+                  <div style={{
+                    ...st.resultBox,
+                    borderColor: lookup.bindable ? OK + '44' : (lookup.found ? CHAMP + '44' : 'rgba(248,113,113,0.3)'),
+                    background: lookup.bindable ? OK + '10' : (lookup.found ? CHAMP + '10' : 'rgba(248,113,113,0.08)'),
+                  }}>
+                    <p style={{
+                      ...st.resultTitle,
+                      color: lookup.bindable ? OK : (lookup.found ? CHAMP : BAD),
+                    }}>
+                      {lookup.bindable ? 'BINDABLE' : (lookup.found ? 'NOT BINDABLE' : 'NO ACCOUNT')}
+                    </p>
+                    <p style={st.confirmText}>{lookup.message}</p>
+                    {lookup.userId && <p style={st.resultIds}>user_id: {lookup.userId}</p>}
+                  </div>
+                )}
+
+                {!emailIsLookedUp && (
+                  <p style={st.emptyNote}>
+                    Look the email up first. The buttons unlock once you&rsquo;ve seen who it resolves to.
+                  </p>
+                )}
+
+                {mgrPending === null ? (
+                  <div style={st.actions}>
+                    <button
+                      className="adm-btn"
+                      style={st.approveBtn}
+                      disabled={!canBind}
+                      onClick={() => { setMgrResult(null); setMgrPending('bind_manager') }}
+                    >
+                      Bind as manager
+                    </button>
+                    <button
+                      className="adm-btn"
+                      style={st.rejectBtn}
+                      disabled={!canUnbind}
+                      onClick={() => { setMgrResult(null); setMgrPending('unbind_manager') }}
+                    >
+                      Un-bind manager
+                    </button>
+                  </div>
+                ) : (
+                  <div style={st.confirmBox}>
+                    <p style={st.confirmTitle}>
+                      {mgrPending === 'bind_manager' ? 'Bind this manager?' : 'Un-bind this manager?'}
+                    </p>
+                    <p style={st.confirmText}>
+                      {mgrPending === 'bind_manager'
+                        ? `${lookup?.email ?? mgrEmail.trim()} will become a manager of ${mgrCompany?.name ?? 'the selected company'}, and company_enabled will be set to true.`
+                        : `${lookup?.email ?? mgrEmail.trim()} will be removed as a manager of ${mgrCompany?.name ?? 'the selected company'}, and company_enabled will be set to false.`}
+                    </p>
+                    <div style={st.actions}>
+                      <button
+                        className="adm-btn"
+                        style={mgrPending === 'bind_manager' ? st.approveBtn : st.rejectBtn}
+                        disabled={mgrBusy}
+                        onClick={() => runManagerAction(mgrPending)}
+                      >
+                        {mgrBusy ? 'Working…' : 'Yes, confirm'}
+                      </button>
+                      <button className="adm-btn" style={st.ghostBtn} disabled={mgrBusy} onClick={() => setMgrPending(null)}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {mgrResult && (
+                  <div style={{
+                    ...st.resultBox,
+                    borderColor: mgrResult.affectedCount > 0 ? OK + '44' : 'rgba(255,255,255,0.12)',
+                    background: mgrResult.affectedCount > 0 ? OK + '10' : 'rgba(255,255,255,0.03)',
+                  }}>
+                    <p style={{ ...st.resultTitle, color: mgrResult.affectedCount > 0 ? OK : 'rgba(255,255,255,0.6)' }}>
+                      {mgrResult.message}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
           </>
         )}
       </div>
@@ -590,6 +818,11 @@ const st: Record<string, CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
+  },
+  toolDivider: {
+    height: '1px',
+    background: 'rgba(255,255,255,0.09)',
+    margin: '0.5rem 0 2rem',
   },
   resultTitle: { fontSize: '0.88rem', fontWeight: 600 },
   resultIds: { fontSize: '0.75rem', lineHeight: 1.6, color: 'rgba(255,255,255,0.45)', wordBreak: 'break-word' },
