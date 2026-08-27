@@ -72,6 +72,94 @@ async function membershipFor(
   return { row: rows[0] ?? null, error: null }
 }
 
+type TeamMember = {
+  user_id: string
+  email: string
+  role: string
+  isGold: boolean
+  subscription_tier: string | null
+  subscription_status: string | null
+  card_id: string | null
+}
+
+// Full team for one company: membership + email + Gold status + assigned card.
+// Manager first, then employees (each group alphabetical by email).
+async function teamForCompany(
+  admin: AdminClient,
+  companyId: string,
+): Promise<{ team: TeamMember[] | null; error: string | null }> {
+  const { data: memberData, error: memberError } = await admin
+    .from('company_members')
+    .select('user_id, role')
+    .eq('company_id', companyId)
+    .limit(500)
+  if (memberError) return { team: null, error: memberError.message }
+
+  const members = (memberData ?? []) as { user_id: string; role: string }[]
+  if (members.length === 0) return { team: [], error: null }
+
+  const ids = new Set(members.map((m) => m.user_id))
+
+  // Emails — same admin API the manager lookup already uses.
+  const emailById = new Map<string, string>()
+  const perPage = 1000
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage })
+    if (error) return { team: null, error: error.message }
+    const users = (data?.users ?? []) as { id: string; email?: string | null }[]
+    for (const u of users) if (ids.has(u.id)) emailById.set(u.id, u.email ?? '')
+    if (users.length < perPage) break
+    if (emailById.size === ids.size) break
+  }
+
+  // Billing — not every user has a row, so absence simply means Free.
+  const { data: billingData, error: billingError } = await admin
+    .from('user_billing')
+    .select('user_id, subscription_tier, subscription_status')
+    .limit(5000)
+  if (billingError) return { team: null, error: billingError.message }
+  const billingById = new Map<string, { tier: string | null; status: string | null }>()
+  for (const b of (billingData ?? []) as { user_id: string; subscription_tier: string | null; subscription_status: string | null }[]) {
+    if (ids.has(b.user_id)) billingById.set(b.user_id, { tier: b.subscription_tier ?? null, status: b.subscription_status ?? null })
+  }
+
+  // Assigned cards for THIS company only.
+  const { data: cardData, error: cardError } = await admin
+    .from('cards')
+    .select('card_id, owner_user_id')
+    .eq('company_id', companyId)
+    .limit(1000)
+  if (cardError) return { team: null, error: cardError.message }
+  const cardById = new Map<string, string>()
+  for (const c of (cardData ?? []) as { card_id: string; owner_user_id: string | null }[]) {
+    if (c.owner_user_id && ids.has(c.owner_user_id) && !cardById.has(c.owner_user_id)) {
+      cardById.set(c.owner_user_id, c.card_id)
+    }
+  }
+
+  const team: TeamMember[] = members.map((m) => {
+    const billing = billingById.get(m.user_id) ?? { tier: null, status: null }
+    return {
+      user_id: m.user_id,
+      email: emailById.get(m.user_id) ?? '(email not found)',
+      role: m.role,
+      isGold: billing.tier === 'gold' && billing.status === 'active',
+      subscription_tier: billing.tier,
+      subscription_status: billing.status,
+      card_id: cardById.get(m.user_id) ?? null,
+    }
+  })
+
+  team.sort((a, b) => {
+    const aMgr = a.role === 'manager' ? 0 : 1
+    const bMgr = b.role === 'manager' ? 0 : 1
+    if (aMgr !== bMgr) return aMgr - bMgr
+    return a.email.localeCompare(b.email)
+  })
+
+  return { team, error: null }
+}
+
 async function companyById(
   admin: AdminClient,
   companyId: string,
@@ -181,9 +269,18 @@ export async function GET(req: Request) {
     }
   }
 
+  // ── Team roster for the Gold tool (read-only) ────────────────────────
+  const teamCompanyId = new URL(req.url).searchParams.get('teamForCompany')?.trim() ?? ''
+  let team: TeamMember[] | null = null
+  if (teamCompanyId) {
+    const { team: rows, error: teamError } = await teamForCompany(gate.admin, teamCompanyId)
+    if (teamError) return NextResponse.json({ error: teamError }, { status: 500 })
+    team = rows
+  }
+
   const batchId = new URL(req.url).searchParams.get('batch_id')?.trim() ?? ''
   if (!batchId) {
-    return NextResponse.json({ companies, cards: null, batchId: null, lookup })
+    return NextResponse.json({ companies, cards: null, batchId: null, lookup, team })
   }
 
   const { data: cardData, error: cardError } = await gate.admin
@@ -195,7 +292,7 @@ export async function GET(req: Request) {
 
   if (cardError) return NextResponse.json({ error: cardError.message }, { status: 500 })
 
-  return NextResponse.json({ companies, cards: cardData ?? [], batchId, lookup })
+  return NextResponse.json({ companies, cards: cardData ?? [], batchId, lookup, team })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -209,18 +306,65 @@ export async function POST(req: Request) {
   const gate = await requireAdmin(req)
   if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status })
 
-  let body: { action?: string; companyId?: string; batchId?: string; managerEmail?: string }
+  let body: { action?: string; companyId?: string; batchId?: string; managerEmail?: string; userId?: string }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 })
   }
 
-  const { action, companyId, batchId, managerEmail } = body
-  const allowed = ['assign', 'unassign', 'bind_manager', 'unbind_manager']
+  const { action, companyId, batchId, managerEmail, userId } = body
+  const allowed = ['assign', 'unassign', 'bind_manager', 'unbind_manager', 'grant_gold', 'revoke_gold']
   if (!action || typeof action !== 'string' || !allowed.includes(action)) {
-    return NextResponse.json({ error: 'Invalid action — must be "assign", "unassign", "bind_manager" or "unbind_manager".' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid action — must be "assign", "unassign", "bind_manager", "unbind_manager", "grant_gold" or "revoke_gold".' }, { status: 400 })
   }
+
+  // ── TEAM GOLD ────────────────────────────────────────────────────
+  // Handled before the companyId check: these two act on ONE user, not a
+  // company. Everything below is the original card / manager logic, untouched.
+  if (action === 'grant_gold' || action === 'revoke_gold') {
+    if (!userId || typeof userId !== 'string' || !userId.trim()) {
+      return NextResponse.json({ error: 'A userId is required.' }, { status: 400 })
+    }
+
+    const target = userId.trim()
+    const granting = action === 'grant_gold'
+
+    // UPSERT — not every user has a user_billing row yet.
+    const { data, error } = await gate.admin
+      .from('user_billing')
+      .upsert({
+        user_id: target,
+        subscription_tier: granting ? 'gold' : null,
+        subscription_status: granting ? 'active' : null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' })
+      .select('user_id, subscription_tier, subscription_status')
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    const rows = (data ?? []) as { user_id: string; subscription_tier: string | null; subscription_status: string | null }[]
+    if (rows.length === 0) {
+      return NextResponse.json({
+        error: 'The billing row was not written — nothing changed. Refresh the team and try again.',
+      }, { status: 500 })
+    }
+
+    const row = rows[0]
+    const isGold = row.subscription_tier === 'gold' && row.subscription_status === 'active'
+    return NextResponse.json({
+      ok: true,
+      action,
+      affectedCount: 1,
+      userId: row.user_id,
+      isGold,
+      subscription_tier: row.subscription_tier,
+      subscription_status: row.subscription_status,
+      message: granting
+        ? `Gold granted — this member is now on gold/active.`
+        : `Gold revoked — this member is now on the free plan.`,
+    })
+  }
+
   if (!companyId || typeof companyId !== 'string' || !companyId.trim()) {
     return NextResponse.json({ error: 'A companyId is required.' }, { status: 400 })
   }

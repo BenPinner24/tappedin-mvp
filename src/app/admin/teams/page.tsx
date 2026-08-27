@@ -37,6 +37,16 @@ type ManagerResult = {
   message: string
 }
 
+type TeamMember = {
+  user_id: string
+  email: string
+  role: string
+  isGold: boolean
+  subscription_tier: string | null
+  subscription_status: string | null
+  card_id: string | null
+}
+
 type Gate = 'loading' | 'signedout' | 'forbidden' | 'ok'
 
 const CHAMP = '#E8C9A0'
@@ -68,6 +78,13 @@ export default function AdminTeamsPage() {
   const [mgrBusy, setMgrBusy]           = useState(false)
   const [mgrPending, setMgrPending]     = useState<'bind_manager' | 'unbind_manager' | null>(null)
   const [mgrResult, setMgrResult]       = useState<ManagerResult | null>(null)
+
+  // ── Team Gold tool: its own state throughout ────────────────────────
+  const [goldCompanyId, setGoldCompanyId] = useState<string>('')
+  const [team, setTeam]                   = useState<TeamMember[] | null>(null)
+  const [goldBusy, setGoldBusy]           = useState(false)
+  const [goldPending, setGoldPending]     = useState<{ member: TeamMember; grant: boolean } | null>(null)
+  const [goldResult, setGoldResult]       = useState<string | null>(null)
 
   const fetchCompanies = useCallback(async (accessToken: string) => {
     try {
@@ -247,10 +264,69 @@ export default function AdminTeamsPage() {
 
   const canAct = Boolean(token) && !busy && companyId !== '' && batchIsPreviewed
 
+  // ── Team Gold: load the roster (read-only) ─────────────────────────
+  const loadTeam = useCallback(async (accessToken: string, companyForTeam: string) => {
+    if (!companyForTeam) { setTeam(null); return }
+    setGoldBusy(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/admin/teams?teamForCompany=${encodeURIComponent(companyForTeam)}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: 'no-store',
+      })
+      if (res.status === 401) { setGate('signedout'); return }
+      if (res.status === 403) { setGate('forbidden'); return }
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setError(j.error || 'Could not load the team')
+        return
+      }
+      const j = await res.json()
+      setCompanies(j.companies ?? [])
+      setTeam(j.team ?? [])
+    } catch {
+      setError('Network error loading the team')
+    } finally {
+      setGoldBusy(false)
+    }
+  }, [])
+
+  async function runGoldAction(member: TeamMember, grant: boolean) {
+    if (!token) return
+    setGoldBusy(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: grant ? 'grant_gold' : 'revoke_gold', userId: member.user_id }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (res.status === 401) { setGate('signedout'); return }
+      if (res.status === 403) { setGate('forbidden'); return }
+      if (!res.ok) {
+        setError(j.error || 'Update failed')
+        return
+      }
+      setGoldResult(`${member.email}: ${j.message ?? ''}`)
+      setGoldPending(null)
+      // Re-read so the table shows the true current state.
+      await loadTeam(token, goldCompanyId)
+    } catch {
+      setError('Network error')
+    } finally {
+      setGoldBusy(false)
+    }
+  }
+
   const mgrCompany = companies.find((c) => c.id === mgrCompanyId) ?? null
   const emailIsLookedUp = lookedUpEmail !== null && lookedUpEmail === mgrEmail.trim().toLowerCase()
   const canBind = Boolean(token) && !mgrBusy && mgrCompanyId !== '' && emailIsLookedUp && lookup !== null && lookup.bindable
   const canUnbind = Boolean(token) && !mgrBusy && mgrCompanyId !== '' && emailIsLookedUp && lookup !== null && lookup.found
+
+  const goldCompany = companies.find((c) => c.id === goldCompanyId) ?? null
+  const goldCount = (team ?? []).filter((m) => m.isGold).length
+  const freeCount = (team ?? []).length - goldCount
 
   return (
     <main style={st.page}>
@@ -626,6 +702,182 @@ export default function AdminTeamsPage() {
                 )}
               </div>
             </section>
+
+            {/* ══════════════════════════════════════════════
+                THIRD TOOL — team Gold management. Separate state again;
+                nothing here touches the two tools above.
+            ══════════════════════════════════════════════ */}
+            <div style={st.toolDivider} />
+
+            <section style={st.section}>
+              <div style={st.sectionHead}>
+                <h2 style={st.sectionTitle}>Team Gold management</h2>
+              </div>
+              <div style={st.sectionBody}>
+                <p style={st.hint}>
+                  Grant or revoke Gold for individual members. Gold means
+                  subscription_tier &lsquo;gold&rsquo; and subscription_status &lsquo;active&rsquo;.
+                </p>
+
+                <label style={st.label} htmlFor="adm-gold-company">Company</label>
+                <select
+                  id="adm-gold-company"
+                  className="adm-select"
+                  style={st.select}
+                  value={goldCompanyId}
+                  onChange={(e) => {
+                    const next = e.target.value
+                    setGoldCompanyId(next)
+                    setGoldPending(null)
+                    setGoldResult(null)
+                    setTeam(null)
+                    if (token && next) loadTeam(token, next)
+                  }}
+                >
+                  <option value="">Select a company…</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.card_count} card{c.card_count === 1 ? '' : 's'}
+                    </option>
+                  ))}
+                </select>
+
+                {goldCompanyId === '' && (
+                  <p style={st.emptyNote}>Choose a company to see its team.</p>
+                )}
+
+                {goldCompanyId !== '' && team === null && (
+                  <p style={st.emptyNote}>{goldBusy ? 'Loading the team…' : 'No team loaded.'}</p>
+                )}
+
+                {team !== null && team.length === 0 && (
+                  <p style={st.emptyNote}>
+                    {goldCompany?.name ?? 'This company'} has no members yet. Bind a manager first.
+                  </p>
+                )}
+
+                {team !== null && team.length > 0 && (
+                  <>
+                    {/* Summary — paid-seat count at a glance */}
+                    <div style={st.summaryRow}>
+                      <span style={{ ...st.summaryPill, color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.04)' }}>
+                        {team.length} member{team.length === 1 ? '' : 's'}
+                      </span>
+                      <span style={{ ...st.summaryPill, color: CHAMP, borderColor: CHAMP + '44', background: CHAMP + '14' }}>
+                        {goldCount} on Gold
+                      </span>
+                      <span style={{ ...st.summaryPill, color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.03)' }}>
+                        {freeCount} on Free
+                      </span>
+                    </div>
+
+                    {/* Table */}
+                    <div style={st.tableWrap}>
+                      <div style={st.tableHead}>
+                        <span style={st.colMember}>Member</span>
+                        <span style={st.colRole}>Role</span>
+                        <span style={st.colGold}>Gold</span>
+                        <span style={st.colCard}>Card</span>
+                        <span style={st.colAction}>Action</span>
+                      </div>
+
+                      {team.map((m) => {
+                        const isManager = m.role === 'manager'
+                        return (
+                          <div
+                            key={m.user_id}
+                            style={{
+                              ...st.tableRow,
+                              ...(isManager ? st.managerRow : null),
+                            }}
+                          >
+                            <span style={st.colMember}>
+                              <span style={st.memberEmail}>{m.email}</span>
+                              <span style={st.memberId}>{m.user_id}</span>
+                            </span>
+
+                            <span style={st.colRole}>
+                              <span style={{
+                                ...st.tag,
+                                color: isManager ? CHAMP : 'rgba(255,255,255,0.45)',
+                                borderColor: isManager ? CHAMP + '55' : 'rgba(255,255,255,0.12)',
+                                background: isManager ? CHAMP + '18' : 'rgba(255,255,255,0.03)',
+                              }}>
+                                {isManager ? 'MANAGER' : 'EMPLOYEE'}
+                              </span>
+                            </span>
+
+                            <span style={st.colGold}>
+                              <span style={{
+                                ...st.tag,
+                                color: m.isGold ? CHAMP : 'rgba(255,255,255,0.4)',
+                                borderColor: m.isGold ? CHAMP + '66' : 'rgba(255,255,255,0.12)',
+                                background: m.isGold ? CHAMP + '1e' : 'rgba(255,255,255,0.03)',
+                              }}>
+                                {m.isGold ? 'GOLD' : 'FREE'}
+                              </span>
+                            </span>
+
+                            <span style={st.colCard}>
+                              {m.card_id
+                                ? <span style={st.cardIdCell}>{m.card_id}</span>
+                                : <span style={st.noCardCell}>None</span>}
+                            </span>
+
+                            <span style={st.colAction}>
+                              <button
+                                className="adm-btn"
+                                style={m.isGold ? st.rejectBtnSm : st.approveBtnSm}
+                                disabled={goldBusy}
+                                onClick={() => { setGoldResult(null); setGoldPending({ member: m, grant: !m.isGold }) }}
+                              >
+                                {m.isGold ? 'Revoke Gold' : 'Grant Gold'}
+                              </button>
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Confirm before any write */}
+                    {goldPending && (
+                      <div style={st.confirmBox}>
+                        <p style={st.confirmTitle}>
+                          {goldPending.grant ? 'Grant Gold?' : 'Revoke Gold?'}
+                        </p>
+                        <p style={st.confirmText}>
+                          {goldPending.grant
+                            ? `${goldPending.member.email} (${goldPending.member.role}) will be set to gold / active — a paid seat.`
+                            : `${goldPending.member.email} (${goldPending.member.role}) will be moved to the free plan.`}
+                          {goldPending.member.role === 'manager' && !goldPending.grant
+                            ? ' This is the MANAGER — their seat is normally always paid.'
+                            : ''}
+                        </p>
+                        <div style={st.actions}>
+                          <button
+                            className="adm-btn"
+                            style={goldPending.grant ? st.approveBtn : st.rejectBtn}
+                            disabled={goldBusy}
+                            onClick={() => runGoldAction(goldPending.member, goldPending.grant)}
+                          >
+                            {goldBusy ? 'Working…' : 'Yes, confirm'}
+                          </button>
+                          <button className="adm-btn" style={st.ghostBtn} disabled={goldBusy} onClick={() => setGoldPending(null)}>
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {goldResult && (
+                      <div style={{ ...st.resultBox, borderColor: OK + '44', background: OK + '10' }}>
+                        <p style={{ ...st.resultTitle, color: OK }}>{goldResult}</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </section>
           </>
         )}
       </div>
@@ -823,6 +1075,71 @@ const st: Record<string, CSSProperties> = {
     height: '1px',
     background: 'rgba(255,255,255,0.09)',
     margin: '0.5rem 0 2rem',
+  },
+  // ── Team Gold table ──────────────────────────────────────────
+  tableWrap: {
+    display: 'flex',
+    flexDirection: 'column',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '12px',
+    overflow: 'hidden',
+  },
+  tableHead: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '10px 16px',
+    background: 'rgba(255,255,255,0.03)',
+    borderBottom: '1px solid rgba(255,255,255,0.08)',
+    fontSize: '0.65rem',
+    fontWeight: 700,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.32)',
+  },
+  tableRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '13px 16px',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
+  },
+  managerRow: {
+    background: 'rgba(232,201,160,0.055)',
+    borderLeft: `3px solid ${CHAMP}`,
+    paddingLeft: '13px',
+  },
+  colMember: { flex: '2 1 200px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' },
+  colRole:   { flex: '0 0 96px' },
+  colGold:   { flex: '0 0 72px' },
+  colCard:   { flex: '1 1 130px', minWidth: 0 },
+  colAction: { flex: '0 0 118px', display: 'flex', justifyContent: 'flex-end' },
+  memberEmail: {
+    fontSize: '0.84rem',
+    fontWeight: 600,
+    color: 'rgba(255,255,255,0.88)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  memberId: {
+    fontSize: '0.66rem',
+    color: 'rgba(255,255,255,0.22)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  cardIdCell: { fontSize: '0.76rem', color: 'rgba(255,255,255,0.5)' },
+  noCardCell: { fontSize: '0.76rem', color: 'rgba(255,255,255,0.22)', fontStyle: 'italic' },
+  approveBtnSm: {
+    background: OK, color: '#06210f', border: 'none', borderRadius: '999px',
+    padding: '6px 14px', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
+  },
+  rejectBtnSm: {
+    background: 'rgba(248,113,113,0.12)', color: BAD, border: '1px solid rgba(248,113,113,0.3)',
+    borderRadius: '999px', padding: '6px 14px', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer',
+    fontFamily: 'inherit', whiteSpace: 'nowrap',
   },
   resultTitle: { fontSize: '0.88rem', fontWeight: 600 },
   resultIds: { fontSize: '0.75rem', lineHeight: 1.6, color: 'rgba(255,255,255,0.45)', wordBreak: 'break-word' },
