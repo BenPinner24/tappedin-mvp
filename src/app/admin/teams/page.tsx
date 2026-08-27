@@ -1,0 +1,596 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
+import { createClient } from '@/lib/supabase/client'
+
+type Company = { id: string; name: string; card_count: number }
+
+type CardRow = {
+  card_id: string
+  status: string
+  owner_user_id: string | null
+  company_id: string | null
+}
+
+type ActionResult = {
+  action: 'assign' | 'unassign'
+  affectedCount: number
+  affectedCardIds: string[]
+  message: string
+}
+
+type Gate = 'loading' | 'signedout' | 'forbidden' | 'ok'
+
+const CHAMP = '#E8C9A0'
+const OK = '#4ade80'
+const BAD = '#f87171'
+
+export default function AdminTeamsPage() {
+  const supabase = useMemo(() => createClient(), [])
+
+  const [gate, setGate]           = useState<Gate>('loading')
+  const [token, setToken]         = useState<string | null>(null)
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [error, setError]         = useState<string | null>(null)
+
+  const [companyId, setCompanyId] = useState<string>('')
+  const [batchId, setBatchId]     = useState<string>('')
+
+  const [cards, setCards]                 = useState<CardRow[] | null>(null)
+  const [previewedBatch, setPreviewedBatch] = useState<string | null>(null)
+  const [busy, setBusy]                   = useState(false)
+  const [pending, setPending]             = useState<'assign' | 'unassign' | null>(null)
+  const [result, setResult]               = useState<ActionResult | null>(null)
+
+  const fetchCompanies = useCallback(async (accessToken: string) => {
+    try {
+      const res = await fetch('/api/admin/teams', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: 'no-store',
+      })
+      if (res.status === 401) { setGate('signedout'); return }
+      if (res.status === 403) { setGate('forbidden'); return }
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setError(j.error || 'Could not load companies')
+        setGate('ok')
+        return
+      }
+      const j = await res.json()
+      setCompanies(j.companies ?? [])
+      setError(null)
+      setGate('ok')
+    } catch {
+      setError('Network error loading companies')
+      setGate('ok')
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession()
+      const accessToken = session?.access_token
+      if (!accessToken) { if (!cancelled) setGate('signedout'); return }
+      if (!cancelled) { setToken(accessToken); await fetchCompanies(accessToken) }
+    }
+    init()
+    return () => { cancelled = true }
+  }, [supabase, fetchCompanies])
+
+  // ── Preview ────────────────────────────────────────────────────────────────
+  async function runPreview() {
+    if (!token) return
+    const batch = batchId.trim()
+    if (!batch) { setError('Enter a batch_id to preview.'); return }
+    setBusy(true)
+    setError(null)
+    setResult(null)
+    setPending(null)
+    try {
+      const res = await fetch(`/api/admin/teams?batch_id=${encodeURIComponent(batch)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
+      if (res.status === 401) { setGate('signedout'); return }
+      if (res.status === 403) { setGate('forbidden'); return }
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setError(j.error || 'Preview failed')
+        return
+      }
+      const j = await res.json()
+      setCompanies(j.companies ?? [])
+      setCards(j.cards ?? [])
+      setPreviewedBatch(batch)
+    } catch {
+      setError('Network error running preview')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ── Write ──────────────────────────────────────────────────────────────────
+  async function runAction(action: 'assign' | 'unassign') {
+    if (!token) return
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action, companyId, batchId: batchId.trim() }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (res.status === 401) { setGate('signedout'); return }
+      if (res.status === 403) { setGate('forbidden'); return }
+      if (!res.ok) {
+        setError(j.error || 'Update failed')
+        return
+      }
+      setResult({
+        action: j.action,
+        affectedCount: j.affectedCount ?? 0,
+        affectedCardIds: j.affectedCardIds ?? [],
+        message: j.message ?? '',
+      })
+      setPending(null)
+      // Re-read the batch and the counts so what's on screen matches the database.
+      await runPreview()
+    } catch {
+      setError('Network error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const selectedCompany = companies.find((c) => c.id === companyId) ?? null
+  const batchIsPreviewed = previewedBatch !== null && previewedBatch === batchId.trim()
+
+  const eligibleToAssign = (cards ?? []).filter(
+    (c) => c.status === 'unclaimed' && !c.owner_user_id && !c.company_id,
+  )
+  const eligibleToUnassign = (cards ?? []).filter(
+    (c) => c.status === 'unclaimed' && !c.owner_user_id && companyId !== '' && c.company_id === companyId,
+  )
+
+  const canAct = Boolean(token) && !busy && companyId !== '' && batchIsPreviewed
+
+  return (
+    <main style={st.page}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @keyframes admspin { to { transform: rotate(360deg); } }
+        *, *::before, *::after { box-sizing: border-box; }
+        .adm-btn { transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease; }
+        .adm-btn:hover:not(:disabled) { transform: translateY(-1px); }
+        .adm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .adm-select { color: #ffffff; background-color: #141414; }
+        .adm-select option { color: #ffffff; background-color: #141414; }
+        .adm-select option:checked { color: #ffffff; background-color: #262626; }
+      `}</style>
+
+      <div style={st.shell}>
+        <div style={st.header}>
+          <div>
+            <p style={st.eyebrow}>Tapped-In · Admin</p>
+            <h1 style={st.title}>Teams — card assignment</h1>
+          </div>
+          {gate === 'ok' && (
+            <button
+              className="adm-btn"
+              style={st.refreshBtn}
+              onClick={() => token && fetchCompanies(token)}
+            >
+              Refresh
+            </button>
+          )}
+        </div>
+
+        {error && <div style={st.errorBar}>{error}</div>}
+
+        {gate === 'loading' && (
+          <div style={st.centered}><div style={st.spinner} /></div>
+        )}
+
+        {gate === 'signedout' && (
+          <div style={st.centered}>
+            <p style={st.stateTitle}>Please sign in</p>
+            <p style={st.stateText}>You need to be signed in as an admin to manage team cards.</p>
+          </div>
+        )}
+
+        {gate === 'forbidden' && (
+          <div style={st.centered}>
+            <p style={st.stateTitle}>Not authorised</p>
+            <p style={st.stateText}>This account doesn&rsquo;t have admin access to team cards.</p>
+          </div>
+        )}
+
+        {gate === 'ok' && (
+          <>
+            {/* ── 1. Company ── */}
+            <section style={st.section}>
+              <div style={st.sectionHead}>
+                <h2 style={st.sectionTitle}>1 · Company</h2>
+                <span style={{ ...st.countPill, color: CHAMP, borderColor: CHAMP + '44', background: CHAMP + '14' }}>
+                  {companies.length}
+                </span>
+              </div>
+              <div style={st.sectionBody}>
+                {companies.length === 0 ? (
+                  <p style={st.emptyNote}>No companies found.</p>
+                ) : (
+                  <>
+                    <label style={st.label} htmlFor="adm-company">Assign cards to</label>
+                    <select
+                      id="adm-company"
+                      className="adm-select"
+                      style={st.select}
+                      value={companyId}
+                      onChange={(e) => { setCompanyId(e.target.value); setPending(null); setResult(null) }}
+                    >
+                      <option value="">Select a company…</option>
+                      {companies.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} — {c.card_count} card{c.card_count === 1 ? '' : 's'}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedCompany && (
+                      <p style={st.hint}>
+                        {selectedCompany.name} currently holds {selectedCompany.card_count} card
+                        {selectedCompany.card_count === 1 ? '' : 's'}.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            </section>
+
+            {/* ── 2. Batch + preview ── */}
+            <section style={st.section}>
+              <div style={st.sectionHead}>
+                <h2 style={st.sectionTitle}>2 · Batch</h2>
+                {cards !== null && (
+                  <span style={{ ...st.countPill, color: CHAMP, borderColor: CHAMP + '44', background: CHAMP + '14' }}>
+                    {cards.length}
+                  </span>
+                )}
+              </div>
+              <div style={st.sectionBody}>
+                <label style={st.label} htmlFor="adm-batch">batch_id</label>
+                <div style={st.row}>
+                  <input
+                    id="adm-batch"
+                    style={st.input}
+                    value={batchId}
+                    placeholder="e.g. acme-corp-2026"
+                    onChange={(e) => { setBatchId(e.target.value); setPending(null); setResult(null) }}
+                  />
+                  <button className="adm-btn" style={st.previewBtn} disabled={busy || !batchId.trim()} onClick={runPreview}>
+                    {busy ? 'Working…' : 'Preview'}
+                  </button>
+                </div>
+
+                {cards === null && (
+                  <p style={st.emptyNote}>Preview a batch to see its cards. Nothing is written by previewing.</p>
+                )}
+
+                {cards !== null && cards.length === 0 && (
+                  <p style={st.emptyNote}>No cards found with batch_id &ldquo;{previewedBatch}&rdquo;.</p>
+                )}
+
+                {cards !== null && cards.length > 0 && (
+                  <>
+                    <div style={st.summaryRow}>
+                      <span style={{ ...st.summaryPill, color: OK, borderColor: OK + '44', background: OK + '14' }}>
+                        {eligibleToAssign.length} eligible to assign
+                      </span>
+                      <span style={{ ...st.summaryPill, color: CHAMP, borderColor: CHAMP + '44', background: CHAMP + '14' }}>
+                        {eligibleToUnassign.length} eligible to un-assign
+                      </span>
+                      <span style={{ ...st.summaryPill, color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.04)' }}>
+                        {cards.length - eligibleToAssign.length} not assignable
+                      </span>
+                    </div>
+
+                    <div style={st.cardList}>
+                      {cards.map((c) => {
+                        const eligible = c.status === 'unclaimed' && !c.owner_user_id && !c.company_id
+                        return (
+                          <div key={c.card_id} style={st.cardRow}>
+                            <span style={st.cardId}>{c.card_id}</span>
+                            <span style={st.cardMeta}>
+                              {c.status}
+                              {c.owner_user_id ? ' · owned' : ''}
+                              {c.company_id ? (c.company_id === companyId ? ' · this company' : ' · other company') : ''}
+                            </span>
+                            <span style={{
+                              ...st.tag,
+                              color: eligible ? OK : 'rgba(255,255,255,0.4)',
+                              borderColor: eligible ? OK + '44' : 'rgba(255,255,255,0.12)',
+                              background: eligible ? OK + '14' : 'rgba(255,255,255,0.03)',
+                            }}>
+                              {eligible ? 'ELIGIBLE' : 'SKIP'}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
+
+            {/* ── 3. Write ── */}
+            <section style={st.section}>
+              <div style={st.sectionHead}>
+                <h2 style={st.sectionTitle}>3 · Apply</h2>
+              </div>
+              <div style={st.sectionBody}>
+                {!batchIsPreviewed && (
+                  <p style={st.emptyNote}>
+                    Preview the batch first. The buttons unlock once you&rsquo;ve seen what would change.
+                  </p>
+                )}
+
+                {pending === null ? (
+                  <div style={st.actions}>
+                    <button
+                      className="adm-btn"
+                      style={st.approveBtn}
+                      disabled={!canAct}
+                      onClick={() => { setResult(null); setPending('assign') }}
+                    >
+                      Assign to selected company
+                    </button>
+                    <button
+                      className="adm-btn"
+                      style={st.rejectBtn}
+                      disabled={!canAct}
+                      onClick={() => { setResult(null); setPending('unassign') }}
+                    >
+                      Un-assign from selected company
+                    </button>
+                  </div>
+                ) : (
+                  <div style={st.confirmBox}>
+                    <p style={st.confirmTitle}>
+                      {pending === 'assign' ? 'Assign cards?' : 'Un-assign cards?'}
+                    </p>
+                    <p style={st.confirmText}>
+                      {pending === 'assign'
+                        ? `${eligibleToAssign.length} card${eligibleToAssign.length === 1 ? '' : 's'} in batch “${batchId.trim()}” will be stamped with ${selectedCompany?.name ?? 'the selected company'}.`
+                        : `${eligibleToUnassign.length} card${eligibleToUnassign.length === 1 ? '' : 's'} in batch “${batchId.trim()}” will be cleared from ${selectedCompany?.name ?? 'the selected company'}.`}
+                      {' '}Claimed and owned cards are never touched.
+                    </p>
+                    <div style={st.actions}>
+                      <button
+                        className="adm-btn"
+                        style={pending === 'assign' ? st.approveBtn : st.rejectBtn}
+                        disabled={busy}
+                        onClick={() => runAction(pending)}
+                      >
+                        {busy ? 'Working…' : 'Yes, confirm'}
+                      </button>
+                      <button className="adm-btn" style={st.ghostBtn} disabled={busy} onClick={() => setPending(null)}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {result && (
+                  <div style={{
+                    ...st.resultBox,
+                    borderColor: result.affectedCount > 0 ? OK + '44' : 'rgba(255,255,255,0.12)',
+                    background: result.affectedCount > 0 ? OK + '10' : 'rgba(255,255,255,0.03)',
+                  }}>
+                    <p style={{ ...st.resultTitle, color: result.affectedCount > 0 ? OK : 'rgba(255,255,255,0.6)' }}>
+                      {result.message}
+                    </p>
+                    {result.affectedCardIds.length > 0 && (
+                      <p style={st.resultIds}>{result.affectedCardIds.join(', ')}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    </main>
+  )
+}
+
+const st: Record<string, CSSProperties> = {
+  page: {
+    minHeight: '100vh',
+    background: '#0a0a0a',
+    color: '#fff',
+    fontFamily: "'Inter', system-ui, sans-serif",
+    WebkitFontSmoothing: 'antialiased',
+    padding: 'clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 2rem)',
+    display: 'flex',
+    justifyContent: 'center',
+  },
+  shell: { width: '100%', maxWidth: '720px' },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: '1.5rem',
+  },
+  eyebrow: {
+    fontSize: '0.7rem',
+    fontWeight: 600,
+    letterSpacing: '0.16em',
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.3)',
+  },
+  title: { fontSize: '1.9rem', fontWeight: 700, letterSpacing: '-0.02em', marginTop: '4px' },
+  refreshBtn: {
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    color: 'rgba(255,255,255,0.7)',
+    borderRadius: '999px',
+    padding: '8px 16px',
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  },
+  errorBar: {
+    background: 'rgba(248,113,113,0.1)',
+    border: '1px solid rgba(248,113,113,0.3)',
+    color: BAD,
+    borderRadius: '10px',
+    padding: '10px 14px',
+    fontSize: '0.85rem',
+    marginBottom: '1rem',
+  },
+  centered: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center',
+    gap: '0.75rem',
+    padding: '4rem 1rem',
+  },
+  spinner: {
+    width: '30px', height: '30px', borderRadius: '50%',
+    border: '2px solid rgba(255,255,255,0.12)',
+    borderTop: '2px solid rgba(255,255,255,0.7)',
+    animation: 'admspin 0.75s linear infinite',
+  },
+  stateTitle: { fontSize: '1.05rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' },
+  stateText: { fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', maxWidth: '320px' },
+  section: { marginBottom: '2rem' },
+  sectionHead: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.9rem' },
+  sectionTitle: { fontSize: '0.95rem', fontWeight: 700, letterSpacing: '0.01em' },
+  countPill: {
+    fontSize: '0.72rem',
+    fontWeight: 700,
+    borderRadius: '999px',
+    border: '1px solid',
+    padding: '2px 9px',
+    minWidth: '24px',
+    textAlign: 'center',
+  },
+  sectionBody: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
+  emptyNote: { fontSize: '0.82rem', color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' },
+  label: {
+    fontSize: '0.7rem',
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.35)',
+  },
+  hint: { fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' },
+  row: { display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' },
+  input: {
+    flex: '1 1 240px',
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: '10px',
+    padding: '10px 14px',
+    color: '#fff',
+    fontSize: '0.9rem',
+    fontFamily: 'inherit',
+    outline: 'none',
+  },
+  select: {
+    width: '100%',
+    backgroundColor: '#141414',
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: '10px',
+    padding: '10px 14px',
+    color: '#fff',
+    fontSize: '0.9rem',
+    fontFamily: 'inherit',
+    outline: 'none',
+  },
+  previewBtn: {
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.14)',
+    color: 'rgba(255,255,255,0.75)',
+    borderRadius: '999px',
+    padding: '10px 22px',
+    fontSize: '0.82rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  },
+  summaryRow: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
+  summaryPill: {
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    borderRadius: '999px',
+    border: '1px solid',
+    padding: '4px 12px',
+  },
+  cardList: {
+    display: 'flex',
+    flexDirection: 'column',
+    maxHeight: '320px',
+    overflowY: 'auto',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '12px',
+  },
+  cardRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '10px',
+    padding: '9px 14px',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
+  },
+  cardId: { fontSize: '0.82rem', fontWeight: 600, color: 'rgba(255,255,255,0.85)' },
+  cardMeta: { fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', flex: 1, textAlign: 'right' },
+  tag: {
+    fontSize: '0.65rem',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    borderRadius: '999px',
+    border: '1px solid',
+    padding: '2px 9px',
+    minWidth: '68px',
+    textAlign: 'center',
+  },
+  actions: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
+  approveBtn: {
+    background: OK, color: '#06210f', border: 'none', borderRadius: '999px',
+    padding: '8px 18px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+  },
+  rejectBtn: {
+    background: 'rgba(248,113,113,0.12)', color: BAD, border: '1px solid rgba(248,113,113,0.3)',
+    borderRadius: '999px', padding: '8px 18px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+  },
+  ghostBtn: {
+    background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.14)',
+    borderRadius: '999px', padding: '8px 18px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+  },
+  confirmBox: {
+    background: 'rgba(232,201,160,0.06)',
+    border: '1px solid rgba(232,201,160,0.28)',
+    borderRadius: '14px',
+    padding: '16px 18px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  confirmTitle: { fontSize: '0.95rem', fontWeight: 700, color: CHAMP },
+  confirmText: { fontSize: '0.85rem', lineHeight: 1.6, color: 'rgba(255,255,255,0.7)' },
+  resultBox: {
+    border: '1px solid',
+    borderRadius: '12px',
+    padding: '14px 16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  resultTitle: { fontSize: '0.88rem', fontWeight: 600 },
+  resultIds: { fontSize: '0.75rem', lineHeight: 1.6, color: 'rgba(255,255,255,0.45)', wordBreak: 'break-word' },
+}
