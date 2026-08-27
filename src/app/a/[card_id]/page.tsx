@@ -71,7 +71,7 @@ await supabase
 redirect(`/claim/${card.card_id}`)
 }
 
-if (!card.owner_user_id) return <UnavailableCard />
+if (!card.owner_user_id) return <CardNotActive />
 
 const { data: profile } = await supabase
 .from('profiles')
@@ -79,7 +79,7 @@ const { data: profile } = await supabase
 .eq('id', card.owner_user_id)
 .maybeSingle<ProfileRecord>()
 
-if (!profile?.username) return <UnavailableCard />
+if (!profile?.username) return <ProfileNotReady />
 
 await supabase.from('tap_events').insert({
 profile_id: profile.id,
@@ -238,6 +238,42 @@ function ProfileNotReady() {
             </p>
             <Link href="/" style={s.unavailCta}>
 Learn about Tapped-In →
+</Link>
+            <p style={s.unavailFooter}>A new standard of Networking.</p>
+          </div>
+        </div>
+      </main>
+    </>
+  )
+}
+
+// ─── Card Not Active ──────────────────────────────────────────────────────────
+// The card is real but has no owner attached yet — it exists, it just hasn't
+// been set up. Same layout and styles as the other state screens.
+
+function CardNotActive() {
+  return (
+    <>
+      <style>{STATIC_CSS}</style>
+      <main className="ti-bg" style={s.page}>
+        <div style={s.bgGrid}/><div style={s.bgGlow}/>
+        <div style={s.shell}>
+          <div className="ti-card" style={s.unavailCard}>
+            <div style={s.brandRow}><span style={s.brandMark}>TAPPED-IN</span></div>
+            <div style={s.unavailIcon}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="7" width="18" height="13" rx="2.5" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2"/>
+                <path d="M12 16v-5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round"/>
+                <path d="M9.5 13.5L12 11l2.5 2.5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <p style={s.unavailEyebrow}>NFC CARD</p>
+            <h1 style={s.unavailTitle}>This card isn&apos;t active yet.</h1>
+            <p style={s.unavailDesc}>
+              This card is real, but it hasn&apos;t been set up yet. If it&apos;s yours, follow the setup guide to activate it.
+            </p>
+            <Link href="/setup" style={s.unavailCta}>
+See the setup guide →
 </Link>
             <p style={s.unavailFooter}>A new standard of Networking.</p>
           </div>
