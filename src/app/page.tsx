@@ -136,12 +136,18 @@ const G = `
   .nav-link:hover { color:rgba(255,255,255,.88); }
 
   .footer-link {
-    color:rgba(255,255,255,.25); text-decoration:none;
+    color:#FFFFFF; text-decoration:none;
     font-family:'Oswald', Arial, sans-serif;
-    font-size:.8rem; font-weight:400; letter-spacing:.04em;
-    transition:color .2s;
+    font-size:.95rem; font-weight:300; letter-spacing:.02em;
+    line-height:1.5; width:fit-content;
+    transition:opacity .2s, transform .2s cubic-bezier(0.16,1,0.3,1);
   }
-  .footer-link:hover { color:rgba(255,255,255,.6); }
+  .footer-link:hover { opacity:.62; transform:translateX(2px); }
+  .footer-head {
+    font-family:'Oswald', Arial, sans-serif;
+    font-size:.72rem; font-weight:600; letter-spacing:.24em;
+    text-transform:uppercase; color:#FFFFFF;
+  }
   .ti-ig-link:hover { color:rgba(255,255,255,.65) !important; }
   .footer-social:hover { color:#fff !important; border-color:rgba(255,255,255,0.25) !important; background:rgba(255,255,255,0.045) !important; }
 
@@ -167,8 +173,6 @@ const G = `
   @media (max-width: 768px) {
     .steps-grid  { grid-template-columns:1fr !important; }
     .detail-strip { grid-template-columns:1fr 1fr !important; }
-    .footer-cols  { flex-direction:column !important; gap:2rem !important; }
-    .footer-links { gap:2rem !important; }
     .hero-ctas    {
       flex-direction:column !important;
       align-items:stretch !important;
@@ -1192,11 +1196,14 @@ export default function HomePage() {
           {/* Desktop nav links */}
           {!isMobile && (
             <nav style={{ display:'flex', alignItems:'center', gap:'1.75rem' }}>
-              {[['#product','The Card'],['#how-it-works','How it works'],['#profile','Profile'], ...(shownReviews.length > 0 ? [['#reviews','Reviews']] : [])].map(([h,l])=>(
+              {[['#product','The Card'],['#how-it-works','How it works']].map(([h,l])=>(
+                <a key={h} href={h} className="nav-link">{l}</a>
+              ))}
+              <Link href="/business" className="nav-link">For Teams</Link>
+              {[['#profile','Profile'], ...(shownReviews.length > 0 ? [['#reviews','Reviews']] : [])].map(([h,l])=>(
                 <a key={h} href={h} className="nav-link">{l}</a>
               ))}
              <Link href="/pricing" className="nav-link">Pricing</Link>
-              <Link href="/business" className="nav-link">For Teams</Link>
               <Link href="/insights" className="nav-link">Blogs</Link>
             </nav>
           )}
@@ -1251,14 +1258,18 @@ export default function HomePage() {
           </div>
 
           <nav style={{ display:'flex', flexDirection:'column', gap:'.25rem', marginTop:'2rem' }}>
-            {[['#product','The Card'],['#how-it-works','How it works'],['#profile','Profile'], ...(shownReviews.length > 0 ? [['#reviews','Reviews']] : [])].map(([h,l])=>(
+            {[['#product','The Card'],['#how-it-works','How it works']].map(([h,l])=>(
+              <a key={h} href={h} onClick={() => setMenuOpen(false)}
+                style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>{l}</a>
+            ))}
+            <Link href="/business" onClick={() => setMenuOpen(false)}
+              style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>For Teams</Link>
+            {[['#profile','Profile'], ...(shownReviews.length > 0 ? [['#reviews','Reviews']] : [])].map(([h,l])=>(
               <a key={h} href={h} onClick={() => setMenuOpen(false)}
                 style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>{l}</a>
             ))}
             <Link href="/pricing" onClick={() => setMenuOpen(false)}
               style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>Pricing</Link>
-            <Link href="/business" onClick={() => setMenuOpen(false)}
-              style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>For Teams</Link>
             <Link href="/insights" onClick={() => setMenuOpen(false)}
               style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.6rem', fontWeight:500, color:'#fff', textTransform:'uppercase', letterSpacing:'.02em', textDecoration:'none', padding:'.75rem 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>Blogs</Link>
           </nav>
@@ -2130,43 +2141,52 @@ export default function HomePage() {
           background:'#030303',
         }}>
           <div style={{ maxWidth:1160, margin:'0 auto' }}>
-            <div className="footer-cols" style={{ display:'flex', justifyContent:'space-between', gap:'3rem', marginBottom:'2.5rem', flexWrap:'wrap' }}>
-              <div style={{ maxWidth:280 }}>
-                <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.05rem', fontWeight:600, letterSpacing:'.3em', color:'#fff', marginBottom:'.7rem', textTransform:'uppercase' }}>TAPPED-IN</div>
-                <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.82rem', fontWeight:300, color:'rgba(255,255,255,.18)', lineHeight:1.7, letterSpacing:'0.01em' }}>The New Standard for Networking. Premium NFC digital identity for creators and professionals.</p>
-                <div style={{ display:'flex', gap:'.55rem', marginTop:'1.35rem' }}>
+            <div style={{
+              display:'grid',
+              gridTemplateColumns: isMobile ? 'repeat(2, minmax(0,1fr))' : '1.7fr 1fr 1fr 1fr',
+              gap: isMobile ? '2.5rem 1.5rem' : 'clamp(2rem,4vw,3.5rem)',
+              marginBottom: isMobile ? '2.75rem' : '3.5rem',
+            }}>
+
+              {/* Brand */}
+              <div style={{ gridColumn: isMobile ? '1 / -1' : 'auto', maxWidth:320 }}>
+                <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.15rem', fontWeight:600, letterSpacing:'.3em', color:'#FFFFFF', marginBottom:'.9rem', textTransform:'uppercase' }}>TAPPED-IN</div>
+                <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.92rem', fontWeight:300, color:'#FFFFFF', lineHeight:1.75, letterSpacing:'0.01em' }}>
+                  Premium NFC cards &amp; digital profiles. One tap, always up to date.
+                </p>
+                <div style={{ display:'flex', gap:'.6rem', marginTop:'1.5rem' }}>
                   {[
-                    { label:'Instagram', href:'https://www.instagram.com/tappedinspace/', icon:(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="18" cy="6" r="1" fill="currentColor" stroke="none"/></svg>) },
-                    { label:'TikTok', href:'https://www.tiktok.com/@tappedinspace', icon:(<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3c.3 2.1 1.7 3.6 3.8 3.9v2.4c-1.3 0-2.5-.4-3.6-1.1v5.7c0 3-2.2 5.2-5.1 5.2S6 18.8 6 16.1c0-2.6 2-4.8 4.7-4.9v2.5c-1.3.1-2.2 1.1-2.2 2.4 0 1.4 1 2.4 2.3 2.4 1.4 0 2.4-1 2.4-2.7V3h2.8z"/></svg>) },
-                    { label:'LinkedIn', href:'https://www.linkedin.com/company/tappedinspace/', icon:(<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM10 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.4c0-1.29-.02-2.95-1.8-2.95-1.8 0-2.08 1.4-2.08 2.85V21h-4z"/></svg>) },
+                    { label:'Instagram', href:'https://www.instagram.com/tappedinspace/', icon:(<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="18" cy="6" r="1" fill="currentColor" stroke="none"/></svg>) },
+                    { label:'TikTok', href:'https://www.tiktok.com/@tappedinspace', icon:(<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3c.3 2.1 1.7 3.6 3.8 3.9v2.4c-1.3 0-2.5-.4-3.6-1.1v5.7c0 3-2.2 5.2-5.1 5.2S6 18.8 6 16.1c0-2.6 2-4.8 4.7-4.9v2.5c-1.3.1-2.2 1.1-2.2 2.4 0 1.4 1 2.4 2.3 2.4 1.4 0 2.4-1 2.4-2.7V3h2.8z"/></svg>) },
+                    { label:'LinkedIn', href:'https://www.linkedin.com/company/tappedinspace/', icon:(<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM10 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.4c0-1.29-.02-2.95-1.8-2.95-1.8 0-2.08 1.4-2.08 2.85V21h-4z"/></svg>) },
                   ].map((soc)=>(
                     <a key={soc.label} href={soc.href} target="_blank" rel="noopener noreferrer" aria-label={soc.label} className="footer-social"
-                      style={{ width:38, height:38, borderRadius:8, border:'1px solid rgba(255,255,255,0.09)', background:'rgba(255,255,255,0.02)', display:'inline-flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,0.45)', textDecoration:'none', transition:'color .2s, border-color .2s, background .2s' }}>
+                      style={{ width:40, height:40, borderRadius:8, border:'1px solid rgba(255,255,255,0.18)', background:'rgba(255,255,255,0.03)', display:'inline-flex', alignItems:'center', justifyContent:'center', color:'#FFFFFF', textDecoration:'none', transition:'border-color .2s, background .2s' }}>
                       {soc.icon}
                     </a>
                   ))}
                 </div>
               </div>
-              <div className="footer-links" style={{ display:'flex', gap:'4rem', flexWrap:'wrap' }}>
-                {[
-                  { head:'Drop',    links:[['#product','The Card'],['#how-it-works','How it works'],['/insights','Blogs'],['/demo','Demo profile']] },
-                  { head:'Account', links:[['/signup','Order'],['/login','Sign in'],['/dashboard','Dashboard']] },
-                  { head:'Connect', links:[['/contact','Contact us'],['/pricing','Pricing']] },
-                ].map(col=>(
-                  <div key={col.head} style={{ display:'flex', flexDirection:'column', gap:'.65rem' }}>
-                    <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:500, letterSpacing:'.26em', textTransform:'uppercase', color:'rgba(255,255,255,.2)', marginBottom:'.2rem' }}>{col.head}</div>
-                    {col.links.map(([href,label])=>
-                      (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('http'))
-                        ? <a key={href} href={href} className="footer-link" {...(href.startsWith('http') ? { target:'_blank', rel:'noopener noreferrer' } : {})}>{label}</a>
-                        : <Link key={href} href={href} className="footer-link">{label}</Link>
-                    )}
-                  </div>
-                ))}
-              </div>
+
+              {/* Link groups — add to a column's `links` array to extend it */}
+              {[
+                { head:'Product', links:[['/pricing','Order a card'],['/pricing','Pricing'],['/business','For Teams'],['#product','The Card'],['#how-it-works','How it works'],['/demo','Demo profile']] },
+                { head:'Company', links:[['/contact','Contact us'],['/login','Login'],['/dashboard','Dashboard'],['/insights','Blogs']] },
+                { head:'Legal',   links:[['/privacy','Privacy Policy']] },
+              ].map(col=>(
+                <div key={col.head} style={{ display:'flex', flexDirection:'column', gap:'.85rem', minWidth:0 }}>
+                  <div className="footer-head" style={{ marginBottom:'.35rem' }}>{col.head}</div>
+                  {col.links.map(([href,label])=>
+                    (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('http'))
+                      ? <a key={`${href}-${label}`} href={href} className="footer-link" {...(href.startsWith('http') ? { target:'_blank', rel:'noopener noreferrer' } : {})}>{label}</a>
+                      : <Link key={`${href}-${label}`} href={href} className="footer-link">{label}</Link>
+                  )}
+                </div>
+              ))}
             </div>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'1px solid rgba(255,255,255,0.04)', paddingTop:'1.5rem', flexWrap:'wrap', gap:'.5rem' }}>
-              <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.72rem', fontWeight:400, color:'rgba(255,255,255,.14)', letterSpacing:'0.04em' }}>© 2026 Tapped-In. All rights reserved.</span>
-              <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.72rem', fontWeight:400, color:'rgba(255,255,255,.1)', letterSpacing:'0.06em', textTransform:'uppercase' }}>tappedin.uk</span>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'1px solid rgba(255,255,255,0.09)', paddingTop:'1.75rem', flexWrap:'wrap', gap:'.75rem' }}>
+              <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.82rem', fontWeight:300, color:'#FFFFFF', letterSpacing:'0.04em' }}>© 2026 TAPPEDIN SPACE LTD</span>
+              <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.82rem', fontWeight:300, color:'#FFFFFF', letterSpacing:'0.06em', textTransform:'uppercase' }}>tappedin.uk</span>
             </div>
           </div>
         </footer>
