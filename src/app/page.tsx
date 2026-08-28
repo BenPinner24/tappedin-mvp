@@ -14,9 +14,6 @@ import { SOLD_OUT } from '@/lib/config'
 //         waitlist modal instead. Nothing else on the page changes.
 
 
-const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
-const STANDARD_ONETIME_URL = 'https://buy.stripe.com/dRm14pc1H16F9N7et1cfK03'
-const MEMBER_CTA_HREF = STANDARD_ONETIME_URL
 const HERO_PRICE_LINE = '\u00a334.99 \u2014 includes your card and your first month of full access. We\u2019ll be in touch to set up your profile once your card is on the way.'
 const INDIVIDUAL_PRICE_SUFFIX = 'card + first month included'
 // ── EDIT ME ───────────────────────────────────────────────────────────────────
@@ -1074,9 +1071,9 @@ function MemberCTA({ className, style, children, onWaitlist }: { className?: str
     )
   }
   return (
-    <a href={MEMBER_CTA_HREF} target="_blank" rel="noopener noreferrer" className={className} style={style}>
+    <Link href="/pricing" className={className} style={style}>
       {children}
-    </a>
+    </Link>
   )
 }
 
@@ -1619,7 +1616,7 @@ export default function HomePage() {
                   ))}
                 </div>
                 <div className="reveal d4">
-                  <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer"
+                  <Link href="/pricing"
  className="btn-primary" style={{ fontSize: '.84rem', padding: '13px 28px' }}>Order Founders Edition</Link>
                 </div>
               </div>
@@ -1805,7 +1802,7 @@ export default function HomePage() {
             </div>
 
             <div className="reveal d3" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '2.25rem' }}>
-              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '13px 28px' : '16px 42px' }}>Claim your number →</Link>
+              <Link href="/pricing" className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '13px 28px' : '16px 42px' }}>Claim your number →</Link>
             </div>
 
             {/* Differentiators — what the others can't say */}
@@ -1866,7 +1863,7 @@ export default function HomePage() {
             </div>
 
             <div className="reveal d4">
-              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer"
+              <Link href="/pricing"
  className="btn-primary" style={{ fontSize:'.9rem', padding: isMobile ? '12px 22px' : '16px 42px' }}>Order Founders Edition</Link>
             </div>
           </div>
@@ -2107,7 +2104,7 @@ export default function HomePage() {
             </p>
             <div className="reveal d3 final-cta-btns" style={{ display:'flex', gap:'.75rem', justifyContent:'center', flexWrap:'wrap' }}>
               <MemberCTA className="btn-primary" style={{ fontSize:'.9rem', padding:'16px 40px' }} onWaitlist={() => setWaitlistOpen(true)}>Get your card</MemberCTA>
-              <Link href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Or claim a Founder card</Link>
+              <Link href="/pricing" className="btn-ghost" style={{ borderColor:'rgba(255,255,255,.28)' }}>Or claim a Founder card</Link>
               <Link href="/demo" className="btn-ghost">View demo profile</Link>
             </div>
             <div className="reveal d3" style={{ marginTop:'1.25rem', display:'flex', justifyContent:'center' }}>
@@ -2172,7 +2169,7 @@ export default function HomePage() {
               {[
                 { head:'Product', links:[['/pricing','Order a card'],['/pricing','Pricing'],['/business','For Teams'],['#product','The Card'],['#how-it-works','How it works'],['/demo','Demo profile']] },
                 { head:'Company', links:[['/contact','Contact us'],['/login','Login'],['/dashboard','Dashboard'],['/insights','Blogs']] },
-                { head:'Legal',   links:[['/privacy','Privacy Policy']] },
+                { head:'Legal',   links:[['/privacy','Privacy Policy'],['/terms','Terms & Conditions']] },
               ].map(col=>(
                 <div key={col.head} style={{ display:'flex', flexDirection:'column', gap:'.85rem', minWidth:0 }}>
                   <div className="footer-head" style={{ marginBottom:'.35rem' }}>{col.head}</div>

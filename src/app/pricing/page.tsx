@@ -63,10 +63,39 @@ const FAQS = [
   { q: 'What if someone\u2019s phone will not tap?', a: 'You are never stuck. Every profile also has its own QR code and a shareable link, so you can share it even if a tap does not land.' },
 ]
 
+// Required before any checkout. One shared `consent` value drives every
+// instance, so ticking any box unlocks all the purchase buttons at once.
+function ConsentGate({ id, checked, onChange }: { id: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label htmlFor={id} style={s.consentRow}>
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        style={s.consentBox}
+      />
+      <span style={s.consentText}>
+        I agree to the{' '}
+        <Link href="/terms" target="_blank" rel="noopener noreferrer" style={s.consentLink}>Terms &amp; Conditions</Link>
+        {' '}and{' '}
+        <Link href="/privacy" target="_blank" rel="noopener noreferrer" style={s.consentLink}>Privacy Policy</Link>
+      </span>
+    </label>
+  )
+}
+
 export default function PricingPage() {
   const [reveal, setReveal] = useState(false)
   const [waitlistOpen, setWaitlistOpen] = useState(false)
+  const [consent, setConsent] = useState(false)
   useEffect(() => { setReveal(true) }, [])
+
+  // Until the box is ticked, checkout links are visually dimmed and made
+  // completely unclickable (pointerEvents) as well as unreachable by keyboard.
+  const gated = (base: React.CSSProperties): React.CSSProperties =>
+    consent ? base : { ...base, opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none' }
+  const gateProps = { 'aria-disabled': !consent, tabIndex: consent ? undefined : -1 }
 
   return (
     <>
@@ -107,6 +136,7 @@ export default function PricingPage() {
           <section style={s.section}>
             <p style={s.eyebrowCenter}>Choose your card</p>
             <h2 style={s.h2}>Yours to keep</h2>
+            <ConsentGate id="consent-cards" checked={consent} onChange={setConsent} />
             <div style={s.cardsGrid} className="cards">
               {CARDS.map((c, i) => {
                 const live = !!c.url
@@ -122,7 +152,7 @@ export default function PricingPage() {
                       SOLD_OUT && c.url === MEMBER_CTA_HREF ? (
                         <button type="button" onClick={() => setWaitlistOpen(true)} style={c.founder ? s.buyPrimary : s.buy}>Join the waitlist</button>
                       ) : (
-                        <a href={c.url} {...(c.url.startsWith('/') ? {} : { target: '_blank', rel: 'noopener noreferrer' })} style={c.founder ? s.buyPrimary : s.buy}>{c.cta || 'Order'}</a>
+                        <a href={c.url} {...(c.url.startsWith('/') ? {} : { target: '_blank', rel: 'noopener noreferrer' })} {...gateProps} style={gated(c.founder ? s.buyPrimary : s.buy)}>{c.cta || 'Order'}</a>
                       )
                     ) : (
                       <span style={s.buyDisabled}>Coming soon</span>
@@ -159,10 +189,11 @@ export default function PricingPage() {
             </div>
  
             <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              {!SOLD_OUT && <ConsentGate id="consent-tiers" checked={consent} onChange={setConsent} />}
               {SOLD_OUT ? (
                 <button type="button" onClick={() => setWaitlistOpen(true)} style={{ ...s.buyPrimary, width: '100%' }}>Join the waitlist</button>
               ) : (
-                <a href={MEMBER_CTA_HREF} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Get your card</a>
+                <a href={MEMBER_CTA_HREF} target="_blank" rel="noopener noreferrer" {...gateProps} style={gated(s.buyPrimary)}>Get your card</a>
               )}
             </div>
 
@@ -207,13 +238,14 @@ export default function PricingPage() {
           {/* final cta */}
           <section style={s.finalCta}>
             <h2 style={s.h2}>Ready to tap in?</h2>
+            <ConsentGate id="consent-final" checked={consent} onChange={setConsent} />
             <div style={s.ctaRow}>
               {SOLD_OUT ? (
                 <button type="button" onClick={() => setWaitlistOpen(true)} style={s.buyPrimary}>Join the waitlist</button>
               ) : (
-                <a href={PVC_STRIPE_URL} target="_blank" rel="noopener noreferrer" style={s.buyPrimary}>Get your card</a>
+                <a href={PVC_STRIPE_URL} target="_blank" rel="noopener noreferrer" {...gateProps} style={gated(s.buyPrimary)}>Get your card</a>
               )}
-              <a href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" style={s.buy}>Order Founders Edition</a>
+              <a href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" {...gateProps} style={gated(s.buy)}>Order Founders Edition</a>
             </div>
           </section>
 
@@ -294,6 +326,21 @@ const s: Record<string, React.CSSProperties> = {
   cardSub: { fontFamily: FF, fontSize: '.8rem', fontWeight: 300, lineHeight: 1.4, color: 'rgba(255,255,255,.42)', letterSpacing: '.02em', marginBottom: '.5rem' },
   cardBlurb: { fontFamily: FF, fontSize: '.86rem', fontWeight: 300, lineHeight: 1.6, color: 'rgba(255,255,255,.45)', marginBottom: '1.5rem', flex: 1 },
   buy: { display: 'block', textAlign: 'center', padding: '13px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#fff', fontFamily: FF, fontSize: '.85rem', fontWeight: 500, letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none', cursor: 'pointer', transition: 'opacity .2s' },
+  consentRow: {
+    display: 'flex', alignItems: 'flex-start', gap: '.7rem',
+    maxWidth: 460, margin: '0 auto 1.25rem', padding: '.85rem 1rem',
+    background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+  },
+  consentBox: {
+    width: 17, height: 17, marginTop: 1, flexShrink: 0,
+    accentColor: '#E8C9A0', cursor: 'pointer',
+  },
+  consentText: {
+    fontFamily: FF, fontSize: '.82rem', fontWeight: 300, lineHeight: 1.6,
+    color: 'rgba(255,255,255,.62)', letterSpacing: '.01em',
+  },
+  consentLink: { color: '#E8C9A0', textDecoration: 'underline', textUnderlineOffset: '2px' },
   buyPrimary: { display: 'block', textAlign: 'center', padding: '13px', borderRadius: 8, border: 'none', background: '#fff', color: '#000', fontFamily: FF, fontSize: '.85rem', fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none', cursor: 'pointer', transition: 'opacity .2s' },
   buyDisabled: { display: 'block', textAlign: 'center', padding: '13px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,.3)', fontFamily: FF, fontSize: '.85rem', fontWeight: 500, letterSpacing: '.1em', textTransform: 'uppercase' },
   cardsNote: { fontFamily: FF, fontSize: '.82rem', fontWeight: 300, color: 'rgba(255,255,255,.35)', textAlign: 'center', marginTop: '1.75rem', lineHeight: 1.6 },
