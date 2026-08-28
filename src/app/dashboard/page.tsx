@@ -4,6 +4,7 @@ import BrandStudio from '@/components/BrandStudio'
 import TeamDashboardLink from '@/components/TeamDashboardLink'
 import MyNetwork from '@/components/MyNetwork'
 import LockOverlay from '@/components/LockOverlay'
+import DeleteAccount from '@/components/DeleteAccount'
 import { isCardDormant, canAccess } from '@/lib/tiers'
 import Link from 'next/link'
 import {
@@ -2050,6 +2051,8 @@ previewLinks={links.filter((l) => l.is_active && l.label && l.url)}
           </Link>
 
         </div>
+
+        <DeleteAccount />
       </div>
     </main>
   )
