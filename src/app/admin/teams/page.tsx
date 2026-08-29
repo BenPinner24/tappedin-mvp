@@ -6,20 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 
 type Company = { id: string; name: string; card_count: number }
 
-type CardRow = {
-  card_id: string
-  status: string
-  owner_user_id: string | null
-  company_id: string | null
-}
-
-type ActionResult = {
-  action: 'assign' | 'unassign'
-  affectedCount: number
-  affectedCardIds: string[]
-  message: string
-}
-
 type Lookup = {
   email: string
   found: boolean
@@ -47,6 +33,10 @@ type TeamMember = {
   card_id: string | null
 }
 
+type NewCardRow = { card_id: string; nfc_url: string | null }
+
+type CreatedCompany = { id: string; name: string; join_code: string }
+
 type Gate = 'loading' | 'signedout' | 'forbidden' | 'ok'
 
 const CHAMP = '#E8C9A0'
@@ -60,15 +50,6 @@ export default function AdminTeamsPage() {
   const [token, setToken]         = useState<string | null>(null)
   const [companies, setCompanies] = useState<Company[]>([])
   const [error, setError]         = useState<string | null>(null)
-
-  const [companyId, setCompanyId] = useState<string>('')
-  const [batchId, setBatchId]     = useState<string>('')
-
-  const [cards, setCards]                 = useState<CardRow[] | null>(null)
-  const [previewedBatch, setPreviewedBatch] = useState<string | null>(null)
-  const [busy, setBusy]                   = useState(false)
-  const [pending, setPending]             = useState<'assign' | 'unassign' | null>(null)
-  const [result, setResult]               = useState<ActionResult | null>(null)
 
   // ── Manager-binding tool: its own state throughout ──────────────────────
   const [mgrCompanyId, setMgrCompanyId] = useState<string>('')
@@ -85,6 +66,19 @@ export default function AdminTeamsPage() {
   const [goldBusy, setGoldBusy]           = useState(false)
   const [goldPending, setGoldPending]     = useState<{ member: TeamMember; grant: boolean } | null>(null)
   const [goldResult, setGoldResult]       = useState<string | null>(null)
+
+  // ── Create Company tool: its own state throughout ─────────────────────
+  const [newName, setNewName]         = useState('')
+  const [newPrefix, setNewPrefix]     = useState('')
+  const [newCount, setNewCount]       = useState('50')
+  const [createBusy, setCreateBusy]   = useState(false)
+  const [createPending, setCreatePending] = useState(false)
+  const [created, setCreated]         = useState<CreatedCompany | null>(null)
+  const [newCards, setNewCards]       = useState<NewCardRow[] | null>(null)
+  const [viewCompanyId, setViewCompanyId] = useState('')
+  const [viewCards, setViewCards]     = useState<NewCardRow[] | null>(null)
+  const [viewBusy, setViewBusy]       = useState(false)
+  const [copied, setCopied]           = useState<string | null>(null)
 
   const fetchCompanies = useCallback(async (accessToken: string) => {
     try {
@@ -121,72 +115,6 @@ export default function AdminTeamsPage() {
     init()
     return () => { cancelled = true }
   }, [supabase, fetchCompanies])
-
-  // ── Preview ────────────────────────────────────────────────────────────────
-  async function runPreview() {
-    if (!token) return
-    const batch = batchId.trim()
-    if (!batch) { setError('Enter a batch_id to preview.'); return }
-    setBusy(true)
-    setError(null)
-    setResult(null)
-    setPending(null)
-    try {
-      const res = await fetch(`/api/admin/teams?batch_id=${encodeURIComponent(batch)}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-      })
-      if (res.status === 401) { setGate('signedout'); return }
-      if (res.status === 403) { setGate('forbidden'); return }
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}))
-        setError(j.error || 'Preview failed')
-        return
-      }
-      const j = await res.json()
-      setCompanies(j.companies ?? [])
-      setCards(j.cards ?? [])
-      setPreviewedBatch(batch)
-    } catch {
-      setError('Network error running preview')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  // ── Write ──────────────────────────────────────────────────────────────────
-  async function runAction(action: 'assign' | 'unassign') {
-    if (!token) return
-    setBusy(true)
-    setError(null)
-    try {
-      const res = await fetch('/api/admin/teams', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action, companyId, batchId: batchId.trim() }),
-      })
-      const j = await res.json().catch(() => ({}))
-      if (res.status === 401) { setGate('signedout'); return }
-      if (res.status === 403) { setGate('forbidden'); return }
-      if (!res.ok) {
-        setError(j.error || 'Update failed')
-        return
-      }
-      setResult({
-        action: j.action,
-        affectedCount: j.affectedCount ?? 0,
-        affectedCardIds: j.affectedCardIds ?? [],
-        message: j.message ?? '',
-      })
-      setPending(null)
-      // Re-read the batch and the counts so what's on screen matches the database.
-      await runPreview()
-    } catch {
-      setError('Network error')
-    } finally {
-      setBusy(false)
-    }
-  }
 
   // ── Manager lookup (preview only — writes nothing) ──────────────────────
   async function runLookup() {
@@ -252,17 +180,76 @@ export default function AdminTeamsPage() {
     }
   }
 
-  const selectedCompany = companies.find((c) => c.id === companyId) ?? null
-  const batchIsPreviewed = previewedBatch !== null && previewedBatch === batchId.trim()
+  // ── Create Company ─────────────────────────────────────────────
+  async function runCreateCompany() {
+    if (!token) return
+    setCreateBusy(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          action: 'create_company',
+          companyName: newName.trim(),
+          prefix: newPrefix.trim().toLowerCase(),
+          cardCount: Number(newCount),
+        }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (res.status === 401) { setGate('signedout'); return }
+      if (res.status === 403) { setGate('forbidden'); return }
+      if (!res.ok) {
+        setError(j.error || 'Could not create the company')
+        return
+      }
+      setCreated(j.company ?? null)
+      setNewCards(j.cards ?? [])
+      setCreatePending(false)
+      setNewName(''); setNewPrefix('')
+      // Refresh the company list so the new one is immediately selectable.
+      await fetchCompanies(token)
+    } catch {
+      setError('Network error creating the company')
+    } finally {
+      setCreateBusy(false)
+    }
+  }
 
-  const eligibleToAssign = (cards ?? []).filter(
-    (c) => c.status === 'unclaimed' && !c.owner_user_id && !c.company_id,
-  )
-  const eligibleToUnassign = (cards ?? []).filter(
-    (c) => c.status === 'unclaimed' && !c.owner_user_id && companyId !== '' && c.company_id === companyId,
-  )
+  async function loadCompanyCards(id: string) {
+    if (!token || !id) { setViewCards(null); return }
+    setViewBusy(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/admin/teams?companyCards=${encodeURIComponent(id)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
+      if (res.status === 401) { setGate('signedout'); return }
+      if (res.status === 403) { setGate('forbidden'); return }
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setError(j.error || 'Could not load that company\u2019s cards')
+        return
+      }
+      const j = await res.json()
+      setViewCards(j.companyCards ?? [])
+    } catch {
+      setError('Network error loading cards')
+    } finally {
+      setViewBusy(false)
+    }
+  }
 
-  const canAct = Boolean(token) && !busy && companyId !== '' && batchIsPreviewed
+  async function copyText(text: string, key: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(key)
+      setTimeout(() => setCopied((c) => (c === key ? null : c)), 1400)
+    } catch {
+      setError('Could not copy to the clipboard')
+    }
+  }
 
   // ── Team Gold: load the roster (read-only) ─────────────────────────
   const loadTeam = useCallback(async (accessToken: string, companyForTeam: string) => {
@@ -325,6 +312,12 @@ export default function AdminTeamsPage() {
   const canUnbind = Boolean(token) && !mgrBusy && mgrCompanyId !== '' && emailIsLookedUp && lookup !== null && lookup.found
 
   const goldCompany = companies.find((c) => c.id === goldCompanyId) ?? null
+
+  const countNum = Number(newCount)
+  const canCreate = Boolean(token) && !createBusy
+    && newName.trim() !== '' && /^[a-z0-9-]+$/.test(newPrefix.trim().toLowerCase())
+    && Number.isInteger(countNum) && countNum >= 1 && countNum <= 500
+  const viewCompany = companies.find((c) => c.id === viewCompanyId) ?? null
   const goldCount = (team ?? []).filter((m) => m.isGold).length
   const freeCount = (team ?? []).length - goldCount
 
@@ -381,199 +374,140 @@ export default function AdminTeamsPage() {
 
         {gate === 'ok' && (
           <>
-            {/* ── 1. Company ── */}
+            {/* ══════════════════════════════════════════════
+                STEP 0 — create a company and its card batch. Entirely separate
+                state; nothing here touches the three tools below.
+            ══════════════════════════════════════════════ */}
             <section style={st.section}>
               <div style={st.sectionHead}>
-                <h2 style={st.sectionTitle}>1 · Company</h2>
-                <span style={{ ...st.countPill, color: CHAMP, borderColor: CHAMP + '44', background: CHAMP + '14' }}>
-                  {companies.length}
-                </span>
+                <h2 style={st.sectionTitle}>0 · Create a company</h2>
               </div>
               <div style={st.sectionBody}>
-                {companies.length === 0 ? (
-                  <p style={st.emptyNote}>No companies found.</p>
-                ) : (
-                  <>
-                    <label style={st.label} htmlFor="adm-company">Assign cards to</label>
-                    <select
-                      id="adm-company"
-                      className="adm-select"
-                      style={st.select}
-                      value={companyId}
-                      onChange={(e) => { setCompanyId(e.target.value); setPending(null); setResult(null) }}
-                    >
-                      <option value="">Select a company…</option>
-                      {companies.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} — {c.card_count} card{c.card_count === 1 ? '' : 's'}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedCompany && (
-                      <p style={st.hint}>
-                        {selectedCompany.name} currently holds {selectedCompany.card_count} card
-                        {selectedCompany.card_count === 1 ? '' : 's'}.
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
-            </section>
+                <p style={st.hint}>
+                  Creates the company and its cards in one go. Bind the real manager
+                  afterwards with the tool below — until then you are the owner.
+                </p>
 
-            {/* ── 2. Batch + preview ── */}
-            <section style={st.section}>
-              <div style={st.sectionHead}>
-                <h2 style={st.sectionTitle}>2 · Batch</h2>
-                {cards !== null && (
-                  <span style={{ ...st.countPill, color: CHAMP, borderColor: CHAMP + '44', background: CHAMP + '14' }}>
-                    {cards.length}
-                  </span>
-                )}
-              </div>
-              <div style={st.sectionBody}>
-                <label style={st.label} htmlFor="adm-batch">batch_id</label>
-                <div style={st.row}>
-                  <input
-                    id="adm-batch"
-                    style={st.input}
-                    value={batchId}
-                    placeholder="e.g. acme-corp-2026"
-                    onChange={(e) => { setBatchId(e.target.value); setPending(null); setResult(null) }}
-                  />
-                  <button className="adm-btn" style={st.previewBtn} disabled={busy || !batchId.trim()} onClick={runPreview}>
-                    {busy ? 'Working…' : 'Preview'}
-                  </button>
+                <div style={st.createGrid}>
+                  <div style={{ minWidth: 0 }}>
+                    <label style={st.label} htmlFor="adm-new-name">Company name</label>
+                    <input
+                      id="adm-new-name"
+                      style={st.input}
+                      value={newName}
+                      placeholder="Acme Ltd"
+                      onChange={(e) => { setNewName(e.target.value); setCreatePending(false) }}
+                    />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <label style={st.label} htmlFor="adm-new-prefix">Prefix</label>
+                    <input
+                      id="adm-new-prefix"
+                      style={st.input}
+                      value={newPrefix}
+                      placeholder="acme"
+                      onChange={(e) => { setNewPrefix(e.target.value); setCreatePending(false) }}
+                    />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <label style={st.label} htmlFor="adm-new-count">Cards</label>
+                    <input
+                      id="adm-new-count"
+                      style={st.input}
+                      type="number"
+                      min={1}
+                      max={500}
+                      value={newCount}
+                      onChange={(e) => { setNewCount(e.target.value); setCreatePending(false) }}
+                    />
+                  </div>
                 </div>
 
-                {cards === null && (
-                  <p style={st.emptyNote}>Preview a batch to see its cards. Nothing is written by previewing.</p>
-                )}
+                <p style={st.previewNote}>
+                  Card IDs will look like{' '}
+                  <span style={st.mono}>{(newPrefix.trim().toLowerCase() || 'prefix')}-001-a1b2c3d4</span>
+                  {' '}· batch_id <span style={st.mono}>{newPrefix.trim().toLowerCase() || 'prefix'}</span>
+                </p>
 
-                {cards !== null && cards.length === 0 && (
-                  <p style={st.emptyNote}>No cards found with batch_id &ldquo;{previewedBatch}&rdquo;.</p>
-                )}
-
-                {cards !== null && cards.length > 0 && (
-                  <>
-                    <div style={st.summaryRow}>
-                      <span style={{ ...st.summaryPill, color: OK, borderColor: OK + '44', background: OK + '14' }}>
-                        {eligibleToAssign.length} eligible to assign
-                      </span>
-                      <span style={{ ...st.summaryPill, color: CHAMP, borderColor: CHAMP + '44', background: CHAMP + '14' }}>
-                        {eligibleToUnassign.length} eligible to un-assign
-                      </span>
-                      <span style={{ ...st.summaryPill, color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.04)' }}>
-                        {cards.length - eligibleToAssign.length} not assignable
-                      </span>
-                    </div>
-
-                    <div style={st.cardList}>
-                      {cards.map((c) => {
-                        const eligible = c.status === 'unclaimed' && !c.owner_user_id && !c.company_id
-                        return (
-                          <div key={c.card_id} style={st.cardRow}>
-                            <span style={st.cardId}>{c.card_id}</span>
-                            <span style={st.cardMeta}>
-                              {c.status}
-                              {c.owner_user_id ? ' · owned' : ''}
-                              {c.company_id ? (c.company_id === companyId ? ' · this company' : ' · other company') : ''}
-                            </span>
-                            <span style={{
-                              ...st.tag,
-                              color: eligible ? OK : 'rgba(255,255,255,0.4)',
-                              borderColor: eligible ? OK + '44' : 'rgba(255,255,255,0.12)',
-                              background: eligible ? OK + '14' : 'rgba(255,255,255,0.03)',
-                            }}>
-                              {eligible ? 'ELIGIBLE' : 'SKIP'}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
-            </section>
-
-            {/* ── 3. Write ── */}
-            <section style={st.section}>
-              <div style={st.sectionHead}>
-                <h2 style={st.sectionTitle}>3 · Apply</h2>
-              </div>
-              <div style={st.sectionBody}>
-                {!batchIsPreviewed && (
-                  <p style={st.emptyNote}>
-                    Preview the batch first. The buttons unlock once you&rsquo;ve seen what would change.
-                  </p>
-                )}
-
-                {pending === null ? (
+                {!createPending ? (
                   <div style={st.actions}>
                     <button
                       className="adm-btn"
                       style={st.approveBtn}
-                      disabled={!canAct}
-                      onClick={() => { setResult(null); setPending('assign') }}
+                      disabled={!canCreate}
+                      onClick={() => { setCreated(null); setNewCards(null); setCreatePending(true) }}
                     >
-                      Assign to selected company
-                    </button>
-                    <button
-                      className="adm-btn"
-                      style={st.rejectBtn}
-                      disabled={!canAct}
-                      onClick={() => { setResult(null); setPending('unassign') }}
-                    >
-                      Un-assign from selected company
+                      Create company &amp; cards
                     </button>
                   </div>
                 ) : (
                   <div style={st.confirmBox}>
-                    <p style={st.confirmTitle}>
-                      {pending === 'assign' ? 'Assign cards?' : 'Un-assign cards?'}
-                    </p>
+                    <p style={st.confirmTitle}>Create this company?</p>
                     <p style={st.confirmText}>
-                      {pending === 'assign'
-                        ? `${eligibleToAssign.length} card${eligibleToAssign.length === 1 ? '' : 's'} in batch “${batchId.trim()}” will be stamped with ${selectedCompany?.name ?? 'the selected company'}.`
-                        : `${eligibleToUnassign.length} card${eligibleToUnassign.length === 1 ? '' : 's'} in batch “${batchId.trim()}” will be cleared from ${selectedCompany?.name ?? 'the selected company'}.`}
-                      {' '}Claimed and owned cards are never touched.
+                      {`“${newName.trim()}” will be created with ${countNum} card${countNum === 1 ? '' : 's'} in batch “${newPrefix.trim().toLowerCase()}”. Nothing else is affected.`}
                     </p>
                     <div style={st.actions}>
-                      <button
-                        className="adm-btn"
-                        style={pending === 'assign' ? st.approveBtn : st.rejectBtn}
-                        disabled={busy}
-                        onClick={() => runAction(pending)}
-                      >
-                        {busy ? 'Working…' : 'Yes, confirm'}
+                      <button className="adm-btn" style={st.approveBtn} disabled={createBusy} onClick={runCreateCompany}>
+                        {createBusy ? 'Creating…' : 'Yes, create'}
                       </button>
-                      <button className="adm-btn" style={st.ghostBtn} disabled={busy} onClick={() => setPending(null)}>
+                      <button className="adm-btn" style={st.ghostBtn} disabled={createBusy} onClick={() => setCreatePending(false)}>
                         Cancel
                       </button>
                     </div>
                   </div>
                 )}
 
-                {result && (
-                  <div style={{
-                    ...st.resultBox,
-                    borderColor: result.affectedCount > 0 ? OK + '44' : 'rgba(255,255,255,0.12)',
-                    background: result.affectedCount > 0 ? OK + '10' : 'rgba(255,255,255,0.03)',
-                  }}>
-                    <p style={{ ...st.resultTitle, color: result.affectedCount > 0 ? OK : 'rgba(255,255,255,0.6)' }}>
-                      {result.message}
-                    </p>
-                    {result.affectedCardIds.length > 0 && (
-                      <p style={st.resultIds}>{result.affectedCardIds.join(', ')}</p>
-                    )}
-                  </div>
+                {created && newCards && (
+                  <>
+                    <div style={{ ...st.resultBox, borderColor: OK + '44', background: OK + '10' }}>
+                      <p style={{ ...st.resultTitle, color: OK }}>
+                        {`Created “${created.name}” with ${newCards.length} card${newCards.length === 1 ? '' : 's'}.`}
+                      </p>
+                      <p style={st.resultIds}>Join code: {created.join_code} · id: {created.id}</p>
+                    </div>
+                    <CardTable rows={newCards} keyPrefix="new" copied={copied} onCopy={copyText} />
+                  </>
+                )}
+
+                {/* ── View an existing company's cards ── */}
+                <div style={st.subDivider} />
+                <div className="adm-subhead" style={st.subHead}>View existing company cards</div>
+                <label style={st.label} htmlFor="adm-view-company">Company</label>
+                <select
+                  id="adm-view-company"
+                  className="adm-select"
+                  style={st.select}
+                  value={viewCompanyId}
+                  onChange={(e) => {
+                    const next = e.target.value
+                    setViewCompanyId(next)
+                    setViewCards(null)
+                    if (next) loadCompanyCards(next)
+                  }}
+                >
+                  <option value="">Select a company…</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.card_count} card{c.card_count === 1 ? '' : 's'}
+                    </option>
+                  ))}
+                </select>
+
+                {viewCompanyId === '' && (
+                  <p style={st.emptyNote}>Choose a company to see the URL list for its cards.</p>
+                )}
+                {viewCompanyId !== '' && viewCards === null && (
+                  <p style={st.emptyNote}>{viewBusy ? 'Loading cards…' : 'No cards loaded.'}</p>
+                )}
+                {viewCards !== null && viewCards.length === 0 && (
+                  <p style={st.emptyNote}>{viewCompany?.name ?? 'This company'} has no cards yet.</p>
+                )}
+                {viewCards !== null && viewCards.length > 0 && (
+                  <CardTable rows={viewCards} keyPrefix="view" copied={copied} onCopy={copyText} />
                 )}
               </div>
             </section>
 
-            {/* ══════════════════════════════════════════════════════════
-                SECOND TOOL — bind a team manager. Entirely separate state
-                from the card tool above; nothing here touches it.
-            ══════════════════════════════════════════════════════════ */}
             <div style={st.toolDivider} />
 
             <section style={st.section}>
@@ -885,6 +819,56 @@ export default function AdminTeamsPage() {
   )
 }
 
+// Shared by “just created” and “view existing” so both lists look identical.
+function CardTable({ rows, keyPrefix, copied, onCopy }: {
+  rows: NewCardRow[]
+  keyPrefix: string
+  copied: string | null
+  onCopy: (text: string, key: string) => void
+}) {
+  const allUrls = rows.map((r) => r.nfc_url ?? '').filter(Boolean).join('\n')
+  return (
+    <>
+      <div style={st.tableTopRow}>
+        <span style={st.hint}>{rows.length} card{rows.length === 1 ? '' : 's'}</span>
+        <button
+          className="adm-btn"
+          style={st.copyAllBtn}
+          onClick={() => onCopy(allUrls, `${keyPrefix}-all`)}
+        >
+          {copied === `${keyPrefix}-all` ? 'Copied all' : 'Copy all URLs'}
+        </button>
+      </div>
+      <div style={st.tableWrap}>
+        <div style={st.cardTableHead}>
+          <span style={st.colNo}>#</span>
+          <span style={st.colCardId}>Card ID</span>
+          <span style={st.colUrl}>NFC URL</span>
+          <span style={st.colCopy} />
+        </div>
+        <div style={st.cardTableBody}>
+          {rows.map((c, i) => (
+            <div key={c.card_id} style={st.tableRow}>
+              <span style={st.colNo}>{String(i + 1).padStart(3, '0')}</span>
+              <span style={{ ...st.colCardId, ...st.mono }}>{c.card_id}</span>
+              <span style={{ ...st.colUrl, ...st.mono }}>{c.nfc_url ?? '\u2014'}</span>
+              <span style={st.colCopy}>
+                <button
+                  className="adm-btn"
+                  style={st.copyBtn}
+                  onClick={() => onCopy(c.nfc_url ?? c.card_id, `${keyPrefix}-${c.card_id}`)}
+                >
+                  {copied === `${keyPrefix}-${c.card_id}` ? '✓' : 'Copy'}
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
 const st: Record<string, CSSProperties> = {
   page: {
     minHeight: '100vh',
@@ -950,15 +934,6 @@ const st: Record<string, CSSProperties> = {
   section: { marginBottom: '2rem' },
   sectionHead: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.9rem' },
   sectionTitle: { fontSize: '0.95rem', fontWeight: 700, letterSpacing: '0.01em' },
-  countPill: {
-    fontSize: '0.72rem',
-    fontWeight: 700,
-    borderRadius: '999px',
-    border: '1px solid',
-    padding: '2px 9px',
-    minWidth: '24px',
-    textAlign: 'center',
-  },
   sectionBody: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
   emptyNote: { fontSize: '0.82rem', color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' },
   label: {
@@ -1011,24 +986,6 @@ const st: Record<string, CSSProperties> = {
     border: '1px solid',
     padding: '4px 12px',
   },
-  cardList: {
-    display: 'flex',
-    flexDirection: 'column',
-    maxHeight: '320px',
-    overflowY: 'auto',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: '12px',
-  },
-  cardRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '10px',
-    padding: '9px 14px',
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
-  },
-  cardId: { fontSize: '0.82rem', fontWeight: 600, color: 'rgba(255,255,255,0.85)' },
-  cardMeta: { fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', flex: 1, textAlign: 'right' },
   tag: {
     fontSize: '0.65rem',
     fontWeight: 700,
@@ -1140,6 +1097,71 @@ const st: Record<string, CSSProperties> = {
     background: 'rgba(248,113,113,0.12)', color: BAD, border: '1px solid rgba(248,113,113,0.3)',
     borderRadius: '999px', padding: '6px 14px', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer',
     fontFamily: 'inherit', whiteSpace: 'nowrap',
+  },
+  // ── Create Company ──────────────────────────────────────────
+  createGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+    gap: '0.85rem',
+  },
+  previewNote: {
+    fontSize: '0.78rem',
+    color: 'rgba(255,255,255,0.32)',
+    lineHeight: 1.6,
+  },
+  mono: {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    fontSize: '0.76rem',
+    letterSpacing: '-0.01em',
+  },
+  subDivider: {
+    height: 1,
+    background: 'rgba(255,255,255,0.07)',
+    margin: '1.75rem 0 0.5rem',
+  },
+  subHead: {
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    letterSpacing: '0.02em',
+    color: 'rgba(255,255,255,0.75)',
+    marginBottom: '0.25rem',
+  },
+  tableTopRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '0.75rem',
+    flexWrap: 'wrap',
+  },
+  cardTableHead: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '9px 14px',
+    background: 'rgba(255,255,255,0.03)',
+    borderBottom: '1px solid rgba(255,255,255,0.08)',
+    fontSize: '0.62rem',
+    fontWeight: 700,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.32)',
+  },
+  cardTableBody: { maxHeight: '380px', overflowY: 'auto' },
+  colNo:     { flex: '0 0 34px', color: 'rgba(255,255,255,0.3)', fontSize: '0.72rem' },
+  colCardId: { flex: '1 1 160px', minWidth: 0, color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  colUrl:    { flex: '2 1 220px', minWidth: 0, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  colCopy:   { flex: '0 0 62px', display: 'flex', justifyContent: 'flex-end' },
+  copyBtn: {
+    background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)',
+    border: '1px solid rgba(255,255,255,0.14)', borderRadius: '999px',
+    padding: '4px 11px', fontSize: '0.68rem', fontWeight: 600,
+    cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+  },
+  copyAllBtn: {
+    background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)',
+    border: '1px solid rgba(255,255,255,0.14)', borderRadius: '999px',
+    padding: '6px 14px', fontSize: '0.74rem', fontWeight: 600,
+    cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
   },
   resultTitle: { fontSize: '0.88rem', fontWeight: 600 },
   resultIds: { fontSize: '0.75rem', lineHeight: 1.6, color: 'rgba(255,255,255,0.45)', wordBreak: 'break-word' },

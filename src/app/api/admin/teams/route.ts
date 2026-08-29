@@ -160,6 +160,76 @@ async function teamForCompany(
   return { team, error: null }
 }
 
+// ── COMPANY CREATION HELPERS ───────────────────────────────────────
+
+// Temporary owner for admin-created companies. The real manager is attached
+// afterwards with the existing bind_manager tool.
+const FOUNDER_USER_ID = 'f16d9181-fe6c-4b2a-8bd2-46b1bb8d736a'
+
+const MAX_CARDS = 500
+
+function randomSuffix(len = 8): string {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  let out = ''
+  for (let i = 0; i < len; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)]
+  return out
+}
+
+// Prefer the database's own generator so admin-made codes look like every
+// other one; fall back to a short random code if that function isn't there.
+async function makeJoinCode(admin: AdminClient): Promise<string> {
+  try {
+    const { data, error } = await admin.rpc('generate_join_code', {})
+    if (!error && typeof data === 'string' && data.trim()) return data.trim()
+  } catch {
+    // no such function — use the fallback below
+  }
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no I/O/0/1
+  let out = ''
+  for (let i = 0; i < 8; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)]
+  return out
+}
+
+type NewCard = { card_id: string; nfc_url: string; status: string; batch_id: string; company_id: string; owner_user_id: null }
+
+function buildCards(prefix: string, count: number, companyId: string): NewCard[] {
+  const rows: NewCard[] = []
+  const seen = new Set<string>()
+  for (let i = 1; i <= count; i++) {
+    let cardId = ''
+    // The random suffix makes clashes vanishingly unlikely, but never assume.
+    for (let attempt = 0; attempt < 20; attempt++) {
+      cardId = `${prefix}-${String(i).padStart(3, '0')}-${randomSuffix()}`
+      if (!seen.has(cardId)) break
+    }
+    seen.add(cardId)
+    rows.push({
+      card_id: cardId,
+      nfc_url: `https://tappedin.uk/a/${cardId}`,
+      status: 'unclaimed',
+      batch_id: prefix,
+      company_id: companyId,
+      owner_user_id: null,
+    })
+  }
+  return rows
+}
+
+// Every card for one company, for the "view existing company cards" list.
+async function cardsForCompany(
+  admin: AdminClient,
+  companyId: string,
+): Promise<{ cards: { card_id: string; nfc_url: string | null; status: string | null; owner_user_id: string | null }[] | null; error: string | null }> {
+  const { data, error } = await admin
+    .from('cards')
+    .select('card_id, nfc_url, status, owner_user_id')
+    .eq('company_id', companyId)
+    .order('card_id', { ascending: true })
+    .limit(1000)
+  if (error) return { cards: null, error: error.message }
+  return { cards: (data ?? []) as { card_id: string; nfc_url: string | null; status: string | null; owner_user_id: string | null }[], error: null }
+}
+
 async function companyById(
   admin: AdminClient,
   companyId: string,
@@ -278,9 +348,18 @@ export async function GET(req: Request) {
     team = rows
   }
 
+  // ── Every card for one company (re-view the printed URL list) ─────────
+  const companyCardsId = new URL(req.url).searchParams.get('companyCards')?.trim() ?? ''
+  let companyCards: { card_id: string; nfc_url: string | null; status: string | null; owner_user_id: string | null }[] | null = null
+  if (companyCardsId) {
+    const { cards: rows, error: cardsError } = await cardsForCompany(gate.admin, companyCardsId)
+    if (cardsError) return NextResponse.json({ error: cardsError }, { status: 500 })
+    companyCards = rows
+  }
+
   const batchId = new URL(req.url).searchParams.get('batch_id')?.trim() ?? ''
   if (!batchId) {
-    return NextResponse.json({ companies, cards: null, batchId: null, lookup, team })
+    return NextResponse.json({ companies, cards: null, batchId: null, lookup, team, companyCards })
   }
 
   const { data: cardData, error: cardError } = await gate.admin
@@ -292,7 +371,7 @@ export async function GET(req: Request) {
 
   if (cardError) return NextResponse.json({ error: cardError.message }, { status: 500 })
 
-  return NextResponse.json({ companies, cards: cardData ?? [], batchId, lookup, team })
+  return NextResponse.json({ companies, cards: cardData ?? [], batchId, lookup, team, companyCards })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -306,17 +385,91 @@ export async function POST(req: Request) {
   const gate = await requireAdmin(req)
   if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status })
 
-  let body: { action?: string; companyId?: string; batchId?: string; managerEmail?: string; userId?: string }
+  let body: { action?: string; companyId?: string; batchId?: string; managerEmail?: string; userId?: string; companyName?: string; prefix?: string; cardCount?: number }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 })
   }
 
-  const { action, companyId, batchId, managerEmail, userId } = body
-  const allowed = ['assign', 'unassign', 'bind_manager', 'unbind_manager', 'grant_gold', 'revoke_gold']
+  const { action, companyId, batchId, managerEmail, userId, companyName, prefix, cardCount } = body
+  const allowed = ['assign', 'unassign', 'bind_manager', 'unbind_manager', 'grant_gold', 'revoke_gold', 'create_company']
   if (!action || typeof action !== 'string' || !allowed.includes(action)) {
-    return NextResponse.json({ error: 'Invalid action — must be "assign", "unassign", "bind_manager", "unbind_manager", "grant_gold" or "revoke_gold".' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid action — must be "assign", "unassign", "bind_manager", "unbind_manager", "grant_gold", "revoke_gold" or "create_company".' }, { status: 400 })
+  }
+
+  // ── CREATE COMPANY + CARD BATCH ──────────────────────────────────────
+  // Runs first: this action has no companyId (it makes one). Everything below
+  // it is the original card / manager / Gold logic, untouched.
+  if (action === 'create_company') {
+    const name = typeof companyName === 'string' ? companyName.trim() : ''
+    const rawPrefix = typeof prefix === 'string' ? prefix.trim().toLowerCase() : ''
+    const count = Number(cardCount)
+
+    if (!name) {
+      return NextResponse.json({ error: 'A company name is required.' }, { status: 400 })
+    }
+    if (!rawPrefix) {
+      return NextResponse.json({ error: 'A prefix is required.' }, { status: 400 })
+    }
+    if (!/^[a-z0-9-]+$/.test(rawPrefix)) {
+      return NextResponse.json({ error: 'The prefix can only contain lowercase letters, numbers and hyphens.' }, { status: 400 })
+    }
+    if (!Number.isInteger(count) || count < 1 || count > MAX_CARDS) {
+      return NextResponse.json({ error: `Number of cards must be a whole number between 1 and ${MAX_CARDS}.` }, { status: 400 })
+    }
+
+    // 1. The company.
+    const joinCode = await makeJoinCode(gate.admin)
+    const { data: companyData, error: companyInsertError } = await gate.admin
+      .from('companies')
+      .insert({ name, owner_user_id: FOUNDER_USER_ID, join_code: joinCode })
+      .select('id, name, join_code')
+    if (companyInsertError) {
+      return NextResponse.json({ error: `Could not create the company: ${companyInsertError.message}` }, { status: 500 })
+    }
+
+    const created = ((companyData ?? []) as { id: string; name: string; join_code: string }[])[0]
+    if (!created) {
+      return NextResponse.json({ error: 'The company row was not created — nothing changed.' }, { status: 500 })
+    }
+
+    // 2. The cards.
+    const rows = buildCards(rawPrefix, count, created.id)
+    const { data: cardData, error: cardInsertError } = await gate.admin
+      .from('cards')
+      .insert(rows)
+      .select('card_id, nfc_url')
+
+    if (cardInsertError) {
+      // Roll the company back so a failed run leaves nothing behind.
+      await gate.admin.from('companies').delete().eq('id', created.id)
+      const clash = cardInsertError.message.toLowerCase().includes('duplicate')
+      return NextResponse.json({
+        error: clash
+          ? 'One of the generated card IDs already existed, so nothing was created. Please try again — new random IDs will be generated.'
+          : `Could not create the cards, so the company was removed again: ${cardInsertError.message}`,
+      }, { status: 500 })
+    }
+
+    const cardsOut = (cardData ?? []) as { card_id: string; nfc_url: string }[]
+    if (cardsOut.length !== count) {
+      await gate.admin.from('cards').delete().eq('company_id', created.id)
+      await gate.admin.from('companies').delete().eq('id', created.id)
+      return NextResponse.json({
+        error: `Expected ${count} cards but the database returned ${cardsOut.length}. Everything has been rolled back — nothing was created.`,
+      }, { status: 500 })
+    }
+
+    cardsOut.sort((a, b) => a.card_id.localeCompare(b.card_id))
+    return NextResponse.json({
+      ok: true,
+      action: 'create_company',
+      affectedCount: cardsOut.length,
+      company: { id: created.id, name: created.name, join_code: created.join_code },
+      cards: cardsOut,
+      message: `Created ${created.name} with ${cardsOut.length} card${cardsOut.length === 1 ? '' : 's'} (batch "${rawPrefix}").`,
+    })
   }
 
   // ── TEAM GOLD ────────────────────────────────────────────────────
