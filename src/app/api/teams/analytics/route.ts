@@ -28,6 +28,7 @@ type TapEvent = {
   profile_id: string | null
   tapped_at: string
   event_type: string | null
+  link_id: string | null
   link_label: string | null
   destination_url: string | null
 }
@@ -46,6 +47,25 @@ function daysAgoIso(n: number): string {
 // so this distinguishes them without guessing at event_type's vocabulary.
 function isLinkClick(e: TapEvent): boolean {
   return Boolean(e.link_label || e.destination_url)
+}
+
+// tap_events.link_label records profile_links.label, which for a custom button
+// is the generic word "Custom" — the wording the user actually typed lives in
+// profile_links.custom_label. Resolve through link_id so the real button text
+// is what gets grouped and shown.
+function resolveLabel(
+  e: TapEvent,
+  labelById: Map<string, string>,
+): string {
+  const resolved = e.link_id ? labelById.get(e.link_id) : undefined
+  if (resolved) return resolved
+  // No profile_links row (deleted link, or an older event): fall back to the
+  // stored label, but never show the placeholder word on its own.
+  const stored = (e.link_label ?? '').trim()
+  if (stored && stored.toLowerCase() !== 'custom') return stored
+  const url = (e.destination_url ?? '').trim()
+  if (url) return url
+  return stored || 'Link'
 }
 
 function pctChange(current: number, previous: number): number | null {
@@ -111,7 +131,7 @@ export async function GET(req: Request) {
     // ── 3. 90 days of events, one query ─────────────────────────────────────
     const { data: eventData, error: eventError } = await admin
       .from('tap_events')
-      .select('profile_id, tapped_at, event_type, link_label, destination_url')
+      .select('profile_id, tapped_at, event_type, link_id, link_label, destination_url')
       .in('profile_id', ids)
       .gte('tapped_at', daysAgoIso(WINDOW_DAYS))
       .order('tapped_at', { ascending: true })
@@ -120,7 +140,22 @@ export async function GET(req: Request) {
 
     const events = (eventData ?? []) as TapEvent[]
 
-    // ── 4. All-time total (count only, no rows) ─────────────────────────────
+    // ── 4. Real link wording, resolved in one query ─────────────────────────
+    const linkIds = [...new Set(events.map((e) => e.link_id).filter((id): id is string => Boolean(id)))]
+    const labelById = new Map<string, string>()
+    if (linkIds.length > 0) {
+      const { data: linkData, error: linkError } = await admin
+        .from('profile_links')
+        .select('id, label, custom_label')
+        .in('id', linkIds)
+      if (linkError) return NextResponse.json({ error: linkError.message }, { status: 500 })
+      for (const l of (linkData ?? []) as { id: string; label: string | null; custom_label: string | null }[]) {
+        const real = (l.custom_label ?? '').trim() || (l.label ?? '').trim()
+        if (real) labelById.set(l.id, real)
+      }
+    }
+
+    // ── 5. All-time total (count only, no rows) ─────────────────────────────
     const { count: allTimeCount } = await admin
       .from('tap_events')
       .select('profile_id', { count: 'exact', head: true })
@@ -169,7 +204,7 @@ export async function GET(req: Request) {
       m.daily.set(k, (m.daily.get(k) ?? 0) + 1)
       if (isLinkClick(e)) {
         m.clicks++
-        const label = (e.link_label || e.destination_url || 'Link').trim()
+        const label = resolveLabel(e, labelById)
         const existing = m.links.get(label)
         if (existing) existing.clicks++
         else m.links.set(label, { label, url: e.destination_url, clicks: 1 })
@@ -203,7 +238,7 @@ export async function GET(req: Request) {
     const linkMap = new Map<string, { label: string; url: string | null; clicks: number }>()
     for (const e of inRange) {
       if (!isLinkClick(e)) continue
-      const label = (e.link_label || e.destination_url || 'Link').trim()
+      const label = resolveLabel(e, labelById)
       const existing = linkMap.get(label)
       if (existing) existing.clicks++
       else linkMap.set(label, { label, url: e.destination_url, clicks: 1 })
