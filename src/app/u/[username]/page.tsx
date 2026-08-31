@@ -182,7 +182,9 @@ function buildVCardHref(opts: {
   role: string
   bio: string | null
   website: string | null
-  links: ProfileLink[]
+  // Only `url` is read, so this accepts both personal profile_links and
+  // company_links without either type having to know about the other.
+  links: { url: string }[]
 }): string {
   const { username, displayName, role, bio, website, links } = opts
   let email: string | null = null
@@ -433,7 +435,9 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     role,
     bio: profile.bio,
     website: profile.website,
-    links: activeLinks,
+    // Everything shown on the profile goes into the contact card, in the same
+    // order. companyLinks is empty for individuals, so their vCard is unchanged.
+    links: [...companyLinks, ...activeLinks],
   })
 
   const publicTheme = activeStyle.theme_style || 'dark'
