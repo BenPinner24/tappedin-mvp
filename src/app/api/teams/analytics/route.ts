@@ -49,18 +49,35 @@ function isLinkClick(e: TapEvent): boolean {
   return Boolean(e.link_label || e.destination_url)
 }
 
-// tap_events.link_label records profile_links.label, which for a custom button
-// is the generic word "Custom" — the wording the user actually typed lives in
-// profile_links.custom_label. Resolve through link_id so the real button text
-// is what gets grouped and shown.
+// tap_events stores the label as it was at click time, which for a custom
+// button is the generic word "Custom" — the wording the user actually typed
+// lives in profile_links.custom_label. Resolve the CURRENT real label:
+//   1. by link_id, when the event carries one
+//   2. by matching destination_url back to that member's profile_links.url
+//   3. failing both, the stored label (never the bare word "Custom")
+function normaliseUrl(url: string | null): string {
+  return (url ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/+$/, '')
+}
+
 function resolveLabel(
   e: TapEvent,
   labelById: Map<string, string>,
+  labelByMemberUrl: Map<string, string>,
 ): string {
-  const resolved = e.link_id ? labelById.get(e.link_id) : undefined
-  if (resolved) return resolved
-  // No profile_links row (deleted link, or an older event): fall back to the
-  // stored label, but never show the placeholder word on its own.
+  const byId = e.link_id ? labelById.get(e.link_id) : undefined
+  if (byId) return byId
+
+  const key = e.profile_id ? `${e.profile_id}|${normaliseUrl(e.destination_url)}` : ''
+  const byUrl = key && normaliseUrl(e.destination_url) ? labelByMemberUrl.get(key) : undefined
+  if (byUrl) return byUrl
+
+  // Link since deleted, or an event predating both: use what we stored, but
+  // never surface the placeholder word on its own.
   const stored = (e.link_label ?? '').trim()
   if (stored && stored.toLowerCase() !== 'custom') return stored
   const url = (e.destination_url ?? '').trim()
@@ -140,18 +157,26 @@ export async function GET(req: Request) {
 
     const events = (eventData ?? []) as TapEvent[]
 
-    // ── 4. Real link wording, resolved in one query ─────────────────────────
-    const linkIds = [...new Set(events.map((e) => e.link_id).filter((id): id is string => Boolean(id)))]
+    // ── 4. Real link wording — ONE query for the whole team's links ─────────
+    // Indexed twice: by link id, and by member+url, so a click can be matched
+    // whichever identifier it carries.
     const labelById = new Map<string, string>()
-    if (linkIds.length > 0) {
+    const labelByMemberUrl = new Map<string, string>()
+    {
       const { data: linkData, error: linkError } = await admin
         .from('profile_links')
-        .select('id, label, custom_label')
-        .in('id', linkIds)
+        .select('id, profile_id, label, custom_label, url')
+        .in('profile_id', ids)
+        .limit(5000)
       if (linkError) return NextResponse.json({ error: linkError.message }, { status: 500 })
-      for (const l of (linkData ?? []) as { id: string; label: string | null; custom_label: string | null }[]) {
+      for (const l of (linkData ?? []) as {
+        id: string; profile_id: string | null; label: string | null; custom_label: string | null; url: string | null
+      }[]) {
         const real = (l.custom_label ?? '').trim() || (l.label ?? '').trim()
-        if (real) labelById.set(l.id, real)
+        if (!real) continue
+        labelById.set(l.id, real)
+        const norm = normaliseUrl(l.url)
+        if (l.profile_id && norm) labelByMemberUrl.set(`${l.profile_id}|${norm}`, real)
       }
     }
 
@@ -204,7 +229,7 @@ export async function GET(req: Request) {
       m.daily.set(k, (m.daily.get(k) ?? 0) + 1)
       if (isLinkClick(e)) {
         m.clicks++
-        const label = resolveLabel(e, labelById)
+        const label = resolveLabel(e, labelById, labelByMemberUrl)
         const existing = m.links.get(label)
         if (existing) existing.clicks++
         else m.links.set(label, { label, url: e.destination_url, clicks: 1 })
@@ -238,7 +263,7 @@ export async function GET(req: Request) {
     const linkMap = new Map<string, { label: string; url: string | null; clicks: number }>()
     for (const e of inRange) {
       if (!isLinkClick(e)) continue
-      const label = resolveLabel(e, labelById)
+      const label = resolveLabel(e, labelById, labelByMemberUrl)
       const existing = linkMap.get(label)
       if (existing) existing.clicks++
       else linkMap.set(label, { label, url: e.destination_url, clicks: 1 })
