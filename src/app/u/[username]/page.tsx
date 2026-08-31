@@ -37,6 +37,22 @@ type ProfileLink = {
   is_active: boolean
 }
 
+type CompanyTemplate = {
+  theme_style:      string | null
+  accent_color:     string | null
+  button_style:     string | null
+  background_style: string | null
+}
+
+type CompanyLink = {
+  id: string
+  label: string | null
+  custom_label: string | null
+  url: string
+  icon: string | null
+  sort_order: number | null
+}
+
 type GalleryItem = {
   id:        string
   image_url: string
@@ -303,11 +319,21 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
 
   // ── Subscription status (dormant check) ──────────────────────────────────
   // No billing row → grandfathered → active (protects existing cardholders).
-  const { data: billing } = await supabase
-    .from('user_billing')
-    .select('subscription_tier, subscription_status')
-    .eq('user_id', profile.id)
-    .maybeSingle()
+  // Billing and company membership are independent — fetch together so the
+  // company check costs no extra round-trip for ordinary individual profiles.
+  const [{ data: billing }, { data: membership }] = await Promise.all([
+    supabase
+      .from('user_billing')
+      .select('subscription_tier, subscription_status')
+      .eq('user_id', profile.id)
+      .maybeSingle(),
+    supabase
+      .from('company_members')
+      .select('company_id')
+      .eq('user_id', profile.id)
+      .limit(1)
+      .maybeSingle<{ company_id: string }>(),
+  ])
 
   const dormant = isCardDormant(
     billing?.subscription_tier,
@@ -321,6 +347,33 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     .eq('profile_id', profile.id)
     .eq('is_active', true)
     .order('position', { ascending: true })
+
+  // ── Company Profile Template ────────────────────────────────────────────
+  // Only fetched when this profile actually belongs to a company. Individuals
+  // skip both queries entirely and render exactly as before.
+  let companyTemplate: CompanyTemplate | null = null
+  let companyLinks: CompanyLink[] = []
+
+  if (membership?.company_id) {
+    const [{ data: templateRow }, { data: companyLinkRows }] = await Promise.all([
+      supabase
+        .from('company_template')
+        .select('theme_style, accent_color, button_style, background_style')
+        .eq('company_id', membership.company_id)
+        .maybeSingle<CompanyTemplate>(),
+      supabase
+        .from('company_links')
+        .select('id, label, custom_label, url, icon, sort_order')
+        .eq('company_id', membership.company_id)
+        .order('sort_order', { ascending: true }),
+    ])
+
+    companyTemplate = templateRow ?? null
+    // Links only count when the company actually has a template saved.
+    companyLinks = templateRow
+      ? ((companyLinkRows || []) as CompanyLink[]).filter((l) => l.url && (l.custom_label || l.label))
+      : []
+  }
 
   const { data: galleryData } = await supabase
     .from('profile_gallery')
@@ -341,6 +394,8 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     (l) => l.label && l.url && l.is_active
   )
 
+  const hasAnyLinks = activeLinks.length > 0 || companyLinks.length > 0
+
   const galleryItems = ((galleryData || []) as GalleryItem[]).filter(g => g.image_url)
 
   const displayName = profile.display_name || profile.username || 'Creator'
@@ -348,16 +403,27 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
   const handle = profile.username ? `@${profile.username}` : ''
   const initials = getInitials(displayName)
 
-  const publicAccent = profile.accent_color || '#52d6fc'
+  // ── Which style wins ────────────────────────────────────────────────────
+  // A company template overrides the member's own style. Per field, so a
+  // partially filled template can't blank out settings it doesn't specify.
+  // No template (or no company) → the profile's own values, exactly as before.
+  const activeStyle = {
+    theme_style:      companyTemplate?.theme_style      ?? profile.theme_style,
+    accent_color:     companyTemplate?.accent_color     ?? profile.accent_color,
+    button_style:     companyTemplate?.button_style     ?? profile.button_style,
+    background_style: companyTemplate?.background_style ?? profile.background_style,
+  }
+
+  const publicAccent = activeStyle.accent_color || '#52d6fc'
 
   const btnStyle = getLinkButtonStyle(
-    profile.button_style,
+    activeStyle.button_style,
     publicAccent
   )
 
   // Icon/arrow colour adapts to the chosen button style (dark on white buttons).
-  const isDefaultBtn = !profile.button_style || profile.button_style === 'default'
-  const linkIconColor = (isDefaultBtn || profile.button_style === 'sharp')
+  const isDefaultBtn = !activeStyle.button_style || activeStyle.button_style === 'default'
+  const linkIconColor = (isDefaultBtn || activeStyle.button_style === 'sharp')
     ? 'rgba(0,0,0,0.5)'
     : 'rgba(255,255,255,0.55)'
 
@@ -370,8 +436,8 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     links: activeLinks,
   })
 
-  const publicTheme = profile.theme_style || 'dark'
-  const publicBackground = profile.background_style || 'solid_black'
+  const publicTheme = activeStyle.theme_style || 'dark'
+  const publicBackground = activeStyle.background_style || 'solid_black'
   const styleKey = `${publicTheme} ${publicBackground}`
   const pageBackground =
     styleKey.includes('burgundy') ? '#120207' :
@@ -588,40 +654,86 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
             )}
 
             {/* ── Divider ── */}
-            {activeLinks.length > 0 && <div style={s.divider} />}
+            {hasAnyLinks && <div style={s.divider} />}
 
-            {/* ── Links ── */}
-            {activeLinks.length > 0 && (
-              <div style={s.linksGrid}>
-                {activeLinks.map((link, i) => (
-                  <a
-                    key={link.id}
-                    href={`/r/${link.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ti-link"
-                    style={{
-                      ...s.linkBtn,
-                      ...btnStyle,
-                      animationDelay: `${0.3 + i * 0.055}s`,
-                      transition: 'transform 0.22s cubic-bezier(0.16,1,0.3,1), filter 0.15s ease, box-shadow 0.22s ease',
-                      boxShadow: '0 2px 12px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.06) inset',
-                    }}
-                  >
-                    <span style={{ ...s.linkIconLeft, color: linkIconColor }}>
-                      <PlatformIcon label={link.label} />
-                    </span>
-                    <span style={s.linkLabel}>{link.custom_label || link.label}</span>
-                    <span style={{ ...s.linkArrow, color: linkIconColor }}>
-                      <IconArrow />
-                    </span>
-                  </a>
-                ))}
-              </div>
+            {/* ── Company links (locked template links, shown first) ── */}
+            {companyLinks.length > 0 && (
+              <>
+                {/* Header only appears when this section actually has links. */}
+                <p style={s.sectionHeading}>Company links</p>
+                <div style={s.linksGrid}>
+                  {companyLinks.map((link, i) => {
+                    const label = link.custom_label || link.label || 'Link'
+                    return (
+                      <a
+                        key={link.id}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ti-link"
+                        style={{
+                          ...s.linkBtn,
+                          ...btnStyle,
+                          animationDelay: `${0.3 + i * 0.055}s`,
+                          transition: 'transform 0.22s cubic-bezier(0.16,1,0.3,1), filter 0.15s ease, box-shadow 0.22s ease',
+                          boxShadow: '0 2px 12px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.06) inset',
+                        }}
+                      >
+                        <span style={{ ...s.linkIconLeft, color: linkIconColor }}>
+                          <PlatformIcon label={link.label || label} />
+                        </span>
+                        <span style={s.linkLabel}>{label}</span>
+                        <span style={{ ...s.linkArrow, color: linkIconColor }}>
+                          <IconArrow />
+                        </span>
+                      </a>
+                    )
+                  })}
+                </div>
+              </>
             )}
 
-            {/* Empty state */}
-            {activeLinks.length === 0 && (
+            {/* Soft separator only when BOTH sections are present. */}
+            {companyLinks.length > 0 && activeLinks.length > 0 && (
+              <div style={s.sectionSpacer} />
+            )}
+
+            {/* ── Personal links ── */}
+            {activeLinks.length > 0 && (
+              <>
+                {/* The "Your links" heading only makes sense alongside company links. */}
+                {companyLinks.length > 0 && <p style={s.sectionHeading}>Your links</p>}
+                <div style={s.linksGrid}>
+                  {activeLinks.map((link, i) => (
+                    <a
+                      key={link.id}
+                      href={`/r/${link.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ti-link"
+                      style={{
+                        ...s.linkBtn,
+                        ...btnStyle,
+                        animationDelay: `${0.3 + (companyLinks.length + i) * 0.055}s`,
+                        transition: 'transform 0.22s cubic-bezier(0.16,1,0.3,1), filter 0.15s ease, box-shadow 0.22s ease',
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.06) inset',
+                      }}
+                    >
+                      <span style={{ ...s.linkIconLeft, color: linkIconColor }}>
+                        <PlatformIcon label={link.label} />
+                      </span>
+                      <span style={s.linkLabel}>{link.custom_label || link.label}</span>
+                      <span style={{ ...s.linkArrow, color: linkIconColor }}>
+                        <IconArrow />
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Empty state — only when there is nothing at all to show */}
+            {!hasAnyLinks && (
               <div style={s.emptyState}>
                 <p style={s.emptyText}>No links yet.</p>
               </div>
@@ -1030,6 +1142,21 @@ const s: Record<string, CSSProperties> = {
     zIndex: 1,
   },
 
+  sectionHeading: {
+    fontSize: '0.62rem',
+    fontWeight: 600,
+    letterSpacing: '0.24em',
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.34)',
+    marginBottom: '0.75rem',
+    textAlign: 'center',
+  },
+  sectionSpacer: {
+    height: '1px',
+    background: 'rgba(255,255,255,0.055)',
+    margin: '1.5rem auto 1.35rem',
+    width: '55%',
+  },
   linksGrid: {
     display: 'flex',
     flexDirection: 'column',
