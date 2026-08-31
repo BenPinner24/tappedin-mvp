@@ -216,6 +216,26 @@ export default function TeamsPage() {
 
               <TeamAnalytics canSeeFull={canSeeFullTeam} />
 
+              {/* ─── Company Profile Template ─── */}
+              <Link href="/teams/template" className="ti-template-cta" style={templateCta}>
+                <span style={templateIcon} aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8C9A0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2.5" />
+                    <path d="M3 9h18" />
+                    <path d="M9 9v12" />
+                  </svg>
+                </span>
+                <span style={templateBody}>
+                  <span style={templateTitle}>Company Profile Template</span>
+                  <span style={templateSub}>Set the links and styling applied across your whole team&rsquo;s cards.</span>
+                </span>
+                <span style={templateChevron} aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </Link>
+
               {/* ─── Manage team members (assign/unassign) ─── */}
               <div style={{ ...cards.glass, marginTop: spacing['5'] }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: spacing['5'] }}>
@@ -319,6 +339,16 @@ const extraCss = `
   .ti-cbar { transform-origin: bottom; animation: ti-barRise 0.6s cubic-bezier(0.16,1,0.3,1) both; }
   select option { background-color: #141414; color: #ffffff; }
 
+  /* Company Profile Template CTA */
+  .ti-template-cta:hover { transform: translateY(-2px); border-color: rgba(232,201,160,0.42); background: linear-gradient(135deg, rgba(232,201,160,0.09) 0%, rgba(255,255,255,0.03) 100%); }
+  @media (max-width: 560px) {
+    .ti-template-cta { align-items: flex-start; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ti-template-cta { transition: none !important; }
+    .ti-template-cta:hover { transform: none !important; }
+  }
+
   /* Stat cards: 4-across on desktop, 2×2 on mobile */
   @media (max-width: 640px) {
     .ti-stat-grid { grid-template-columns: 1fr 1fr !important; }
@@ -352,6 +382,24 @@ const headerRow: CSSProperties = { display: 'flex', justifyContent: 'space-betwe
 
 const rowName: CSSProperties = { ...text.body, color: colors.text.primary, fontWeight: font.weight.medium, display: 'inline-flex', alignItems: 'center' }
 const memberRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: spacing['3'], padding: `${spacing['3']} 0`, borderBottom: `1px solid ${colors.border.subtle}`, flexWrap: 'wrap' }
+
+const templateCta: CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: spacing['4'],
+  marginTop: spacing['5'], padding: '1.15rem 1.35rem',
+  borderRadius: radius.lg, textDecoration: 'none',
+  background: 'linear-gradient(135deg, rgba(232,201,160,0.055) 0%, rgba(255,255,255,0.02) 100%)',
+  border: '1px solid rgba(232,201,160,0.2)',
+  transition: 'transform .18s cubic-bezier(0.16,1,0.3,1), border-color .18s ease, background .18s ease',
+}
+const templateIcon: CSSProperties = {
+  flexShrink: 0, width: 42, height: 42, borderRadius: radius.md,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  background: 'rgba(232,201,160,0.1)', border: '1px solid rgba(232,201,160,0.25)',
+}
+const templateBody: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, minWidth: 0 }
+const templateTitle: CSSProperties = { fontSize: '0.98rem', fontWeight: font.weight.bold, color: colors.text.primary, letterSpacing: '0.01em' }
+const templateSub: CSSProperties = { ...text.caption, color: colors.text.faint, lineHeight: 1.55 }
+const templateChevron: CSSProperties = { flexShrink: 0, color: '#E8C9A0', display: 'flex', alignItems: 'center' }
 
 const inviteCodeBox: CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing['1'], padding: '1.25rem', borderRadius: radius.lg, background: colors.white['3'], border: `1px solid ${colors.border.subtle}`, marginBottom: spacing['4'] }
 const inviteCodeLabel: CSSProperties = { ...text.eyebrow, fontSize: font.size['2xs'] }
