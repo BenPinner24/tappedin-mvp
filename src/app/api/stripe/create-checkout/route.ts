@@ -7,9 +7,9 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRICING: "First month £34.99, then the tier rate."
+// PRICING (historical note): "First month up-front, then the tier rate."
 //
-// Because the £34.99-then-drop model uses a Stripe SUBSCRIPTION SCHEDULE (which
+// Because that model used a Stripe SUBSCRIPTION SCHEDULE (which
 // can't be created directly by a hosted Checkout Session), we split it in two:
 //
 //   1. Here: open a Checkout Session in `mode: 'setup'`. Stripe's hosted page
@@ -18,26 +18,26 @@ export const dynamic = 'force-dynamic'
 //
 //   2. In the webhook (checkout.session.completed, mode=setup): we read that
 //      metadata, grab the saved card, and create the subscription schedule
-//      (phase 1 = £34.99 for 1 month → phase 2 = tier rate, ongoing). Stripe
-//      then charges £34.99 immediately and the tier rate from month two.
+//      (phase 1 = the card price for 1 month → phase 2 = tier rate, ongoing).
+//      Stripe then charged up-front and the tier rate from month two.
 //
 // Tiers here are Bronze / Silver / Gold only. Founder is separate.
 //
 // FOUNDER UPGRADE (separate path, see below): a Founder already paid their
 // £49.99 entry and holds free legacy perks. If they choose gallery/storage they
-// upgrade to Silver at the plain tier rate (£7.99/mo) with NO £34.99 first month.
+// upgrade to Silver at the plain tier rate (£3.99/mo) with NO card charge.
 // That is a normal `mode: 'subscription'` checkout (no schedule needed).
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Valid tiers a customer can choose. (Validation only.)
 const VALID_TIERS = ['bronze', 'silver', 'gold'] as const
 
-// Silver £7.99 price ID (test/live auto-selected). Used by the Silver and
+// Silver £3.99 price ID (test/live auto-selected). Used by the Silver and
 // Founder subscription-upgrade checkouts below.
 const STRIPE_IS_TEST = (process.env.STRIPE_SECRET_KEY ?? '').startsWith('sk_test_')
 const SILVER_PRICE = STRIPE_IS_TEST
-  ? 'price_1U1qdoPjlQmJd4DeiNLhyn8I' // TEST £7.99
-  : 'price_1U1rhtPjlQmJd4De9zQHCHAe' // LIVE £7.99
+  ? 'price_1UCgG2PjlQmJd4DeymVeKQhs' // TEST £3.99
+  : 'price_1UCgBhPjlQmJd4DeEAiX5tnS' // LIVE £3.99
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -97,8 +97,8 @@ export async function POST(req: NextRequest) {
 
     // ─────────────────────────────────────────────────────────────────────────
     // SILVER UPGRADE (new model) → any logged-in user upgrades to Silver at the
-    // plain tier rate (£7.99/mo). A normal `mode: 'subscription'` checkout with a
-    // clearly shown price — no setup-mode, no £34.99 schedule. The webhook's
+    // plain tier rate (£3.99/mo). A normal `mode: 'subscription'` checkout with a
+    // clearly shown price — no setup-mode, no card-purchase schedule. The webhook's
     // subscription handler records silver/active on completion.
     // ─────────────────────────────────────────────────────────────────────────
     if (silverUpgrade) {
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // FOUNDER UPGRADE → straight Silver subscription, tier rate only, no £34.99.
+    // FOUNDER UPGRADE → straight Silver subscription, tier rate only, no card charge.
     // We verify is_founder SERVER-SIDE (never trust the client flag), and only
     // allow the Silver target (Gold is a separate teams product, not a personal
     // upgrade). A Founder is upgrading an existing free account, so this is a
@@ -162,10 +162,10 @@ export async function POST(req: NextRequest) {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // No recognised checkout path. The old setup-mode "£34.99 first month, then
-    // the tier rate" flow has been removed, so anything that is not a Silver or
-    // Founder upgrade is rejected here. Nothing is created and nothing is
-    // charged. The £34.99 card purchase is a separate Stripe payment link.
+    // No recognised checkout path. The old setup-mode "first month up-front,
+    // then the tier rate" flow has been removed, so anything that is not a
+    // Silver or Founder upgrade is rejected here. Nothing is created and
+    // nothing is charged. The card purchase is a separate Stripe payment link.
     // ─────────────────────────────────────────────────────────────────────────
     return NextResponse.json({ error: 'Unsupported checkout request.' }, { status: 400 })
   } catch (err) {

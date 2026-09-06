@@ -10,7 +10,7 @@ import WaitlistModal from '@/components/WaitlistModal'
 // products in Stripe (Phase 2). While a link is empty, its button shows
 // "Coming soon" instead of "Pre-order".
 const FOUNDERS_STRIPE_URL = 'https://buy.stripe.com/dRm8wR9TzeXvaRb5WvcfK00'
-const PVC_STRIPE_URL = 'https://buy.stripe.com/dRm14pc1H16F9N7et1cfK03'
+const PVC_STRIPE_URL = 'https://buy.stripe.com/14A14pghX4iRcZjgB9cfK06'
 const METAL_STRIPE_URL = ''
 const MEMBER_CTA_HREF = PVC_STRIPE_URL
 
@@ -26,10 +26,12 @@ type Card = {
   cta?: string
   founder?: boolean
   sub?: string
+  /** Shows the launch-price treatment (£19.99 with £34.99 struck through). */
+  launch?: boolean
 }
 
 const CARDS: Card[] = [
-  { name: 'The Tapped-In Card', price: '£34.99', material: 'Premium PVC', blurb: 'The everyday card, engineered for the strongest, most reliable tap on any phone. No app needed.', url: MEMBER_CTA_HREF, cta: 'Get your card', sub: 'Card + first month of full access included' },
+  { name: 'The Tapped-In Card', price: '£19.99', launch: true, material: 'Premium PVC', blurb: 'The everyday card, engineered for the strongest, most reliable tap on any phone. No app needed.', url: MEMBER_CTA_HREF, cta: 'Get your card', sub: 'Card + first month of full access included' },
   { name: 'Tapped-In Metal', price: '£49.99', material: 'Brushed metal', blurb: 'A heavier premium metal finish. Same instant digital profile, more presence.', url: METAL_STRIPE_URL },
   { name: 'Founders Edition', price: '£49.99', material: 'Matte black · numbered', tag: '100 only', blurb: 'A numbered collector’s piece. 1 of 100 of the first metal cards we ever made. Owning it is the point: a permanent asset, held by only 100 people, ever. Tap it to reveal your number and show you hold one of the original 100. For everyday networking, the Tapped-In Card gives the strongest, most reliable tap.', url: FOUNDERS_STRIPE_URL, cta: 'Order now', founder: true, sub: 'A numbered collector’s card · Stays live for life' },
 ]
@@ -44,13 +46,13 @@ type Tier = {
 
 const TIERS: Tier[] = [
   { name: 'Bronze', price: 'Free', forWho: 'Your plan after month one', features: ['Your live card & digital profile', 'Core links, Save Contact & QR', 'Basic tap analytics', 'Connect with other members', 'No subscription needed — stays live free'] },
-  { name: 'Silver', price: '£7.99', forWho: 'Optional upgrade', features: ['Everything in Bronze', 'Full analytics dashboard', 'Custom themes & advanced styling', 'Downloadable QR code', 'Portfolio gallery with storage (coming soon)', 'Priority support'], highlight: true },
+  { name: 'Silver', price: '£3.99', forWho: 'Optional upgrade', features: ['Everything in Bronze', 'Full analytics dashboard', 'Custom themes & advanced styling', 'Downloadable QR code', 'Portfolio gallery with storage (coming soon)', 'Priority support'], highlight: true },
 ]
 
 const STEPS = [
   { n: '01', h: 'Get your card', b: 'Order your premium Tapped-In card today and make it yours — set up your profile in minutes.' },
   { n: '02', h: 'Tap to share', b: 'One tap shares your profile, links and contact details with anyone — no app needed, on either side.' },
-  { n: '03', h: 'Upgrade only if you want', b: 'Your first month includes the full dashboard. After that your card stays live for free, and you can unlock the full toolkit any time for £7.99 a month. Change or cancel whenever you like.' },
+  { n: '03', h: 'Upgrade only if you want', b: 'Your first month includes the full dashboard. After that your card stays live for free, and you can unlock the full toolkit any time for £3.99 a month. Change or cancel whenever you like.' },
 ]
 
 const FAQS = [
@@ -82,6 +84,26 @@ function ConsentGate({ id, checked, onChange }: { id: string; checked: boolean; 
         <Link href="/privacy" target="_blank" rel="noopener noreferrer" style={s.consentLink}>Privacy Policy</Link>
       </span>
     </label>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LAUNCH PRICE — £19.99 with £34.99 struck through beside it. The old price is
+// smaller and muted; the line is a soft champagne hairline; the label is a
+// fine-bordered tag. `nowrap` keeps each figure on one line at any width.
+// ─────────────────────────────────────────────────────────────────────────────
+function LaunchPrice() {
+  return (
+    <div style={s.launchWrap}>
+      <div style={s.launchRow}>
+        <span style={s.launchNow}>£19.99</span>
+        <span style={s.launchWas}>
+          £34.99
+          <span className="ti-strike" aria-hidden="true" style={s.launchStrike} />
+        </span>
+      </div>
+      <span style={s.launchTag}>Limited-time launch offer</span>
+    </div>
   )
 }
 
@@ -145,7 +167,7 @@ export default function PricingPage() {
                     {c.tag && <span style={{ ...s.tag, ...(c.founder ? s.tagFounder : {}) }}>{c.tag}</span>}
                     <h3 style={s.cardName}>{c.name}</h3>
                     <p style={s.cardMaterial}>{c.material}</p>
-                    <p style={s.cardPrice}>{c.price}</p>
+                    {c.launch ? <LaunchPrice /> : <p style={s.cardPrice}>{c.price}</p>}
                     {c.sub && <p style={s.cardSub}>{c.sub}</p>}
                     <p style={s.cardBlurb}>{c.blurb}</p>
                     {live ? (
@@ -217,7 +239,7 @@ export default function PricingPage() {
             <div style={s.terms}>
               <p style={s.eyebrow}>How billing works</p>
               <p style={s.termsBody}>
-                You buy your Tapped-In card once, for <strong style={s.strong}>£34.99</strong>, and that includes your <strong style={s.strong}>first month of full access</strong> to everything. After the first month, your card and profile <strong style={s.strong}>stay live for free</strong> on our Bronze plan, keeping the essentials for good. Want the full toolkit — advanced analytics, styling and your QR code? Upgrade to Silver for <strong style={s.strong}>£7.99 a month</strong>, whenever you like, and cancel anytime. There&apos;s <strong style={s.strong}>no forced subscription</strong>. <strong style={s.strong}>Existing cardholders are looked after</strong>, and Founders Edition owners keep their permanent collector&apos;s status, live for life.
+                You buy your Tapped-In card once, for <strong style={s.strong}>£19.99</strong> — a limited-time launch offer, usually <strong style={s.strong}>£34.99</strong> — and that includes your <strong style={s.strong}>first month of full access</strong> to everything. After the first month, your card and profile <strong style={s.strong}>stay live for free</strong> on our Bronze plan, keeping the essentials for good. Want the full toolkit — advanced analytics, styling and your QR code? Upgrade to Silver for <strong style={s.strong}>£3.99 a month</strong>, whenever you like, and cancel anytime. There&apos;s <strong style={s.strong}>no forced subscription</strong>. <strong style={s.strong}>Existing cardholders are looked after</strong>, and Founders Edition owners keep their permanent collector&apos;s status, live for life.
               </p>
             </div>
           </section>
@@ -281,8 +303,18 @@ const G = `
   @media (max-width: 560px) {
     .tiers { grid-template-columns: 1fr; }
   }
+  /* ── Launch-offer strikethrough ──────────────────────────────────────────
+     A hairline that sweeps left-to-right across the old price on load. */
+  @keyframes ti-strike-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .ti-strike {
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: ti-strike-in 0.85s cubic-bezier(0.22,1,0.36,1) 0.55s forwards;
+  }
   @media (prefers-reduced-motion: reduce) {
     .r { opacity: 1 !important; transform: none !important; transition: none !important; }
+    /* Still struck through — drawn already, not animated. */
+    .ti-strike { transform: scaleX(1) !important; animation: none !important; }
   }
 `
 
@@ -323,6 +355,12 @@ const s: Record<string, React.CSSProperties> = {
   cardMaterial: { fontFamily: FF, fontSize: '.72rem', fontWeight: 400, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,.35)', marginTop: 4 },
   cardPrice: { fontFamily: FF, fontSize: '2.2rem', fontWeight: 600, color: '#fff', margin: '1.25rem 0 .25rem' },
   cardOnce: { fontSize: '.8rem', fontWeight: 300, color: 'rgba(255,255,255,.4)', letterSpacing: '.02em' },
+  launchWrap: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '.5rem', margin: '0 0 .35rem' },
+  launchRow: { display: 'flex', alignItems: 'baseline', gap: '.55rem', flexWrap: 'wrap' },
+  launchNow: { fontSize: '1.75rem', fontWeight: 600, color: '#fff', letterSpacing: '0.02em', lineHeight: 1.1, whiteSpace: 'nowrap' },
+  launchWas: { position: 'relative', display: 'inline-block', fontSize: '.95rem', fontWeight: 300, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.02em', lineHeight: 1.1, whiteSpace: 'nowrap' },
+  launchStrike: { position: 'absolute', left: '-2px', right: '-2px', top: '52%', height: 1, background: 'rgba(232,201,160,0.72)', borderRadius: 1, pointerEvents: 'none' },
+  launchTag: { fontSize: '.58rem', fontWeight: 500, letterSpacing: '.2em', textTransform: 'uppercase', color: '#E8C9A0', border: '1px solid rgba(232,201,160,0.28)', borderRadius: 2, padding: '3px 9px', whiteSpace: 'nowrap' },
   cardSub: { fontFamily: FF, fontSize: '.8rem', fontWeight: 300, lineHeight: 1.4, color: 'rgba(255,255,255,.42)', letterSpacing: '.02em', marginBottom: '.5rem' },
   cardBlurb: { fontFamily: FF, fontSize: '.86rem', fontWeight: 300, lineHeight: 1.6, color: 'rgba(255,255,255,.45)', marginBottom: '1.5rem', flex: 1 },
   buy: { display: 'block', textAlign: 'center', padding: '13px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#fff', fontFamily: FF, fontSize: '.85rem', fontWeight: 500, letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none', cursor: 'pointer', transition: 'opacity .2s' },

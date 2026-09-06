@@ -8,7 +8,7 @@ type PlanKey = 'bronze' | 'silver' | 'gold'
 
 const PLANS: { key: PlanKey; name: string; price: string; forWho: string; features: string[] }[] = [
   { key: 'bronze', name: 'Bronze', price: 'Free', forWho: 'Your plan after month one', features: ['Live NFC card & digital profile', 'Core links + Save Contact', 'Basic tap analytics', 'Connect with other members', 'Your card stays live — no subscription needed'] },
-  { key: 'silver', name: 'Silver', price: '£7.99', forWho: 'Optional upgrade',      features: ['Full analytics dashboard', 'Custom themes & advanced styling', 'Downloadable QR code', 'Portfolio gallery + storage (coming soon)', 'Priority support'] },
+  { key: 'silver', name: 'Silver', price: '£3.99', forWho: 'Optional upgrade',      features: ['Full analytics dashboard', 'Custom themes & advanced styling', 'Downloadable QR code', 'Portfolio gallery + storage (coming soon)', 'Priority support'] },
   { key: 'gold',   name: 'Gold',   price: '£4.99', forWho: 'Teams — per member', features: ['Manager dashboard & team analytics', 'Team management & branding', 'Enquiry-first for teams'] },
 ]
 
@@ -139,7 +139,7 @@ export default function BillingPage() {
                     disabled={busy === 'founder-upgrade' || currentTier === 'silver'}
                     style={s.founderBtn}
                   >
-                    {busy === 'founder-upgrade' ? 'Loading…' : currentTier === 'silver' ? 'Silver active' : 'Upgrade to Silver · £7.99/mo'}
+                    {busy === 'founder-upgrade' ? 'Loading…' : currentTier === 'silver' ? 'Silver active' : 'Upgrade to Silver · £3.99/mo'}
                   </button>
                 </div>
               )}

@@ -5,13 +5,14 @@
 // This is the ONLY place tier/feature rules live — edit here, everywhere updates.
 //
 // MODEL (one-time purchase + optional upgrade):
-//   • £34.99 one-time buys the card + a FIRST MONTH of full access (everything
-//     except the gallery). "First month" = within FIRST_MONTH_DAYS of the card's
+//   • £19.99 one-time (limited-time launch offer, usually £34.99) buys the card
+//     + a FIRST MONTH of full access (everything except the gallery). "First
+//     month" = within FIRST_MONTH_DAYS of the card's
 //     activated_at date.
 //   • After the first month, with no active paid subscription, the card falls to
 //     the BRONZE FREE FLOOR (live card, profile, links, save contact, connect,
 //     basic styling, basic analytics) — the card stays live, never dormant.
-//   • SILVER (£7.99/mo) and GOLD (£4.99/mo, team managers) are OPTIONAL upgrades
+//   • SILVER (£3.99/mo) and GOLD (£4.99/mo, team managers) are OPTIONAL upgrades
 //     bought later; they unlock the full toolkit.
 //   • LEGACY + FOUNDER (existing customers) are untouched — they keep exactly what
 //     they already have, for life. The first-month rule never applies to them.
@@ -25,7 +26,7 @@ export const FIRST_MONTH_DAYS = 30
 //  - 'basic'   = new free users (total tap count only, no premium features)
 //  - 'legacy'  = grandfathered existing users: keep analytics + styling, NO storage
 //  - 'bronze'  = the FREE FLOOR after the first month (was £3.99; now free)
-//  - 'silver'  = £7.99  creators (optional upgrade)
+//  - 'silver'  = £3.99  creators (optional upgrade)
 //  - 'gold'    = £4.99  team managers (optional upgrade)
 //  - 'founder' = LEGACY tier value only. Founder status now lives in the
 //                separate is_founder flag (see below). Kept here so any stray
@@ -281,7 +282,7 @@ export const TIER_PRICE: Record<Tier, string> = {
   basic:   'Free',
   legacy:  'Free',
   bronze:  'Free',            // Bronze is now the free floor
-  silver:  '£7.99/mo',
+  silver:  '£3.99/mo',
   gold:    '£4.99/mo',
   founder: 'Free for life',
 }

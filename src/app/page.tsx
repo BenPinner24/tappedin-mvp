@@ -8,13 +8,13 @@ import WaitlistModal from '@/components/WaitlistModal'
 import { SOLD_OUT } from '@/lib/config'
 
 // ── SOLD-OUT TOGGLE ────────────────────────────────────────────────
-// false = normal: every "Get your card" button links to the £34.99 Stripe
+// false = normal: every "Get your card" button links to the card purchase
 //         checkout in a new tab, exactly as before.
 // true  = sold out: those same buttons read "Join the waitlist" and open the
 //         waitlist modal instead. Nothing else on the page changes.
 
 
-const HERO_PRICE_LINE = '\u00a334.99 \u2014 includes your card and your first month of full access. We\u2019ll be in touch to set up your profile once your card is on the way.'
+const HERO_PRICE_LINE = '\u00a319.99 \u2014 limited-time launch offer, usually \u00a334.99. Includes your card and your first month of full access. We\u2019ll be in touch to set up your profile once your card is on the way.'
 const INDIVIDUAL_PRICE_SUFFIX = 'card + first month included'
 // ── EDIT ME ───────────────────────────────────────────────────────────────────
 // Real number of Founder cards already claimed (0–100). Drives the
@@ -148,10 +148,22 @@ const G = `
   .ti-ig-link:hover { color:rgba(255,255,255,.65) !important; }
   .footer-social:hover { color:#fff !important; border-color:rgba(255,255,255,0.25) !important; background:rgba(255,255,255,0.045) !important; }
 
+  /* ── Launch-offer strikethrough ──────────────────────────────────────────
+     A hairline that sweeps left-to-right across the old price on load. Soft
+     champagne so it reads as a considered detail, not a discount sticker. */
+  @keyframes ti-strike-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .ti-strike {
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: ti-strike-in 0.85s cubic-bezier(0.22,1,0.36,1) 0.55s forwards;
+  }
+
   /* ── Reduced motion ── */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; }
     .reveal { opacity:1 !important; transform:none !important; transition:none !important; }
+    /* Still struck through — just drawn already, not animated. */
+    .ti-strike { transform: scaleX(1) !important; animation: none !important; }
   }
 
   /* ── Tablet (≤ 960px) ── */
@@ -1061,6 +1073,41 @@ function ReviewsCarousel({ reviews, isMobile }: { reviews: { name: string; role:
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// LAUNCH PRICE — £19.99 with the old £34.99 struck through beside it.
+// Deliberately quiet: the old price is smaller and muted, the line is a soft
+// champagne hairline, and the label is a fine-bordered tag rather than a badge.
+// `nowrap` on each price means they never break mid-figure on a narrow screen.
+// ─────────────────────────────────────────────────────────────────────────────
+function LaunchPrice({
+  size = '1.75rem',
+  align = 'flex-start',
+  label = true,
+}: { size?: string; align?: 'flex-start' | 'center'; label?: boolean }) {
+  return (
+    <span style={{ display:'inline-flex', flexDirection:'column', gap:'.45rem', alignItems: align, minWidth:0 }}>
+      <span style={{ display:'inline-flex', alignItems:'baseline', gap:'.55rem', flexWrap:'wrap', justifyContent: align }}>
+        <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:size, fontWeight:600, color:'#fff', letterSpacing:'0.02em', lineHeight:1.1, whiteSpace:'nowrap' }}>
+          £19.99
+        </span>
+        <span style={{ position:'relative', display:'inline-block', fontFamily:'Oswald, Arial, sans-serif', fontSize:`calc(${size} * 0.55)`, fontWeight:300, color:'rgba(255,255,255,0.3)', letterSpacing:'0.02em', lineHeight:1.1, whiteSpace:'nowrap' }}>
+          £34.99
+          <span
+            className="ti-strike"
+            aria-hidden="true"
+            style={{ position:'absolute', left:'-2px', right:'-2px', top:'52%', height:1, background:'rgba(232,201,160,0.72)', borderRadius:1, pointerEvents:'none' }}
+          />
+        </span>
+      </span>
+      {label && (
+        <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.58rem', fontWeight:500, letterSpacing:'.2em', textTransform:'uppercase', color:'#E8C9A0', border:'1px solid rgba(232,201,160,0.28)', borderRadius:2, padding:'3px 9px', whiteSpace:'nowrap' }}>
+          Limited-time launch offer
+        </span>
+      )}
+    </span>
+  )
+}
+
 function MemberCTA({ className, style, children, onWaitlist }: { className?: string; style?: React.CSSProperties; children: React.ReactNode; onWaitlist?: () => void }) {
   // Sold out — same button, but it opens the waitlist instead of Stripe.
   if (SOLD_OUT) {
@@ -1491,15 +1538,17 @@ export default function HomePage() {
 
             {/* Detail strip */}
             <div className="reveal detail-strip" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:2, background:'rgba(255,255,255,0.05)', borderRadius:3, overflow:'hidden' }}>
-              {[
+              {([
                 { l:'Material',   v:'Premium PVC', s:'Unobstructed antenna, strongest tap' },
                 { l:'Finish', v:'Matte black', s:'Metal finish coming soon' },
                 { l:'Technology', v:'NFC + Digital Profile', s:'Tap-to-profile, no app needed' },
-                { l:'Price', v:'£34.99', s:'Card + first month included' },
-              ].map((d,i)=>(
+                { l:'Price', v:'£19.99', s:'Card + first month included', launch:true },
+              ] as { l:string; v:string; s:string; launch?:boolean }[]).map((d,i)=>(
                 <div key={i} style={{ background:'#080808', padding: isMobile ? '1rem .9rem' : 'clamp(1.25rem,2.5vw,1.75rem)', display:'flex', flexDirection:'column', gap:8, minWidth:0 }}>
                   <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:400, color:'rgba(255,255,255,.22)', letterSpacing:'.22em', textTransform:'uppercase' }}>{d.l}</div>
-                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'clamp(.88rem,2vw,1.35rem)', fontWeight:500, color:'#fff', lineHeight:1.2, letterSpacing:'0.01em' }}>{d.v}</div>
+                  <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'clamp(.88rem,2vw,1.35rem)', fontWeight:500, color:'#fff', lineHeight:1.2, letterSpacing:'0.01em' }}>
+                    {d.launch ? <LaunchPrice size="clamp(.88rem,2vw,1.35rem)" /> : d.v}
+                  </div>
                   <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.82rem', fontWeight:300, color:'rgba(255,255,255,.3)', lineHeight:1.55, letterSpacing:'0.01em' }}>{d.s}</div>
                 </div>
               ))}
@@ -1525,9 +1574,9 @@ export default function HomePage() {
 
             <div className="future-grid reveal" style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap:2, background:'rgba(255,255,255,0.05)', borderRadius:3, overflow:'hidden', maxWidth:1000, margin:'0 auto' }}>
               {[
-                { n:'01', h:'You own your card', b:'One payment of \u00a334.99 and the card is yours. Premium, ready to tap, and it stays live for as long as you want. No forced subscription, ever.' },
+                { n:'01', h:'You own your card', b:'One payment of \u00a319.99, a limited-time launch offer down from \u00a334.99, and the card is yours. Premium, ready to tap, and it stays live for as long as you want. No forced subscription, ever.' },
                 { n:'02', h:'Your first month is everything', b:'From your first tap you get the full Tapped-In dashboard \u2014 every feature, analytics, styling and your QR code \u2014 free for a month. Try all of it.' },
-                { n:'03', h:'After month one, you choose', b:'Your card and profile stay live for free, and you keep the essentials for good. Want the full toolkit \u2014 advanced analytics, styling and your QR code \u2014 back? It\u2019s \u00a37.99 a month, whenever you want it. Never any pressure.' },
+                { n:'03', h:'After month one, you choose', b:'Your card and profile stay live for free, and you keep the essentials for good. Want the full toolkit \u2014 advanced analytics, styling and your QR code \u2014 back? It\u2019s \u00a33.99 a month, whenever you want it. Never any pressure.' },
               ].map((d,i)=>(
                 <div key={i} style={{ background:'#070707', padding: isMobile ? '1.5rem 1.25rem' : 'clamp(1.75rem,3vw,2.25rem)', display:'flex', flexDirection:'column', gap:'.75rem', minWidth:0 }}>
                   <div style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '2rem' : '2.4rem', fontWeight:600, color:'rgba(255,255,255,.28)', lineHeight:1, letterSpacing:'0.02em', marginBottom:'.25rem' }}>{d.n}</div>
@@ -1537,9 +1586,12 @@ export default function HomePage() {
               ))}
             </div>
 
-            <p className="reveal" style={{ textAlign:'center', marginTop: isMobile ? '1.75rem' : '2.5rem', fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.9rem' : '1rem', fontWeight:300, color:'rgba(255,255,255,.5)', letterSpacing:'0.02em' }}>
-              £34.99 for your card and first month. Yours to keep.
-            </p>
+            <div className="reveal" style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'.7rem', marginTop: isMobile ? '1.75rem' : '2.5rem' }}>
+              <LaunchPrice size={isMobile ? '1.5rem' : '1.75rem'} align="center" />
+              <p style={{ textAlign:'center', fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.9rem' : '1rem', fontWeight:300, color:'rgba(255,255,255,.5)', letterSpacing:'0.02em' }}>
+                for your card and first month. Yours to keep.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -1670,8 +1722,8 @@ export default function HomePage() {
                       </div>
                     ))}
                   </div>
-                  <div style={{ marginTop:'auto', display:'flex', alignItems:'baseline', gap:'.5rem', marginBottom:'1.25rem' }}>
-                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'1.75rem', fontWeight:600, color:'#fff', letterSpacing:'0.02em' }}>£34.99</span>
+                  <div style={{ marginTop:'auto', display:'flex', flexDirection:'column', gap:'.45rem', marginBottom:'1.25rem' }}>
+                    <LaunchPrice size="1.75rem" />
                     <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.8rem', fontWeight:300, color:'rgba(255,255,255,.35)' }}>{INDIVIDUAL_PRICE_SUFFIX}</span>
                   </div>
                   <MemberCTA className="btn-primary" style={{ fontSize:'.85rem', padding:'14px 28px' }} onWaitlist={() => setWaitlistOpen(true)}>Get your card</MemberCTA>

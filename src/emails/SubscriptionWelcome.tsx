@@ -30,7 +30,7 @@ const TIERS: Record<Tier, {
   },
   silver: {
     label: 'Silver',
-    monthly: '£7.99',
+    monthly: '£3.99',
     features: [
       'Your live NFC card and digital profile',
       'Full analytics — trends, top links, devices, peak times, live feed',
