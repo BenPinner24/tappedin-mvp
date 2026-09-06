@@ -34,7 +34,7 @@ const TIERS: Record<Tier, {
     features: [
       'Your live NFC card and digital profile',
       'Full analytics — trends, top links, devices, peak times, live feed',
-      'Portfolio gallery with image storage',
+      'Portfolio gallery with image storage (coming soon)',
       'Custom themes and styling',
       'Priority support',
     ],
