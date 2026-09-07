@@ -1108,6 +1108,64 @@ function LaunchPrice({
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ICO TRUST LINE — a quiet factual marker, not a badge.
+// Thin-line shield in champagne, letter-spaced label, muted explanatory line.
+// No animation of its own, so there is nothing for reduced motion to disable.
+// ─────────────────────────────────────────────────────────────────────────────
+function IcoTrustLine({ align = 'center' }: { align?: 'center' | 'flex-start' }) {
+  return (
+    <div style={{
+      display:'flex', alignItems:'flex-start', gap:'.85rem',
+      justifyContent: align === 'center' ? 'center' : 'flex-start',
+      maxWidth: 440, margin: align === 'center' ? '0 auto' : 0, textAlign:'left',
+    }}>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+        style={{ flexShrink:0, marginTop:2 }}>
+        <path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 8.5-4.1-.9-7-4.3-7-8.5V6l7-3z"
+          stroke="#E8C9A0" strokeWidth="1.1" strokeLinejoin="round" opacity="0.85" />
+        <path d="M9.5 12.2l1.8 1.8 3.4-3.6" stroke="#E8C9A0" strokeWidth="1.1"
+          strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
+      </svg>
+      <div style={{ minWidth:0 }}>
+        <div style={{ display:'flex', alignItems:'baseline', gap:'.6rem', flexWrap:'wrap' }}>
+          <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.66rem', fontWeight:500, letterSpacing:'.24em', textTransform:'uppercase', color:'#E8C9A0', whiteSpace:'nowrap' }}>
+            ICO Registered
+          </span>
+          <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.74rem', fontWeight:400, letterSpacing:'.1em', color:'rgba(255,255,255,.45)', whiteSpace:'nowrap' }}>
+            ZC233541
+          </span>
+        </div>
+        <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.76rem', fontWeight:300, lineHeight:1.65, letterSpacing:'.01em', color:'rgba(255,255,255,.3)', marginTop:'.45rem' }}>
+          Registered with the UK&rsquo;s ICO. Your data is handled in line with UK data protection law.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// Hero variant: icon, label and number on one line. No explanatory sentence —
+// it must not compete with the headline or CTA.
+function IcoTrustCompact() {
+  return (
+    <div style={{ display:'inline-flex', alignItems:'center', gap:'.55rem', flexWrap:'wrap', maxWidth:440 }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink:0 }}>
+        <path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 8.5-4.1-.9-7-4.3-7-8.5V6l7-3z"
+          stroke="#E8C9A0" strokeWidth="1.1" strokeLinejoin="round" opacity="0.8" />
+        <path d="M9.5 12.2l1.8 1.8 3.4-3.6" stroke="#E8C9A0" strokeWidth="1.1"
+          strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
+      </svg>
+      <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.6rem', fontWeight:500, letterSpacing:'.22em', textTransform:'uppercase', color:'#E8C9A0', opacity:.85, whiteSpace:'nowrap' }}>
+        ICO Registered
+      </span>
+      <span aria-hidden="true" style={{ color:'rgba(255,255,255,.2)', fontSize:'.6rem' }}>·</span>
+      <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.68rem', fontWeight:400, letterSpacing:'.1em', color:'rgba(255,255,255,.38)', whiteSpace:'nowrap' }}>
+        ZC233541
+      </span>
+    </div>
+  )
+}
+
 function MemberCTA({ className, style, children, onWaitlist }: { className?: string; style?: React.CSSProperties; children: React.ReactNode; onWaitlist?: () => void }) {
   // Sold out — same button, but it opens the waitlist instead of Stripe.
   if (SOLD_OUT) {
@@ -1481,6 +1539,9 @@ export default function HomePage() {
 
               {/* Stats */}
               <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize: isMobile ? '.74rem' : '.8rem', fontWeight:300, color:'rgba(255,255,255,.4)', letterSpacing:'.01em', lineHeight:1.6, maxWidth:440, marginBottom: isMobile ? '1.4rem' : '2.5rem' }}>{HERO_PRICE_LINE}</p>
+              <div style={{ marginBottom: isMobile ? '1.4rem' : '2.5rem' }}>
+                <IcoTrustCompact />
+              </div>
               <div style={{ animation:'fadeIn 1.2s ease .55s both' }}>
                 <div style={{ ...DIVIDER, marginBottom: isMobile ? '.9rem' : '1.25rem' }} />
                 <div className="hero-stats" style={{ display:'flex', gap:'2.75rem', flexWrap:'wrap' }}>
@@ -2183,6 +2244,17 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── ICO trust line ── */}
+        <div style={{
+          padding: isMobile ? '0 1.25rem 2.75rem' : '0 clamp(1.5rem,5vw,3rem) 4rem',
+          background:'#030303',
+        }}>
+          <div style={{ maxWidth:1160, margin:'0 auto' }}>
+            <div style={{ height:1, background:'rgba(255,255,255,0.045)', marginBottom: isMobile ? '2rem' : '2.75rem' }} />
+            <IcoTrustLine />
+          </div>
+        </div>
+
         {/* ── FOOTER ── */}
         <footer style={{
           borderTop:'1px solid rgba(255,255,255,0.045)',
@@ -2229,6 +2301,12 @@ export default function HomePage() {
                     (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('http'))
                       ? <a key={`${href}-${label}`} href={href} className="footer-link" {...(href.startsWith('http') ? { target:'_blank', rel:'noopener noreferrer' } : {})}>{label}</a>
                       : <Link key={`${href}-${label}`} href={href} className="footer-link">{label}</Link>
+                  )}
+                  {/* Factual marker, not a link — matches .footer-link's white type. */}
+                  {col.head === 'Legal' && (
+                    <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.95rem', fontWeight:300, letterSpacing:'.02em', lineHeight:1.5, color:'#FFFFFF', whiteSpace:'nowrap' }}>
+                      ICO Registered · ZC233541
+                    </span>
                   )}
                 </div>
               ))}

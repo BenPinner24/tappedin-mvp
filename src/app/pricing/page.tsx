@@ -107,6 +107,32 @@ function LaunchPrice() {
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ICO TRUST LINE — quiet reassurance beside the checkout. Text and a thin-line
+// shield only; no animation, so reduced motion needs no special handling.
+// ─────────────────────────────────────────────────────────────────────────────
+function IcoTrustLine() {
+  return (
+    <div style={s.icoRow}>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={s.icoIcon}>
+        <path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 8.5-4.1-.9-7-4.3-7-8.5V6l7-3z"
+          stroke="#E8C9A0" strokeWidth="1.1" strokeLinejoin="round" opacity="0.85" />
+        <path d="M9.5 12.2l1.8 1.8 3.4-3.6" stroke="#E8C9A0" strokeWidth="1.1"
+          strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
+      </svg>
+      <div style={{ minWidth: 0 }}>
+        <div style={s.icoTop}>
+          <span style={s.icoLabel}>ICO Registered</span>
+          <span style={s.icoNumber}>ZC233541</span>
+        </div>
+        <p style={s.icoBody}>
+          Registered with the UK&rsquo;s ICO. Your data is handled in line with UK data protection law.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function PricingPage() {
   const [reveal, setReveal] = useState(false)
   const [waitlistOpen, setWaitlistOpen] = useState(false)
@@ -269,6 +295,7 @@ export default function PricingPage() {
               )}
               <a href={FOUNDERS_STRIPE_URL} target="_blank" rel="noopener noreferrer" {...gateProps} style={gated(s.buy)}>Order Founders Edition</a>
             </div>
+            <IcoTrustLine />
           </section>
 
           {/* footer */}
@@ -414,6 +441,12 @@ const s: Record<string, React.CSSProperties> = {
 
   finalCta: { maxWidth: 760, margin: '0 auto', padding: 'clamp(3rem, 7vw, 5rem) 1.5rem 2rem', textAlign: 'center' },
   ctaRow: { display: 'flex', gap: '.85rem', justifyContent: 'center', flexWrap: 'wrap' },
+  icoRow: { display: 'flex', alignItems: 'flex-start', gap: '.85rem', justifyContent: 'center', maxWidth: 440, margin: '2.75rem auto 0', textAlign: 'left' },
+  icoIcon: { flexShrink: 0, marginTop: 2 },
+  icoTop: { display: 'flex', alignItems: 'baseline', gap: '.6rem', flexWrap: 'wrap' },
+  icoLabel: { fontSize: '.66rem', fontWeight: 500, letterSpacing: '.24em', textTransform: 'uppercase', color: '#E8C9A0', whiteSpace: 'nowrap' },
+  icoNumber: { fontSize: '.74rem', fontWeight: 400, letterSpacing: '.1em', color: 'rgba(255,255,255,.45)', whiteSpace: 'nowrap' },
+  icoBody: { fontSize: '.76rem', fontWeight: 300, lineHeight: 1.65, letterSpacing: '.01em', color: 'rgba(255,255,255,.3)', marginTop: '.45rem' },
 
   footer: { maxWidth: 1100, margin: '3rem auto 0', padding: '2rem 1.5rem 0', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' },
   footerBrand: { fontFamily: FF, fontSize: '.6rem', fontWeight: 600, letterSpacing: '.3em', color: 'rgba(255,255,255,.16)' },

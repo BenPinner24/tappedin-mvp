@@ -659,6 +659,41 @@ function TeamDashboardMockup({ isMobile }: { isMobile: boolean }) {
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ICO TRUST LINE — the same quiet marker used on the landing and pricing pages.
+// Text and a thin-line shield only; no animation of its own, so reduced motion
+// has nothing to disable (the .reveal wrapper already respects it).
+// ─────────────────────────────────────────────────────────────────────────────
+function IcoTrustLine() {
+  return (
+    <div style={{
+      display:'flex', alignItems:'flex-start', gap:'.85rem', justifyContent:'center',
+      maxWidth:440, margin:'0 auto', textAlign:'left',
+    }}>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+        style={{ flexShrink:0, marginTop:2 }}>
+        <path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 8.5-4.1-.9-7-4.3-7-8.5V6l7-3z"
+          stroke="#E8C9A0" strokeWidth="1.1" strokeLinejoin="round" opacity="0.85" />
+        <path d="M9.5 12.2l1.8 1.8 3.4-3.6" stroke="#E8C9A0" strokeWidth="1.1"
+          strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
+      </svg>
+      <div style={{ minWidth:0 }}>
+        <div style={{ display:'flex', alignItems:'baseline', gap:'.6rem', flexWrap:'wrap' }}>
+          <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.66rem', fontWeight:500, letterSpacing:'.24em', textTransform:'uppercase', color:'#E8C9A0', whiteSpace:'nowrap' }}>
+            ICO Registered
+          </span>
+          <span style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.74rem', fontWeight:400, letterSpacing:'.1em', color:'rgba(255,255,255,.45)', whiteSpace:'nowrap' }}>
+            ZC233541
+          </span>
+        </div>
+        <p style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.76rem', fontWeight:300, lineHeight:1.65, letterSpacing:'.01em', color:'rgba(255,255,255,.3)', marginTop:'.45rem' }}>
+          Registered with the UK&rsquo;s ICO. Your data is handled in line with UK data protection law.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function BusinessPage() {
   useReveal()
   const [scrolled, setScrolled] = useState(false)
@@ -965,6 +1000,10 @@ export default function BusinessPage() {
             <p className="reveal d4" style={{ fontFamily:'Oswald, Arial, sans-serif', fontSize:'.78rem', fontWeight:300, color:'rgba(255,255,255,.26)', letterSpacing:'0.03em', marginTop:'1.25rem' }}>
               No commitment — just a conversation about what your team needs.
             </p>
+            <div className="reveal d4" style={{ marginTop: isMobile ? '2.25rem' : '3rem' }}>
+              <div style={{ height:1, background:'rgba(255,255,255,0.06)', maxWidth:440, margin:'0 auto 1.75rem' }} />
+              <IcoTrustLine />
+            </div>
           </div>
         </section>
 

@@ -135,7 +135,7 @@ export default function PrivacyPage() {
 
           <Section n="1" title="Who we are">
             <p style={body}>
-              TAPPEDIN SPACE LTD is a company registered in England and Wales (company number 17213352), registered address 66 Paul Street, London EC2A 4NA. We are the &ldquo;data controller&rdquo; responsible for your personal data. For any questions about this policy or your data, contact us at: <a href="mailto:contact@tappedin.uk" className="pp-link">contact@tappedin.uk</a>.
+              TAPPEDIN SPACE LTD is a company registered in England and Wales (company number 17213352), registered address 66 Paul Street, London EC2A 4NA. We are the &ldquo;data controller&rdquo; responsible for your personal data. We are registered with the Information Commissioner&rsquo;s Office (ICO), registration number ZC233541. For any questions about this policy or your data, contact us at: <a href="mailto:contact@tappedin.uk" className="pp-link">contact@tappedin.uk</a>.
             </p>
           </Section>
 
