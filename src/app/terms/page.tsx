@@ -2,16 +2,16 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy',
+  title: 'Terms & Conditions',
   description:
-    'How TAPPEDIN SPACE LTD collects, uses, and protects your personal data across the Tapped-In website, cards, and services — in line with the UK GDPR and the Data Protection Act 2018.',
+    'The terms and conditions for using Tapped-In\u2019s website, cards, and services, operated by TAPPEDIN SPACE LTD \u2014 covering orders, subscriptions, delivery, refunds, service availability, and your rights.',
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAPPED-IN · PRIVACY POLICY  (/privacy)
+// TAPPED-IN · TERMS & CONDITIONS  (/terms)
 // Static server component — no client JS needed, so the page ships as markup
 // and real <meta> tags. Oswald for structure (brand), Inter for the body copy,
-// because a policy has to be read, not just looked at.
+// because terms have to be read, not just looked at.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CHAMP = '#E8C9A0'
@@ -123,7 +123,7 @@ export default function TermsPage() {
               Terms &amp; Conditions
             </h1>
             <p style={{ fontFamily: OSWALD, fontSize: '.8rem', fontWeight: 300, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.3)', marginTop: '1rem' }}>
-              Last updated: 28 August 2026
+              Last updated: 8 September 2026
             </p>
             <div style={{ height: 1, background: `linear-gradient(90deg, ${CHAMP}55, rgba(255,255,255,0.05) 45%, transparent)`, margin: 'clamp(1.75rem, 4vw, 2.5rem) 0 0' }} />
           </header>
@@ -191,31 +191,55 @@ export default function TermsPage() {
             </p>
           </Section>
 
-          <Section n="11" title="Our liability">
+          <Section n="11" title="Service availability and continuity">
+            <p style={body}>
+              We aim to keep the Tapped-In service, including your digital profile and the features linked to your card, available on an ongoing basis. However, the digital service depends on our platform continuing to operate, and we cannot guarantee that it will be available without interruption or indefinitely.
+            </p>
+            <p style={body}>
+              We may modify, suspend, or discontinue all or part of the service where we reasonably need to, for example for technical, operational, commercial, or legal reasons. Where we discontinue the service, we will make reasonable efforts to give notice in advance where it is practical to do so.
+            </p>
+            <p style={body}>
+              The physical card is a one-time purchase and remains your property. The digital profile and online features that the card links to are provided as an ongoing service and depend on the platform operating. If the service is discontinued, the physical card may no longer function as intended, as its purpose is to open your digital profile.
+            </p>
+            <p style={body}>
+              Nothing in this section affects your statutory rights as a consumer.
+            </p>
+          </Section>
+
+          <Section n="12" title={'\u201cFor life\u201d and long-term access'}>
+            <p style={body}>
+              Where we describe a card, profile, or membership as staying live &ldquo;for life,&rdquo; &ldquo;forever,&rdquo; or with &ldquo;no monthly fee,&rdquo; this means that we do not charge a recurring fee to keep that card or profile live, and that we intend to keep it available for as long as we operate the Tapped-In service. It does not mean, and cannot reasonably be taken to mean, a guarantee that the service will operate indefinitely regardless of circumstances.
+            </p>
+            <p style={body}>
+              Such descriptions are provided in good faith and are subject to these Terms, including the &ldquo;Service availability and continuity&rdquo; section above.
+            </p>
+          </Section>
+
+          <Section n="13" title="Our liability">
             <p style={body}>
               We provide the service with reasonable care and skill. To the extent permitted by law, we are not liable for indirect or unforeseeable losses, or for issues outside our reasonable control. Nothing in these Terms limits our liability where it would be unlawful to do so, including for death or personal injury caused by negligence, or for fraud.
             </p>
           </Section>
 
-          <Section n="12" title="Privacy">
+          <Section n="14" title="Privacy">
             <p style={body}>
               Our use of your personal data is explained in our Privacy Policy at <Link href="/privacy" className="pp-link">tappedin.uk/privacy</Link>, which forms part of these Terms.
             </p>
           </Section>
 
-          <Section n="13" title="Changes to these Terms">
+          <Section n="15" title="Changes to these Terms">
             <p style={body}>
               We may update these Terms from time to time. When we do, we will change the &ldquo;last updated&rdquo; date. Continued use of the service after changes means you accept the updated Terms.
             </p>
           </Section>
 
-          <Section n="14" title="Governing law">
+          <Section n="16" title="Governing law">
             <p style={body}>
               These Terms are governed by the laws of England and Wales, and any disputes will be subject to the courts of England and Wales.
             </p>
           </Section>
 
-          <Section n="15" title="Contact">
+          <Section n="17" title="Contact">
             <p style={body}>
               For any questions about these Terms, contact us at <a href="mailto:contact@tappedin.uk" className="pp-link">contact@tappedin.uk</a>.
             </p>
