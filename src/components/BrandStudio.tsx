@@ -1,15 +1,16 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import {
   colors, font, radius, spacing, borders, transitions, inputs,
 } from '@/lib/design'
 import {
   resolveTheme, getLinkButtonStyle, linkIconColor,
-  normalizeThemeId, parseGlass, isHexColor,
+  normalizeThemeId, parseBackgroundStyle, encodeBackgroundStyle, isHexColor,
   SOLID_THEME_LIST, GRADIENT_THEME_LIST, BUTTON_STYLE_LIST, GLASS_LEVELS,
-  type ThemeInput, type GlassLevel,
+  GRADIENT_ANGLES, CUSTOM_THEME_ID,
+  type ThemeInput, type GlassLevel, type CustomBg,
 } from '@/lib/theme'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
@@ -41,10 +42,20 @@ previewLinks?: PreviewLink[]
 
 if (!profile) return null
 
-const glass = parseGlass(profile.background_style)
+const { glass, custom: customBg } = parseBackgroundStyle(profile.background_style)
 
 const selectedTheme =
 normalizeThemeId(profile.theme_style)
+
+// Preset vs Custom is derived from what's saved, so the tab reopens where the
+// creator left it. The last preset is remembered only for switching back.
+const mode: 'preset' | 'custom' = selectedTheme === CUSTOM_THEME_ID ? 'custom' : 'preset'
+const [lastPreset, setLastPreset] = useState<string>(
+  selectedTheme === CUSTOM_THEME_ID ? 'classic-black' : selectedTheme,
+)
+useEffect(() => {
+  if (selectedTheme !== CUSTOM_THEME_ID) setLastPreset(selectedTheme)
+}, [selectedTheme])
 
 const accent =
 profile.accent_color &&
@@ -58,9 +69,35 @@ profile.button_style || "default"
 const theme = resolveTheme(profile)
 
 
-function setGlass(level: GlassLevel) {
-    patch({ background_style: level === 'none' ? null : level })
+// background_style carries the glass level and, when custom, the colours too.
+  function writeBg(level: GlassLevel, bg: CustomBg | null) {
+    patch({ background_style: encodeBackgroundStyle(level, bg) })
   }
+  function setGlass(level: GlassLevel) {
+    writeBg(level, mode === 'custom' ? (customBg ?? DEFAULT_CUSTOM) : null)
+  }
+  function setMode(next: 'preset' | 'custom') {
+    if (next === mode) return
+    if (next === 'custom') {
+      patch({ theme_style: CUSTOM_THEME_ID })
+      writeBg(glass, customBg ?? DEFAULT_CUSTOM)
+    } else {
+      // Dropping the custom colours keeps background_style in its original
+      // bare-level shape, exactly as presets have always stored it.
+      patch({ theme_style: lastPreset })
+      writeBg(glass, null)
+    }
+  }
+  function setCustom(next: CustomBg) {
+    writeBg(glass, next)
+  }
+  const activeCustom: CustomBg = customBg ?? DEFAULT_CUSTOM
+  const gradientDraft = activeCustom.type === 'gradient'
+    ? activeCustom
+    : { type: 'gradient' as const, from: activeCustom.color, to: '#000000', angle: 180 }
+  const solidDraft = activeCustom.type === 'solid'
+    ? activeCustom
+    : { type: 'solid' as const, color: activeCustom.from }
 
   const sampleLinks: PreviewLink[] = (previewLinks.length > 0 ? previewLinks : [
     { id: 's1', label: 'Instagram' }, { id: 's2', label: 'WhatsApp' }, { id: 's3', label: 'Portfolio' },
@@ -72,55 +109,142 @@ function setGlass(level: GlassLevel) {
 
   return (
     <div style={isMobile ? { ...st.root, padding: '1rem' } : st.root}>
+      {/* The dashboard has no global reduced-motion rule, so this tab carries
+          its own: every transition here is decorative and safe to drop. */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media (prefers-reduced-motion: reduce) {
+          .bs-anim, .bs-anim * { transition: none !important; animation: none !important; }
+        }
+      ` }} />
       <div style={isMobile ? { ...st.split, gridTemplateColumns: '1fr' } : st.split}>
 
         {/* ── Controls ── */}
         <div style={st.controls}>
 
-          <Section label="Background theme" hint="Premium solid presets.">
-            <div style={st.swatchGrid}>
-              {SOLID_THEME_LIST.map((t) => (
-                <SwatchChip key={t.id} fill={t.swatch} label={t.label} selected={selectedTheme === t.id} accent={accent} onClick={() => patch({ theme_style: t.id })} />
+          {/* ── 1. BACKGROUND — preset or custom, never both at once ── */}
+          <Section label="Background" hint="Start from a preset, or build your own colours.">
+            <div style={st.modeTabs}>
+              {(['preset', 'custom'] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className="bs-anim"
+                  style={{
+                    ...st.modeTab,
+                    background: mode === m ? colors.white[10] : 'transparent',
+                    color: mode === m ? colors.text.primary : colors.text.muted,
+                    boxShadow: mode === m ? `inset 0 0 0 1px ${accent || colors.border.focus}` : 'none',
+                  }}
+                >
+                  {m === 'preset' ? 'Presets' : 'Custom'}
+                </button>
               ))}
             </div>
+
+            {mode === 'preset' ? (
+              <div style={st.stack}>
+                <div>
+                  <p style={st.subLabel}>Solid</p>
+                  <div style={st.swatchGrid}>
+                    {SOLID_THEME_LIST.map((t) => (
+                      <SwatchChip key={t.id} fill={t.swatch} label={t.label} selected={selectedTheme === t.id} accent={accent} onClick={() => patch({ theme_style: t.id })} />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p style={st.subLabel}>Cinematic gradients</p>
+                  <div style={st.swatchGrid}>
+                    {GRADIENT_THEME_LIST.map((t) => (
+                      <SwatchChip key={t.id} fill={t.swatch} label={t.label} selected={selectedTheme === t.id} accent={accent} onClick={() => patch({ theme_style: t.id })} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={st.stack}>
+                <Segmented
+                  options={[{ id: 'solid', label: 'Solid' }, { id: 'gradient', label: 'Gradient' }]}
+                  value={activeCustom.type}
+                  accent={accent}
+                  onChange={(v) => setCustom(v === 'solid' ? solidDraft : gradientDraft)}
+                />
+
+                {activeCustom.type === 'solid' ? (
+                  <ColorField
+                    label="Background colour"
+                    value={activeCustom.color}
+                    accent={accent}
+                    onChange={(hex) => setCustom({ type: 'solid', color: hex })}
+                  />
+                ) : (
+                  <>
+                    <div style={st.pairGrid}>
+                      <ColorField
+                        label="From"
+                        value={activeCustom.from}
+                        accent={accent}
+                        onChange={(hex) => setCustom({ ...activeCustom, from: hex })}
+                      />
+                      <ColorField
+                        label="To"
+                        value={activeCustom.to}
+                        accent={accent}
+                        onChange={(hex) => setCustom({ ...activeCustom, to: hex })}
+                      />
+                    </div>
+                    <div>
+                      <p style={st.subLabel}>Direction</p>
+                      <div style={st.dirGrid}>
+                        {GRADIENT_ANGLES.map((a) => {
+                          const sel = activeCustom.angle === a.id
+                          return (
+                            <button
+                              key={a.id}
+                              onClick={() => setCustom({ ...activeCustom, angle: a.id })}
+                              style={{
+                                ...st.dirOpt,
+                                borderColor: sel ? (accent || colors.border.focus) : colors.border.subtle,
+                                background: sel ? colors.white[10] : colors.white[3],
+                                color: sel ? colors.text.primary : colors.text.muted,
+                              }}
+                            >
+                              {a.label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <p style={st.subLabel}>Gradient preview</p>
+                      <div style={{
+                        ...st.gradPreview,
+                        background: `linear-gradient(${activeCustom.angle}deg, ${activeCustom.from}, ${activeCustom.to})`,
+                      }} />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </Section>
 
-          <Section label="Cinematic gradients" hint="Low-opacity, Apple / Linear style.">
-            <div style={st.swatchGrid}>
-              {GRADIENT_THEME_LIST.map((t) => (
-                <SwatchChip key={t.id} fill={t.swatch} label={t.label} selected={selectedTheme === t.id} accent={accent} onClick={() => patch({ theme_style: t.id })} />
-              ))}
-            </div>
-          </Section>
-
+          {/* ── 2. ACCENT ── */}
           <Section label="Accent colour" hint="Tints the active badge, avatar ring, link hover and focus.">
-            <div style={st.colorInner}>
-              <input
-                type="color"
-                value={isHexColor(accent) ? accent : '#7c5cff'}
-                onChange={(e) => patch({ accent_color: e.target.value })}
-                style={st.colorSwatchInput}
-                aria-label="Accent colour"
-              />
-              <input
-                type="text"
-                value={accent}
-                placeholder="#7c5cff"
-                maxLength={7}
-                onChange={(e) => {
-                  const v = e.target.value.trim()
-                  patch({ accent_color: v === '' ? null : v })
-                }}
-                style={{ ...inputs.base, fontFamily: font.mono, fontSize: font.size.xs }}
-              />
-              {accent && <button onClick={() => patch({ accent_color: null })} style={st.colorClear} title="Reset accent">×</button>}
-            </div>
+            <ColorField
+              label=""
+              value={accent || '#7c5cff'}
+              accent={accent}
+              placeholder="#7c5cff"
+              onChange={(hex) => patch({ accent_color: hex })}
+              onClear={accent ? () => patch({ accent_color: null }) : undefined}
+            />
           </Section>
 
+          {/* ── 3. SURFACE ── */}
           <Section label="Glass intensity" hint="Surface blur & translucency. Reads best on gradients.">
             <Segmented options={GLASS_LEVELS} value={glass} accent={accent} onChange={(v) => setGlass(v as GlassLevel)} />
           </Section>
 
+          {/* ── 4. LINKS ── */}
           <Section label="Button style" hint="How your links appear to visitors." last>
             <div style={st.styleGrid}>
               {BUTTON_STYLE_LIST.map((b) => {
@@ -234,6 +358,64 @@ function SwatchChip({ fill, label, selected, accent, onClick }: { fill: string; 
   )
 }
 
+/** A creator's first custom background, before they change anything. */
+const DEFAULT_CUSTOM: CustomBg = { type: 'solid', color: '#101014' }
+
+/**
+ * Spectrum + hex in one control. The text field keeps its own draft so a
+ * half-typed value ("#83") never reaches the profile; it commits only when the
+ * hex is valid, and shows a red edge while it isn't.
+ */
+function ColorField({ label, value, accent, placeholder, onChange, onClear }: {
+  label: string
+  value: string
+  accent: string
+  placeholder?: string
+  onChange: (hex: string) => void
+  onClear?: () => void
+}) {
+  const [draft, setDraft] = useState(value)
+  useEffect(() => { setDraft(value) }, [value])
+  const invalid = draft.trim() !== '' && !isHexColor(draft)
+
+  return (
+    <div>
+      {label && <p style={st.subLabel}>{label}</p>}
+      <div style={st.colorInner}>
+        <input
+          type="color"
+          value={isHexColor(value) ? value : '#7c5cff'}
+          onChange={(e) => { setDraft(e.target.value); onChange(e.target.value) }}
+          style={st.colorSwatchInput}
+          aria-label={label || 'Colour'}
+        />
+        <input
+          type="text"
+          value={draft}
+          placeholder={placeholder || '#000000'}
+          maxLength={7}
+          spellCheck={false}
+          autoCapitalize="none"
+          onChange={(e) => {
+            const v = e.target.value.trim()
+            setDraft(v)
+            if (isHexColor(v)) onChange(v)
+          }}
+          style={{
+            ...inputs.base,
+            fontFamily: font.mono,
+            fontSize: font.size.xs,
+            minWidth: 0,
+            borderColor: invalid ? 'rgba(248,113,113,0.55)' : undefined,
+          }}
+        />
+        {onClear && <button onClick={onClear} style={st.colorClear} title="Reset">×</button>}
+      </div>
+      {invalid && <p style={st.hexError}>Use a hex like #83110 0 or #831100 — 3 or 6 characters.</p>}
+    </div>
+  )
+}
+
 function Segmented({ options, value, accent, onChange }: { options: { id: string; label: string }[]; value: string; accent: string; onChange: (v: string) => void }) {
   return (
     <div style={st.seg}>
@@ -277,6 +459,33 @@ const st: Record<string, CSSProperties> = {
   secLabel: { fontSize: font.size.sm, fontWeight: font.weight.semibold, color: colors.text.secondary, marginBottom: spacing[1] },
   secHint: { fontSize: font.size.xs, color: colors.text.faint, marginBottom: spacing[3], lineHeight: font.leading.normal },
 
+  stack: { display: 'flex', flexDirection: 'column', gap: spacing[4] },
+  subLabel: {
+    fontSize: font.size['2xs'], fontWeight: font.weight.semibold, letterSpacing: '0.16em',
+    textTransform: 'uppercase', color: colors.text.faint, marginBottom: spacing[2],
+  },
+  modeTabs: {
+    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3,
+    background: colors.white[3], border: `1px solid ${colors.border.subtle}`,
+    borderRadius: radius.full, padding: 3, marginBottom: spacing[4],
+  },
+  modeTab: {
+    padding: '9px 10px', borderRadius: radius.full, border: 'none', cursor: 'pointer',
+    fontFamily: 'inherit', fontSize: font.size.xs, fontWeight: font.weight.semibold,
+    letterSpacing: '0.06em', transition: 'background .18s ease, color .18s ease',
+  },
+  pairGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: spacing[3] },
+  dirGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: spacing[2] },
+  dirOpt: {
+    padding: '10px 12px', borderRadius: radius.md, border: '1px solid',
+    cursor: 'pointer', fontFamily: 'inherit', fontSize: font.size.xs,
+    fontWeight: font.weight.medium, textAlign: 'center', whiteSpace: 'nowrap',
+  },
+  gradPreview: {
+    height: 56, borderRadius: radius.md,
+    border: `1px solid ${colors.border.subtle}`,
+  },
+  hexError: { fontSize: font.size['2xs'], color: '#f87171', marginTop: spacing[2], lineHeight: 1.5 },
   swatchGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: spacing[3] },
   chip: { display: 'flex', flexDirection: 'column', gap: spacing[2], padding: spacing[2], borderRadius: radius.lg, border: borders.subtle, background: colors.white[3], cursor: 'pointer', transition: transitions.base },
   chipFill: { position: 'relative', width: '100%', height: '46px', borderRadius: radius.md, border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' },

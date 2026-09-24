@@ -10,7 +10,17 @@ export type GradientThemeId =
   | 'gradient-obsidian-glass' | 'gradient-midnight-aurora'
   | 'gradient-emerald-noir' | 'gradient-burgundy-smoke'
 
-export type ThemeId = SolidThemeId | GradientThemeId
+/** Sentinel theme_style meaning "the creator picked their own colours". */
+export const CUSTOM_THEME_ID = 'custom'
+export type ThemeId = SolidThemeId | GradientThemeId | 'custom'
+
+/**
+ * A creator's own background, stored as JSON inside background_style.
+ * Presets never carry one, so existing rows are unaffected.
+ */
+export type CustomBg =
+  | { type: 'solid'; color: string }
+  | { type: 'gradient'; from: string; to: string; angle: number }
 export type ButtonStyleId = 'default' | 'outline' | 'sharp' | 'glass' | 'soft-glow' | 'minimal-line'
 export type GlassLevel = 'none' | 'minimal' | 'frosted'
 
@@ -51,6 +61,14 @@ function rgba(hex: string, a: number): string {
   if (!c) return `rgba(255,255,255,${a})`
   return `rgba(${c[0]},${c[1]},${c[2]},${a})`
 }
+/** Mixes a hex toward white — used to lift a custom card off its background. */
+function lighten(hex: string, amount: number): string {
+  const c = hexToRgb(hex)
+  if (!c) return hex
+  const m = (v: number) => Math.round(v + (255 - v) * amount)
+  return `#${[m(c[0]), m(c[1]), m(c[2])].map((v) => v.toString(16).padStart(2, '0')).join('')}`
+}
+
 export function isHexColor(v: string): boolean {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.trim())
 }
@@ -117,18 +135,67 @@ const GLASS: Record<GlassLevel, { blur: number; alpha: number; sat: number }> = 
 
 // ─── background_style codec (glass level only) ────────────────────────────────
 
-export function parseGlass(raw: string | null | undefined): GlassLevel {
-  if (!raw) return 'none'
-  if (raw === 'minimal' || raw === 'frosted') return raw
-  // Gracefully map any earlier-tested values down to a supported level.
-  if (raw === 'standard' || raw === 'liquid') return 'frosted'
-  try {
-    const o = JSON.parse(raw)
-    const g = o?.glass
-    if (g === 'minimal') return 'minimal'
-    if (g === 'frosted' || g === 'standard' || g === 'liquid') return 'frosted'
-  } catch { /* not JSON — fall through */ }
+function coerceGlass(g: unknown): GlassLevel {
+  if (g === 'minimal') return 'minimal'
+  if (g === 'frosted' || g === 'standard' || g === 'liquid') return 'frosted'
   return 'none'
+}
+
+function coerceCustomBg(b: unknown): CustomBg | null {
+  if (!b || typeof b !== 'object') return null
+  const o = b as Record<string, unknown>
+  if (o.type === 'solid' && typeof o.color === 'string' && isHexColor(o.color)) {
+    return { type: 'solid', color: o.color }
+  }
+  if (
+    o.type === 'gradient' &&
+    typeof o.from === 'string' && isHexColor(o.from) &&
+    typeof o.to === 'string' && isHexColor(o.to)
+  ) {
+    const angle = typeof o.angle === 'number' && Number.isFinite(o.angle) ? o.angle : 180
+    return { type: 'gradient', from: o.from, to: o.to, angle }
+  }
+  return null
+}
+
+/**
+ * background_style holds either a bare glass level (legacy, still written for
+ * presets) or a JSON object { glass, bg }. Anything unrecognised degrades to
+ * glass 'none' and no custom background — so no stored value can break a page.
+ */
+export function parseBackgroundStyle(raw: string | null | undefined): { glass: GlassLevel; custom: CustomBg | null } {
+  if (!raw) return { glass: 'none', custom: null }
+  if (raw === 'minimal' || raw === 'frosted' || raw === 'standard' || raw === 'liquid') {
+    return { glass: coerceGlass(raw), custom: null }
+  }
+  try {
+    const o = JSON.parse(raw) as Record<string, unknown>
+    return { glass: coerceGlass(o?.glass), custom: coerceCustomBg(o?.bg) }
+  } catch {
+    return { glass: 'none', custom: null }
+  }
+}
+
+/**
+ * Writes the smallest thing that round-trips: a bare level when there is no
+ * custom background (byte-identical to what presets have always stored), JSON
+ * only when a custom background exists.
+ */
+export function encodeBackgroundStyle(glass: GlassLevel, custom: CustomBg | null): string | null {
+  if (!custom) return glass === 'none' ? null : glass
+  return JSON.stringify({ glass, bg: custom })
+}
+
+/** The CSS for a custom background. */
+export function customBgCss(bg: CustomBg): string {
+  return bg.type === 'solid'
+    ? bg.color
+    : `linear-gradient(${bg.angle}deg, ${bg.from}, ${bg.to})`
+}
+
+/** Kept for callers that only care about the glass level. */
+export function parseGlass(raw: string | null | undefined): GlassLevel {
+  return parseBackgroundStyle(raw).glass
 }
 
 // ─── Resolver ─────────────────────────────────────────────────────────────────
@@ -137,20 +204,29 @@ export function normalizeThemeId(raw?: string | null): ThemeId {
   if (!raw) return 'classic-black'
   if (raw === 'dark') return 'classic-black'
   if (raw === 'darker') return 'deep-graphite'
+  if (raw === CUSTOM_THEME_ID) return CUSTOM_THEME_ID
   if (raw in ALL_THEMES) return raw as ThemeId
   return 'classic-black'
 }
 
 export function resolveTheme(input: ThemeInput): ResolvedTheme {
   const id = normalizeThemeId(input.theme_style)
-  const glass = parseGlass(input.background_style)
+  const { glass, custom } = parseBackgroundStyle(input.background_style)
   const accent = input.accent_color && isHexColor(input.accent_color) ? input.accent_color : null
 
+  // A custom background only applies under the 'custom' sentinel, so a preset
+  // can never be hijacked by stray JSON.
+  const useCustom = id === CUSTOM_THEME_ID && custom !== null
+
   const t = ALL_THEMES[id] ?? SOLID_THEMES['classic-black']
-  const pageBase = t.pageBase
-  const pageBg = t.pageBg
-  const cardHex = t.card
-  const cardBorder = t.border
+  const customBase = useCustom
+    ? (custom!.type === 'solid' ? custom!.color : custom!.from)
+    : null
+  const pageBase = customBase ?? t.pageBase
+  const pageBg = useCustom ? customBgCss(custom!) : t.pageBg
+  // Card sits just above the background so it reads as a surface, not a hole.
+  const cardHex = customBase ? lighten(customBase, 0.07) : t.card
+  const cardBorder = customBase ? 'rgba(255,255,255,0.09)' : t.border
 
   const G = GLASS[glass]
   const cardRgb = hexToRgb(cardHex) ?? [10, 10, 10]
@@ -227,6 +303,12 @@ export const GRADIENT_THEME_LIST = (Object.keys(GRADIENT_THEMES) as GradientThem
 export const BUTTON_STYLE_LIST: { id: ButtonStyleId; label: string }[] = [
   { id: 'default', label: 'Solid' }, { id: 'outline', label: 'Outline' }, { id: 'sharp', label: 'Sharp Edge' },
   { id: 'glass', label: 'Glass' }, { id: 'soft-glow', label: 'Soft Glow' }, { id: 'minimal-line', label: 'Minimal Line' },
+]
+export const GRADIENT_ANGLES: { id: number; label: string }[] = [
+  { id: 180, label: 'Top → Bottom' },
+  { id: 90,  label: 'Left → Right' },
+  { id: 135, label: 'Diagonal ↘' },
+  { id: 45,  label: 'Diagonal ↗' },
 ]
 export const GLASS_LEVELS: { id: GlassLevel; label: string }[] = [
   { id: 'none', label: 'None' }, { id: 'minimal', label: 'Minimal' }, { id: 'frosted', label: 'Frosted' },

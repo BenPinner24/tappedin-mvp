@@ -1,5 +1,10 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isCardDormant } from '@/lib/tiers'
+import {
+  resolveTheme,
+  getLinkButtonStyle as resolveLinkButtonStyle,
+  linkIconColor as resolveLinkIconColor,
+} from '@/lib/theme'
 import SaveToNetworkButton from '@/components/SaveToNetworkButton'
 import { notFound }     from 'next/navigation'
 import type { CSSProperties } from 'react'
@@ -83,71 +88,6 @@ function resolveHref(url: string): string {
 // Normalise a platform label ("X / Twitter" → "x_twitter", "Apple Music" → "apple_music")
 function platformKey(label: string): string {
   return (label || '').toLowerCase().replace(/[\s/]+/g, '_')
-}
-
-function getLinkButtonStyle(
-  buttonStyle: string | null,
-  accent = '#52d6fc'
-): CSSProperties {
-  const border = `1px solid ${accent}`
-  const glow = `0 0 14px ${accent}33`
-
-  if (buttonStyle === 'sharp') {
-    return {
-      background: 'rgba(255,255,255,0.96)',
-      color: '#000',
-      border,
-      borderRadius: '6px',
-      boxShadow: glow,
-    }
-  }
-
-  if (buttonStyle === 'outline') {
-    return {
-      background: 'transparent',
-      color: '#fff',
-      border,
-      borderRadius: '14px',
-      boxShadow: glow,
-    }
-  }
-
-  if (buttonStyle === 'glass') {
-    return {
-      background: `${accent}22`,
-      color: '#fff',
-      border,
-      borderRadius: '14px',
-      boxShadow: glow,
-    }
-  }
-
-  if (buttonStyle === 'soft_glow') {
-    return {
-      background: `${accent}18`,
-      color: '#fff',
-      border,
-      borderRadius: '14px',
-      boxShadow: `0 0 24px ${accent}55`,
-    }
-  }
-
-  if (buttonStyle === 'minimal') {
-    return {
-      background: 'transparent',
-      color: '#fff',
-      borderBottom: `1px solid ${accent}`,
-      borderRadius: '0px',
-    }
-  }
-
-  return {
-    background: `${accent}18`,
-    color: '#fff',
-    border,
-    borderRadius: '14px',
-    boxShadow: glow,
-  }
 }
 
 // ─── vCard (Save Contact) — built server-side, downloaded via a data URI ───────
@@ -416,18 +356,16 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     background_style: companyTemplate?.background_style ?? profile.background_style,
   }
 
-  const publicAccent = activeStyle.accent_color || '#52d6fc'
+  // ── Theme ───────────────────────────────────────────────────────────────
+  // Resolved by the SAME engine the Brand Studio preview uses, so what a
+  // creator sees while editing is what visitors get. It handles every preset,
+  // the glass levels, and custom solid/gradient backgrounds, and falls back to
+  // Classic Black for anything unrecognised.
+  const theme = resolveTheme(activeStyle)
 
-  const btnStyle = getLinkButtonStyle(
-    activeStyle.button_style,
-    publicAccent
-  )
-
-  // Icon/arrow colour adapts to the chosen button style (dark on white buttons).
-  const isDefaultBtn = !activeStyle.button_style || activeStyle.button_style === 'default'
-  const linkIconColor = (isDefaultBtn || activeStyle.button_style === 'sharp')
-    ? 'rgba(0,0,0,0.5)'
-    : 'rgba(255,255,255,0.55)'
+  const publicAccent = theme.accent || '#52d6fc'
+  const btnStyle = resolveLinkButtonStyle(activeStyle.button_style, theme)
+  const linkIconColor = resolveLinkIconColor(activeStyle.button_style)
 
   const vcardHref = buildVCardHref({
     username: profile.username || cleanUsername,
@@ -440,22 +378,8 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     links: [...companyLinks, ...activeLinks],
   })
 
-  const publicTheme = activeStyle.theme_style || 'dark'
-  const publicBackground = activeStyle.background_style || 'solid_black'
-  const styleKey = `${publicTheme} ${publicBackground}`
-  const pageBackground =
-    styleKey.includes('burgundy') ? '#120207' :
-    styleKey.includes('navy') || styleKey.includes('midnight') ? '#020817' :
-    styleKey.includes('emerald') || styleKey.includes('forest') ? '#020d08' :
-    styleKey.includes('graphite') || styleKey.includes('carbon') ? '#101418' :
-    '#030303'
-
-  const cardBackground =
-    publicBackground === 'frosted' || publicTheme.includes('glass')
-      ? 'rgba(255,255,255,0.08)'
-      : publicTheme === 'minimal'
-        ? '#111'
-        : '#0a0a0a'
+  const pageBackground = theme.pageBg
+  const cardBackground = theme.cardBg
 
   // ── Dormant profile screen ───────────────────────────────────────────────
   // Shown when the owner's subscription has lapsed. Visitors see an on-brand
@@ -558,7 +482,14 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
         <div style={s.shell}>
           <div
             className="ti-card"
-            style={{ ...s.card, background: cardBackground }}
+            style={{
+              ...s.card,
+              background: cardBackground,
+              border: `1px solid ${theme.cardBorder}`,
+              ...(theme.cardBackdrop
+                ? { backdropFilter: theme.cardBackdrop, WebkitBackdropFilter: theme.cardBackdrop }
+                : null),
+            }}
           >
 
             {/* Card inner grain for depth */}
